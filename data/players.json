@@ -1,1 +1,12 @@
-﻿[]
+[
+    {
+        "id": "1b515770-1a35-4304-8f02-da3ab88bfdc4",
+        "name": "Joe Bus",
+        "nickname": "The Dollar Taker"
+    },
+    {
+        "id": "7225aa68-9d67-47e5-9a0b-8112667c9d1d",
+        "name": "Nancy B",
+        "nickname": "No Mercy"
+    }
+]

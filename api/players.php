@@ -44,6 +44,10 @@ function loadPlayers(string $path): array
     if ($raw === false || trim($raw) === '') {
         return [];
     }
+    // Strip UTF-8 BOM if present (common on Windows editors).
+    if (strncmp($raw, "\xEF\xBB\xBF", 3) === 0) {
+        $raw = substr($raw, 3);
+    }
     $decoded = json_decode($raw, true);
     if (!is_array($decoded)) {
         respond(500, ['error' => 'Corrupt players.json']);
