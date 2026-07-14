@@ -1,0 +1,72 @@
+[
+    {
+        "id": "d518a4a5-c966-4d41-8c9a-c5a8c244fed3",
+        "name": "Tuesdays cards",
+        "date": "2026-07-14",
+        "status": "ended",
+        "playerIds": [
+            "1b515770-1a35-4304-8f02-da3ab88bfdc4",
+            "7225aa68-9d67-47e5-9a0b-8112667c9d1d"
+        ],
+        "plays": [
+            {
+                "id": "a6362e52-717f-4b10-97f5-cee47e26f95c",
+                "gameId": "441042e9-c42a-4a59-9974-a1e1b80f97cf",
+                "winnerPlayerId": "7225aa68-9d67-47e5-9a0b-8112667c9d1d"
+            },
+            {
+                "id": "eeadce80-aaa0-4ead-9b0d-9810739b9b41",
+                "gameId": "4381af23-9fda-43b1-ad0d-de3681ba055f",
+                "winnerPlayerId": "7225aa68-9d67-47e5-9a0b-8112667c9d1d"
+            },
+            {
+                "id": "b86d0810-25ef-44c4-aaba-73f2f8eb7658",
+                "gameId": "114ce818-ad13-410b-83fe-d20391f8dc52",
+                "winnerPlayerId": "1b515770-1a35-4304-8f02-da3ab88bfdc4"
+            }
+        ]
+    },
+    {
+        "id": "4a2968a2-00f0-4fdf-8461-877a3eee56b4",
+        "name": "tuesday's fun",
+        "date": "2026-07-14",
+        "status": "ended",
+        "playerIds": [
+            "1b515770-1a35-4304-8f02-da3ab88bfdc4",
+            "7225aa68-9d67-47e5-9a0b-8112667c9d1d"
+        ],
+        "plays": [
+            {
+                "id": "b7f98515-f210-4216-83ab-73f70f030d84",
+                "gameId": "441042e9-c42a-4a59-9974-a1e1b80f97cf",
+                "winnerPlayerId": "1b515770-1a35-4304-8f02-da3ab88bfdc4"
+            },
+            {
+                "id": "269d0cf2-a3b6-4010-a6d6-b7304be4ca45",
+                "gameId": "441042e9-c42a-4a59-9974-a1e1b80f97cf",
+                "winnerPlayerId": "7225aa68-9d67-47e5-9a0b-8112667c9d1d"
+            },
+            {
+                "id": "e845ac5e-f50c-4cbb-875c-bcfc20480601",
+                "gameId": "4381af23-9fda-43b1-ad0d-de3681ba055f",
+                "winnerPlayerId": "7225aa68-9d67-47e5-9a0b-8112667c9d1d"
+            },
+            {
+                "id": "c0410074-5cee-4e73-a084-fb174517d0d6",
+                "gameId": "441042e9-c42a-4a59-9974-a1e1b80f97cf",
+                "winnerPlayerId": "7225aa68-9d67-47e5-9a0b-8112667c9d1d"
+            }
+        ]
+    },
+    {
+        "id": "85ed0170-c4ca-4fa9-a7df-94c5a89e066c",
+        "name": "Game Night",
+        "date": "2026-07-14",
+        "status": "active",
+        "playerIds": [
+            "1b515770-1a35-4304-8f02-da3ab88bfdc4",
+            "7225aa68-9d67-47e5-9a0b-8112667c9d1d"
+        ],
+        "plays": []
+    }
+]

@@ -1,0 +1,205 @@
+(() => {
+  const API_URL = "api/games.php";
+
+  const form = document.getElementById("game-form");
+  const formTitle = document.getElementById("form-title");
+  const gameIdInput = document.getElementById("game-id");
+  const nameInput = document.getElementById("game-name");
+  const nameError = document.getElementById("name-error");
+  const submitBtn = document.getElementById("submit-btn");
+  const cancelEditBtn = document.getElementById("cancel-edit-btn");
+  const formStatus = document.getElementById("form-status");
+  const listStatus = document.getElementById("list-status");
+  const gameList = document.getElementById("game-list");
+  const emptyState = document.getElementById("empty-state");
+
+  let games = [];
+  let editingId = null;
+
+  function setFormStatus(message, isError = false) {
+    if (!message) {
+      formStatus.classList.add("hidden");
+      formStatus.textContent = "";
+      return;
+    }
+    formStatus.textContent = message;
+    formStatus.classList.remove("hidden", "text-red-600", "text-emerald-700");
+    formStatus.classList.add(isError ? "text-red-600" : "text-emerald-700");
+  }
+
+  function resetForm() {
+    editingId = null;
+    gameIdInput.value = "";
+    nameInput.value = "";
+    nameError.classList.add("hidden");
+    formTitle.textContent = "Add game";
+    submitBtn.textContent = "Add game";
+    cancelEditBtn.classList.add("hidden");
+  }
+
+  function startEdit(game) {
+    editingId = game.id;
+    gameIdInput.value = game.id;
+    nameInput.value = game.name || "";
+    nameError.classList.add("hidden");
+    formTitle.textContent = "Edit game";
+    submitBtn.textContent = "Save changes";
+    cancelEditBtn.classList.remove("hidden");
+    nameInput.focus();
+    setFormStatus("");
+  }
+
+  function escapeHtml(value) {
+    return String(value)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#39;");
+  }
+
+  function renderGames() {
+    gameList.innerHTML = "";
+    listStatus.classList.add("hidden");
+
+    if (!games.length) {
+      emptyState.classList.remove("hidden");
+      return;
+    }
+
+    emptyState.classList.add("hidden");
+
+    for (const game of games) {
+      const li = document.createElement("li");
+      li.className = "flex flex-wrap items-center justify-between gap-3 py-3";
+
+      li.innerHTML = `
+        <div>
+          <p class="font-medium text-slate-900">${escapeHtml(game.name)}</p>
+        </div>
+        <div class="flex gap-2">
+          <button type="button" data-action="edit" data-id="${escapeHtml(game.id)}"
+            class="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50">
+            Edit
+          </button>
+          <button type="button" data-action="delete" data-id="${escapeHtml(game.id)}"
+            class="rounded-md border border-red-200 px-3 py-1.5 text-sm text-red-700 hover:bg-red-50">
+            Delete
+          </button>
+        </div>
+      `;
+      gameList.appendChild(li);
+    }
+  }
+
+  async function api(method, body) {
+    const options = {
+      method,
+      headers: { Accept: "application/json" },
+    };
+    if (body !== undefined) {
+      options.headers["Content-Type"] = "application/json";
+      options.body = JSON.stringify(body);
+    }
+    const response = await fetch(API_URL, options);
+    let data = null;
+    const text = await response.text();
+    if (text) {
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error("Server returned invalid JSON. Is PHP running?");
+      }
+    }
+    if (!response.ok) {
+      const message = (data && data.error) || `Request failed (${response.status})`;
+      throw new Error(message);
+    }
+    return data;
+  }
+
+  async function loadGames() {
+    listStatus.textContent = "Loading games…";
+    listStatus.classList.remove("hidden");
+    emptyState.classList.add("hidden");
+    try {
+      games = await api("GET");
+      if (!Array.isArray(games)) {
+        games = [];
+      }
+      renderGames();
+    } catch (err) {
+      listStatus.textContent = err.message || "Failed to load games.";
+      listStatus.classList.remove("hidden");
+      gameList.innerHTML = "";
+    }
+  }
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const name = nameInput.value.trim();
+
+    if (!name) {
+      nameError.classList.remove("hidden");
+      nameInput.focus();
+      return;
+    }
+    nameError.classList.add("hidden");
+    submitBtn.disabled = true;
+    setFormStatus("");
+
+    try {
+      if (editingId) {
+        await api("PUT", { id: editingId, name });
+        setFormStatus("Game updated.");
+      } else {
+        await api("POST", { name });
+        setFormStatus("Game added.");
+      }
+      resetForm();
+      await loadGames();
+    } catch (err) {
+      setFormStatus(err.message || "Save failed.", true);
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+
+  cancelEditBtn.addEventListener("click", () => {
+    resetForm();
+    setFormStatus("");
+  });
+
+  gameList.addEventListener("click", async (event) => {
+    const button = event.target.closest("button[data-action]");
+    if (!button) return;
+
+    const id = button.getAttribute("data-id");
+    const action = button.getAttribute("data-action");
+    const game = games.find((g) => g.id === id);
+    if (!game) return;
+
+    if (action === "edit") {
+      startEdit(game);
+      return;
+    }
+
+    if (action === "delete") {
+      if (!window.confirm(`Delete ${game.name}?`)) {
+        return;
+      }
+      try {
+        await api("DELETE", { id });
+        if (editingId === id) {
+          resetForm();
+        }
+        setFormStatus("Game deleted.");
+        await loadGames();
+      } catch (err) {
+        setFormStatus(err.message || "Delete failed.", true);
+      }
+    }
+  });
+
+  loadGames();
+})();

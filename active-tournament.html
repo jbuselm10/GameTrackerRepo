@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GameTracker — Active Tournament</title>
+  <link rel="icon" href="favicon.png" type="image/png" />
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-slate-100 text-slate-900">
+  <div class="mx-auto max-w-2xl px-4 py-10">
+    <nav class="mb-6 flex flex-wrap gap-x-4 gap-y-2 text-lg font-medium">
+      <a href="index.html" class="text-slate-600 hover:text-slate-900">Home</a>
+      <a href="players.html" class="text-slate-600 hover:text-slate-900">Players</a>
+      <a href="games.html" class="text-slate-600 hover:text-slate-900">Games</a>
+      <a href="tournaments.html" class="text-slate-600 hover:text-slate-900">Tournaments</a>
+    </nav>
+    <header class="mb-8">
+      <p class="text-sm font-medium uppercase tracking-wide text-slate-500">Game Tracker</p>
+      <h1 class="mt-1 text-3xl font-semibold tracking-tight">Active Tournament</h1>
+      <p class="mt-2 text-slate-600">Record games and winners. Ending the tournament opens the summary.</p>
+      <div class="mt-4">
+        <a
+          href="tournaments.html"
+          class="inline-block rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+        >
+          Back to tournaments
+        </a>
+      </div>
+    </header>
+
+    <p id="page-status" class="mb-4 text-sm text-slate-500">Loading tournament…</p>
+    <p id="form-status" class="mb-4 hidden text-sm" role="status"></p>
+
+    <section id="active-panel" class="hidden space-y-6">
+      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 id="tournament-name" class="text-lg font-medium"></h2>
+            <p id="tournament-date" class="mt-1 text-sm text-slate-500"></p>
+            <p id="tournament-players" class="mt-1 text-sm text-slate-500"></p>
+            <div class="mt-2">
+              <span class="rounded-md bg-emerald-100 px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-emerald-800">Active</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            id="end-tournament-btn"
+            class="rounded-md border border-amber-300 px-3 py-1.5 text-sm text-amber-800 hover:bg-amber-50"
+          >
+            End tournament
+          </button>
+        </div>
+      </div>
+
+      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <h3 id="plays-title" class="mb-3 text-lg font-medium">Active games</h3>
+        <div id="plays-list"></div>
+      </div>
+
+      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <h3 id="play-form-title" class="mb-3 text-lg font-medium">Add game</h3>
+        <form id="play-form" class="space-y-3">
+          <input type="hidden" id="play-id" value="" />
+          <div class="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label for="play-game" class="mb-1 block text-sm font-medium text-slate-700">Game</label>
+              <select
+                id="play-game"
+                name="gameId"
+                required
+                class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+              ></select>
+            </div>
+            <div>
+              <label for="play-winner" class="mb-1 block text-sm font-medium text-slate-700">Winner</label>
+              <select
+                id="play-winner"
+                name="winnerPlayerId"
+                required
+                class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+              ></select>
+            </div>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <button
+              type="submit"
+              id="save-play-btn"
+              class="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+            >
+              Save game result
+            </button>
+            <button
+              type="button"
+              id="cancel-play-edit-btn"
+              class="hidden rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+  </div>
+
+  <script src="js/active-tournament.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,219 @@
+(() => {
+  const API_URL = "api/tournaments.php";
+  const PLAYERS_API_URL = "api/players.php";
+
+  const listStatus = document.getElementById("list-status");
+  const actionStatus = document.getElementById("action-status");
+  const historyList = document.getElementById("history-list");
+  const emptyState = document.getElementById("empty-state");
+
+  let players = [];
+  let tournaments = [];
+
+  function escapeHtml(value) {
+    return String(value)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#39;");
+  }
+
+  function formatDate(value) {
+    if (!value) return "";
+    const parts = String(value).split("-");
+    if (parts.length !== 3) return escapeHtml(value);
+    const [year, month, day] = parts;
+    const date = new Date(Number(year), Number(month) - 1, Number(day));
+    if (Number.isNaN(date.getTime())) return escapeHtml(value);
+    return escapeHtml(
+      date.toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      })
+    );
+  }
+
+  function setActionStatus(message, isError = false) {
+    if (!message) {
+      actionStatus.classList.add("hidden");
+      actionStatus.textContent = "";
+      return;
+    }
+    actionStatus.textContent = message;
+    actionStatus.classList.remove("hidden", "text-red-600", "text-emerald-700");
+    actionStatus.classList.add(isError ? "text-red-600" : "text-emerald-700");
+  }
+
+  function playerLabel(playerId) {
+    const player = players.find((p) => p.id === playerId);
+    if (!player) return playerId;
+    return player.nickname ? `${player.name} (${player.nickname})` : player.name;
+  }
+
+  function formatPlayers(playerIds) {
+    const ids = Array.isArray(playerIds) ? playerIds : [];
+    if (!ids.length) {
+      return '<p class="mt-1 text-sm text-slate-500">No players</p>';
+    }
+    const names = ids.map((id) => escapeHtml(playerLabel(id))).join(", ");
+    return `<p class="mt-1 text-sm text-slate-500">Players: ${names}</p>`;
+  }
+
+  function formatWinners(tournament) {
+    const rosterIds = Array.isArray(tournament.playerIds) ? tournament.playerIds.map(String) : [];
+    const plays = Array.isArray(tournament.plays) ? tournament.plays : [];
+    const winCounts = {};
+
+    for (const id of rosterIds) {
+      winCounts[id] = 0;
+    }
+    for (const play of plays) {
+      const winnerId = play && play.winnerPlayerId ? String(play.winnerPlayerId) : "";
+      if (!winnerId) continue;
+      if (!(winnerId in winCounts)) {
+        winCounts[winnerId] = 0;
+      }
+      winCounts[winnerId] += 1;
+    }
+
+    const entries = Object.keys(winCounts).map((id) => ({
+      id,
+      wins: winCounts[id],
+    }));
+
+    if (!entries.length) {
+      return '<p class="mt-1 text-sm text-slate-500">Winners: None</p>';
+    }
+
+    const topWins = Math.max(...entries.map((entry) => entry.wins));
+    if (topWins <= 0) {
+      return '<p class="mt-1 text-sm text-slate-500">Winners: None</p>';
+    }
+
+    const winners = entries
+      .filter((entry) => entry.wins === topWins)
+      .map((entry) => escapeHtml(playerLabel(entry.id)));
+
+    const winLabel = `${topWins} win${topWins === 1 ? "" : "s"}`;
+    return `<p class="mt-1 text-sm font-medium text-emerald-800">Winners: ${winners.join(", ")} (${winLabel})</p>`;
+  }
+
+  function renderHistory() {
+    historyList.innerHTML = "";
+    listStatus.classList.add("hidden");
+
+    const ended = tournaments
+      .filter((t) => t.status === "ended")
+      .sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
+
+    if (!ended.length) {
+      emptyState.classList.remove("hidden");
+      return;
+    }
+
+    emptyState.classList.add("hidden");
+
+    for (const tournament of ended) {
+      const li = document.createElement("li");
+      li.className = "flex flex-wrap items-start justify-between gap-3 py-3";
+      li.innerHTML = `
+        <div>
+          <p class="font-medium text-slate-900">${escapeHtml(tournament.name)}</p>
+          ${formatWinners(tournament)}
+          <p class="mt-1 text-sm text-slate-500">${formatDate(tournament.date)}</p>
+          ${formatPlayers(tournament.playerIds)}
+          <div class="mt-2">
+            <span class="rounded-md bg-slate-200 px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-slate-700">Ended</span>
+          </div>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <a
+            href="tournament-summary.html?id=${encodeURIComponent(tournament.id)}"
+            class="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            View summary
+          </a>
+          <button
+            type="button"
+            data-action="delete"
+            data-id="${escapeHtml(tournament.id)}"
+            class="rounded-md border border-red-200 px-3 py-1.5 text-sm text-red-700 hover:bg-red-50"
+          >
+            Remove
+          </button>
+        </div>
+      `;
+      historyList.appendChild(li);
+    }
+  }
+
+  async function fetchJson(url, method = "GET", body) {
+    const options = {
+      method,
+      headers: { Accept: "application/json" },
+    };
+    if (body !== undefined) {
+      options.headers["Content-Type"] = "application/json";
+      options.body = JSON.stringify(body);
+    }
+    const response = await fetch(url, options);
+    const text = await response.text();
+    let data = null;
+    if (text) {
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error("Server returned invalid JSON. Is PHP running?");
+      }
+    }
+    if (!response.ok) {
+      throw new Error((data && data.error) || `Request failed (${response.status})`);
+    }
+    return data;
+  }
+
+  async function loadHistory() {
+    listStatus.textContent = "Loading history…";
+    listStatus.classList.remove("hidden");
+    emptyState.classList.add("hidden");
+    historyList.innerHTML = "";
+
+    try {
+      const [tournamentData, playerData] = await Promise.all([
+        fetchJson(API_URL),
+        fetchJson(PLAYERS_API_URL),
+      ]);
+      players = Array.isArray(playerData) ? playerData : [];
+      tournaments = Array.isArray(tournamentData) ? tournamentData : [];
+      renderHistory();
+    } catch (err) {
+      listStatus.textContent = err.message || "Failed to load history.";
+      listStatus.classList.remove("hidden");
+    }
+  }
+
+  historyList.addEventListener("click", async (event) => {
+    const button = event.target.closest('button[data-action="delete"]');
+    if (!button) return;
+
+    const id = button.getAttribute("data-id");
+    const tournament = tournaments.find((t) => t.id === id);
+    if (!tournament) return;
+
+    if (!window.confirm(`Remove ${tournament.name} from history? This cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      await fetchJson(API_URL, "DELETE", { id });
+      setActionStatus("Tournament removed.");
+      await loadHistory();
+    } catch (err) {
+      setActionStatus(err.message || "Failed to remove tournament.", true);
+    }
+  });
+
+  loadHistory();
+})();
