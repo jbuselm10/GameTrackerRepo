@@ -241,10 +241,6 @@ if ($method === 'POST') {
         if ($gameId === '') {
             respond(400, ['error' => 'gameId is required']);
         }
-        if ($winnerPlayerId === '') {
-            respond(400, ['error' => 'winnerPlayerId is required']);
-        }
-
         $index = findTournamentIndex($tournaments, $tournamentId);
         if ($index < 0) {
             respond(404, ['error' => 'Tournament not found']);
@@ -263,7 +259,7 @@ if ($method === 'POST') {
         $roster = isset($tournament['playerIds']) && is_array($tournament['playerIds'])
             ? array_map('strval', $tournament['playerIds'])
             : [];
-        if (!in_array($winnerPlayerId, $roster, true)) {
+        if ($winnerPlayerId !== '' && !in_array($winnerPlayerId, $roster, true)) {
             respond(400, ['error' => 'Winner must be a player in the tournament']);
         }
 
@@ -323,9 +319,6 @@ if ($method === 'PUT') {
         if ($gameId === '') {
             respond(400, ['error' => 'gameId is required']);
         }
-        if ($winnerPlayerId === '') {
-            respond(400, ['error' => 'winnerPlayerId is required']);
-        }
 
         $index = findTournamentIndex($tournaments, $tournamentId);
         if ($index < 0) {
@@ -345,7 +338,7 @@ if ($method === 'PUT') {
         $roster = isset($tournament['playerIds']) && is_array($tournament['playerIds'])
             ? array_map('strval', $tournament['playerIds'])
             : [];
-        if (!in_array($winnerPlayerId, $roster, true)) {
+        if ($winnerPlayerId !== '' && !in_array($winnerPlayerId, $roster, true)) {
             respond(400, ['error' => 'Winner must be a player in the tournament']);
         }
 

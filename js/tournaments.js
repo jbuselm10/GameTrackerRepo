@@ -20,6 +20,8 @@
   const listStatus = document.getElementById("list-status");
   const tournamentList = document.getElementById("tournament-list");
   const emptyState = document.getElementById("empty-state");
+  const formSection = document.getElementById("form-section");
+  const newTournamentBtn = document.getElementById("new-tournament-btn");
 
   let tournaments = [];
   let players = [];
@@ -112,6 +114,9 @@
     formTitle.textContent = "Add tournament";
     submitBtn.textContent = "Add tournament";
     cancelEditBtn.classList.add("hidden");
+    newTournamentBtn.classList.remove("hidden");
+    formSection.classList.remove("border-blue-500", "ring-2", "ring-blue-200");
+    formSection.classList.add("border-slate-200");
     updatePlayersLockState();
   }
 
@@ -125,10 +130,14 @@
     nameError.classList.add("hidden");
     dateError.classList.add("hidden");
     playersError.classList.add("hidden");
-    formTitle.textContent = "Edit tournament";
+    formTitle.innerHTML = `Edit tournament — <strong>${escapeHtml(tournament.name)}</strong>`;
     submitBtn.textContent = "Save changes";
     cancelEditBtn.classList.remove("hidden");
+    newTournamentBtn.classList.add("hidden");
+    formSection.classList.remove("border-slate-200");
+    formSection.classList.add("border-blue-500", "ring-2", "ring-blue-200");
     updatePlayersLockState();
+    formSection.scrollIntoView({ behavior: "smooth", block: "nearest" });
     nameInput.focus();
     setFormStatus("");
   }
@@ -177,7 +186,7 @@
       return '<p class="mt-1 text-sm text-slate-500">No players</p>';
     }
     const names = ids.map((id) => escapeHtml(playerLabel(id))).join(", ");
-    return `<p class="mt-1 text-sm text-slate-500">Players: ${names}</p>`;
+    return `<p class="mt-1 text-sm font-bold text-slate-700">Players: ${names}</p>`;
   }
 
   function renderTournaments() {
@@ -199,21 +208,20 @@
 
       li.innerHTML = `
         <div>
-          <p class="font-medium text-slate-900">${escapeHtml(tournament.name)}</p>
+          <p class="font-medium text-slate-900">${escapeHtml(tournament.name)} ${statusBadge(tournament.status)}</p>
           <p class="mt-1 text-sm text-slate-500">${formatDate(tournament.date)}</p>
           ${formatPlayers(tournament.playerIds)}
-          <div class="mt-2">${statusBadge(tournament.status)}</div>
         </div>
-        <div class="flex flex-wrap gap-2">
+        <div class="flex shrink-0 gap-2">
           <a
             href="active-tournament.html?id=${encodeURIComponent(tournament.id)}"
             class="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800"
           >
-            Open active tournament
+            Update Tournament Details
           </a>
           <button type="button" data-action="edit" data-id="${escapeHtml(tournament.id)}"
             class="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50">
-            Edit
+            Edit Name and Players
           </button>
           <button type="button" data-action="delete" data-id="${escapeHtml(tournament.id)}"
             class="rounded-md border border-red-200 px-3 py-1.5 text-sm text-red-700 hover:bg-red-50">
@@ -331,6 +339,12 @@
   cancelEditBtn.addEventListener("click", () => {
     resetForm();
     setFormStatus("");
+  });
+
+  newTournamentBtn.addEventListener("click", () => {
+    resetForm();
+    setFormStatus("");
+    nameInput.focus();
   });
 
   tournamentList.addEventListener("click", async (event) => {

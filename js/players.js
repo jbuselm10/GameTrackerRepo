@@ -212,5 +212,15 @@
     }
   });
 
+  const returnBtn = document.getElementById("return-btn");
+  const params = new URLSearchParams(window.location.search);
+  const returnTo = params.get("returnTo");
+  if (returnTo && returnBtn) {
+    returnBtn.classList.remove("hidden");
+    returnBtn.addEventListener("click", () => {
+      window.location.href = returnTo;
+    });
+  }
+
   loadPlayers();
 })();
