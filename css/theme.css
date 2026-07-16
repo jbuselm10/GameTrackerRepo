@@ -1,0 +1,291 @@
+:root {
+  --felt: #1f6b4a;
+  --felt-dark: #154f36;
+  --felt-light: #2d8a60;
+  --wood: #8b6914;
+  --wood-deep: #5c4510;
+  --wood-muted: #a8893a;
+  --parchment: #f3ebd8;
+  --parchment-deep: #e8dcc4;
+  --ink: #1f1a14;
+  --ink-muted: #5c5348;
+  --gold: #c9a227;
+  --gold-soft: #f5e6b8;
+  --danger: #b42318;
+}
+
+body.gt-body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--ink);
+  font-family: "Nunito", system-ui, sans-serif;
+  background-color: #1a4d38;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 20% 10%, rgba(45, 138, 96, 0.45), transparent 55%),
+    radial-gradient(ellipse 70% 45% at 85% 20%, rgba(201, 162, 39, 0.12), transparent 50%),
+    radial-gradient(ellipse 90% 60% at 50% 100%, rgba(21, 79, 54, 0.9), transparent 60%),
+    linear-gradient(165deg, #246b4d 0%, #1a4d38 40%, #143d2c 100%);
+  background-attachment: fixed;
+}
+
+.gt-wood-strip {
+  height: 0.55rem;
+  background: linear-gradient(
+    90deg,
+    var(--wood-deep) 0%,
+    var(--wood) 18%,
+    var(--wood-muted) 35%,
+    var(--wood) 55%,
+    var(--wood-deep) 78%,
+    var(--wood) 100%
+  );
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.gt-nav a {
+  color: var(--parchment);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.gt-nav a:hover {
+  color: var(--gold);
+}
+
+.gt-eyebrow {
+  font-family: "Nunito", system-ui, sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gold-soft);
+}
+
+.gt-title {
+  font-family: "Fraunces", Georgia, serif;
+  color: var(--parchment);
+  letter-spacing: -0.02em;
+}
+
+.gt-subtitle {
+  color: rgba(243, 235, 216, 0.88);
+}
+
+.gt-panel {
+  background: var(--parchment);
+  border: 1px solid rgba(92, 69, 16, 0.35);
+  border-radius: 0.75rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  color: var(--ink);
+}
+
+.gt-panel-muted {
+  background: var(--parchment-deep);
+  border: 1px solid rgba(92, 69, 16, 0.28);
+  border-radius: 0.5rem;
+}
+
+.gt-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  background: var(--felt);
+  color: #fff;
+  font-family: inherit;
+  font-weight: 700;
+  border: 1px solid var(--felt-dark);
+  padding: 0.5rem 1rem;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.gt-btn:hover {
+  background: var(--felt-dark);
+}
+
+.gt-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  background: var(--parchment);
+  color: var(--ink);
+  font-family: inherit;
+  font-weight: 600;
+  border: 1px solid rgba(92, 69, 16, 0.4);
+  padding: 0.5rem 1rem;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.gt-btn-secondary:hover {
+  background: var(--parchment-deep);
+}
+
+.gt-btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--felt-dark);
+  font-weight: 700;
+  border: 2px solid var(--felt-dark);
+  padding: 0.4rem 0.85rem;
+  text-decoration: none;
+  transition: background 0.15s ease;
+}
+
+.gt-btn-outline:hover {
+  background: rgba(31, 107, 74, 0.08);
+}
+
+.gt-btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  background: var(--parchment);
+  color: var(--danger);
+  font-weight: 600;
+  border: 1px solid rgba(180, 35, 24, 0.35);
+  padding: 0.4rem 0.85rem;
+  transition: background 0.15s ease;
+}
+
+.gt-btn-danger:hover {
+  background: #fde8e6;
+}
+
+.gt-btn-warn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  background: var(--gold-soft);
+  color: var(--wood-deep);
+  font-weight: 600;
+  border: 1px solid var(--gold);
+  padding: 0.4rem 0.85rem;
+  transition: background 0.15s ease;
+}
+
+.gt-btn-warn:hover {
+  background: #efe0a8;
+}
+
+.gt-badge-active {
+  display: inline-block;
+  border-radius: 0.375rem;
+  background: rgba(31, 107, 74, 0.15);
+  color: var(--felt-dark);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.15rem 0.5rem;
+}
+
+.gt-badge-ended {
+  display: inline-block;
+  border-radius: 0.375rem;
+  background: rgba(92, 69, 16, 0.18);
+  color: var(--wood-deep);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.15rem 0.5rem;
+}
+
+.gt-input {
+  width: 100%;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(92, 69, 16, 0.35);
+  background: #fffdf8;
+  color: var(--ink);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  outline: none;
+}
+
+.gt-input:focus {
+  border-color: var(--felt);
+  box-shadow: 0 0 0 3px rgba(31, 107, 74, 0.2);
+}
+
+.gt-input.gt-pending {
+  color: var(--danger);
+  font-weight: 700;
+}
+
+input[type="checkbox"].gt-pending {
+  accent-color: var(--danger);
+}
+
+.gt-label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.gt-muted {
+  color: var(--ink-muted);
+}
+
+.gt-home-btn {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  min-width: 14rem;
+  border-radius: 0.75rem;
+  background: var(--felt);
+  color: #fff;
+  font-size: 1.125rem;
+  font-weight: 800;
+  padding: 0.75rem 1.5rem;
+  text-decoration: none;
+  border: 2px solid var(--felt-dark);
+  box-shadow: 0 4px 0 var(--felt-dark);
+  transition: transform 0.1s ease, background 0.15s ease;
+}
+
+.gt-home-btn:hover {
+  background: var(--felt-light);
+  transform: translateY(-1px);
+}
+
+.gt-home-desc {
+  color: rgba(243, 235, 216, 0.92);
+  font-size: 1.125rem;
+}
+
+.gt-home-desc strong {
+  color: var(--gold-soft);
+}
+
+.gt-edit-highlight {
+  border-color: var(--felt) !important;
+  box-shadow: 0 0 0 3px rgba(31, 107, 74, 0.25), 0 8px 24px rgba(0, 0, 0, 0.18) !important;
+}
+
+.gt-top-winners {
+  background: linear-gradient(135deg, var(--gold-soft), #efe6c8);
+  border: 1px solid var(--gold);
+  border-radius: 0.75rem;
+  color: var(--wood-deep);
+}
+
+.gt-status-ok {
+  color: var(--felt-dark);
+}
+
+.gt-status-err {
+  color: var(--danger);
+}

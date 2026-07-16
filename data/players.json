@@ -8,5 +8,30 @@
         "id": "7225aa68-9d67-47e5-9a0b-8112667c9d1d",
         "name": "Nancy B",
         "nickname": "No Mercy"
+    },
+    {
+        "id": "4434e489-84c7-4e58-a99a-545db0621f33",
+        "name": "Jessica",
+        "nickname": "The Quite but Deadly One"
+    },
+    {
+        "id": "731bae1f-0141-422a-935c-724157119964",
+        "name": "Jojo",
+        "nickname": "Mr. Positive"
+    },
+    {
+        "id": "97ee445a-a073-4cea-bd8e-9d4b8f97500a",
+        "name": "Payton",
+        "nickname": "LLoyd"
+    },
+    {
+        "id": "c4ea2388-c708-4b78-a942-5eda4bc401ca",
+        "name": "Papa Nelson",
+        "nickname": "A.K.A - Jimmy"
+    },
+    {
+        "id": "1b9928fc-b58b-4b34-9ed0-089ae5992e00",
+        "name": "Dianne",
+        "nickname": "Famma"
     }
 ]

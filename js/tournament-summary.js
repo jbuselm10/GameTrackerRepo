@@ -142,13 +142,13 @@
           const isLeader = topWins > 0 && row.wins === topWins;
           return `
             <li class="flex items-center justify-between gap-3 rounded-md px-3 py-2 ${
-              isLeader ? "bg-emerald-50 ring-1 ring-emerald-200" : "bg-slate-50"
+              isLeader ? "bg-gold-soft ring-1 ring-gold" : "bg-parchment-deep"
             }">
               <div class="flex items-center gap-3">
-                <span class="text-sm font-medium text-slate-500">#${index + 1}</span>
-                <span class="font-medium text-slate-900">${escapeHtml(row.label)}</span>
+                <span class="text-sm font-medium gt-muted">#${index + 1}</span>
+                <span class="font-medium text-ink">${escapeHtml(row.label)}</span>
               </div>
-              <span class="text-sm font-semibold text-slate-800">${row.wins} win${row.wins === 1 ? "" : "s"}</span>
+              <span class="text-sm font-semibold text-ink">${row.wins} win${row.wins === 1 ? "" : "s"}</span>
             </li>
           `;
         })

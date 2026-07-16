@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GameTracker — Tournament Summary</title>
+  <title>GameTracker — Player History</title>
   <link rel="icon" href="favicon.png" type="image/png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -42,35 +42,32 @@
     </nav>
     <header class="mb-8">
       <p class="gt-eyebrow">Game Tracker</p>
-      <h1 class="gt-title mt-1 text-3xl font-semibold tracking-tight">Tournament Summary</h1>
-      <p id="summary-subtitle" class="gt-subtitle mt-2">Results ranked by wins.</p>
+      <h1 class="gt-title mt-1 text-3xl font-semibold tracking-tight">Player History</h1>
+      <p class="gt-subtitle mt-2">
+        Standings across completed tournaments — tournament wins and game wins.
+      </p>
       <div class="mt-4">
-        <a href="history.html" class="gt-btn-secondary text-sm">Back to history</a>
+        <a href="history.html" class="gt-btn-secondary text-sm">Back to tournament history</a>
       </div>
     </header>
 
-    <p id="page-status" class="mb-4 text-sm gt-subtitle">Loading summary…</p>
-
-    <section id="summary-panel" class="hidden space-y-6">
-      <div class="gt-panel p-5">
-        <h2 id="tournament-name" class="font-display text-lg font-semibold text-ink"></h2>
-        <p id="tournament-meta" class="mt-1 text-sm gt-muted"></p>
-        <p id="games-played" class="mt-2 text-sm text-ink"></p>
+    <section class="gt-panel p-5">
+      <h2 class="mb-4 font-display text-2xl font-semibold text-ink">Player standings</h2>
+      <p id="list-status" class="mb-3 text-sm gt-muted">Loading player history…</p>
+      <div id="standings-header" class="mb-2 hidden grid grid-cols-[minmax(0,1fr)_11rem_8.5rem] items-center gap-3 border-b border-wood/25 pb-2 text-lg font-bold uppercase tracking-wide text-ink">
+        <span>Player</span>
+        <button type="button" id="sort-tournament-wins" data-sort="tournamentWins" class="whitespace-nowrap text-right text-felt-dark underline hover:text-felt">
+          Tournament wins
+        </button>
+        <button type="button" id="sort-game-wins" data-sort="gameWins" class="whitespace-nowrap text-right text-felt-dark underline hover:text-felt">
+          Game wins
+        </button>
       </div>
-
-      <div id="top-winners" class="gt-top-winners hidden p-5">
-        <h2 class="text-sm font-bold uppercase tracking-wide text-wood-deep">Top by wins</h2>
-        <p id="top-winners-text" class="mt-2 text-lg font-semibold text-wood-deep"></p>
-      </div>
-
-      <div class="gt-panel p-5">
-        <h2 class="mb-4 font-display text-lg font-semibold text-ink">Standings</h2>
-        <ol id="standings-list" class="space-y-3"></ol>
-        <p id="standings-empty" class="hidden text-sm gt-muted">No players on this tournament.</p>
-      </div>
+      <ul id="player-list" class="divide-y divide-wood/20"></ul>
+      <p id="empty-state" class="hidden text-sm gt-muted">No players yet.</p>
     </section>
   </div>
 
-  <script src="js/tournament-summary.js" defer></script>
+  <script src="js/player-history.js" defer></script>
 </body>
 </html>

@@ -42,8 +42,8 @@
       return;
     }
     formStatus.textContent = message;
-    formStatus.classList.remove("hidden", "text-red-600", "text-emerald-700");
-    formStatus.classList.add(isError ? "text-red-600" : "text-emerald-700");
+    formStatus.classList.remove("hidden", "gt-status-err", "gt-status-ok");
+    formStatus.classList.add(isError ? "gt-status-err" : "gt-status-ok");
   }
 
   function playersEditable() {
@@ -83,7 +83,7 @@
 
     for (const player of players) {
       const label = document.createElement("label");
-      label.className = "flex items-center gap-2 text-sm text-slate-700";
+      label.className = "flex items-center gap-2 text-sm text-ink";
       const nickname = player.nickname
         ? ` (${escapeHtml(player.nickname)})`
         : "";
@@ -91,7 +91,7 @@
         <input
           type="checkbox"
           data-player-id="${escapeHtml(player.id)}"
-          class="rounded border-slate-300 text-slate-900 focus:ring-slate-200"
+          class="rounded border-wood/40 text-felt focus:ring-felt/30"
         />
         <span>${escapeHtml(player.name)}${nickname}</span>
       `;
@@ -115,8 +115,7 @@
     submitBtn.textContent = "Add tournament";
     cancelEditBtn.classList.add("hidden");
     newTournamentBtn.classList.remove("hidden");
-    formSection.classList.remove("border-blue-500", "ring-2", "ring-blue-200");
-    formSection.classList.add("border-slate-200");
+    formSection.classList.remove("gt-edit-highlight");
     updatePlayersLockState();
   }
 
@@ -134,8 +133,7 @@
     submitBtn.textContent = "Save changes";
     cancelEditBtn.classList.remove("hidden");
     newTournamentBtn.classList.add("hidden");
-    formSection.classList.remove("border-slate-200");
-    formSection.classList.add("border-blue-500", "ring-2", "ring-blue-200");
+    formSection.classList.add("gt-edit-highlight");
     updatePlayersLockState();
     formSection.scrollIntoView({ behavior: "smooth", block: "nearest" });
     nameInput.focus();
@@ -169,9 +167,9 @@
 
   function statusBadge(status) {
     if (status === "ended") {
-      return '<span class="rounded-md bg-slate-200 px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-slate-700">Ended</span>';
+      return '<span class="gt-badge-ended">Ended</span>';
     }
-    return '<span class="rounded-md bg-emerald-100 px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-emerald-800">Active</span>';
+    return '<span class="gt-badge-active">Active</span>';
   }
 
   function playerLabel(playerId) {
@@ -183,10 +181,10 @@
   function formatPlayers(playerIds) {
     const ids = Array.isArray(playerIds) ? playerIds : [];
     if (!ids.length) {
-      return '<p class="mt-1 text-sm text-slate-500">No players</p>';
+      return '<p class="mt-1 text-sm gt-muted">No players</p>';
     }
     const names = ids.map((id) => escapeHtml(playerLabel(id))).join(", ");
-    return `<p class="mt-1 text-sm font-bold text-slate-700">Players: ${names}</p>`;
+    return `<p class="mt-1 text-sm font-bold text-ink">Players: ${names}</p>`;
   }
 
   function renderTournaments() {
@@ -204,27 +202,27 @@
 
     for (const tournament of activeTournaments) {
       const li = document.createElement("li");
-      li.className = "flex flex-wrap items-start justify-between gap-3 py-3";
+      li.className = "space-y-3 py-3";
 
       li.innerHTML = `
         <div>
-          <p class="font-medium text-slate-900">${escapeHtml(tournament.name)} ${statusBadge(tournament.status)}</p>
-          <p class="mt-1 text-sm text-slate-500">${formatDate(tournament.date)}</p>
+          <p class="font-medium text-ink">${escapeHtml(tournament.name)} ${statusBadge(tournament.status)}</p>
+          <p class="mt-1 text-sm gt-muted">${formatDate(tournament.date)}</p>
           ${formatPlayers(tournament.playerIds)}
         </div>
-        <div class="flex shrink-0 gap-2">
+        <div class="flex w-full flex-wrap gap-2">
           <a
             href="active-tournament.html?id=${encodeURIComponent(tournament.id)}"
-            class="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800"
+            class="gt-btn text-xs"
           >
             Update Tournament Details
           </a>
           <button type="button" data-action="edit" data-id="${escapeHtml(tournament.id)}"
-            class="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50">
+            class="gt-btn-secondary text-xs">
             Edit Name and Players
           </button>
           <button type="button" data-action="delete" data-id="${escapeHtml(tournament.id)}"
-            class="rounded-md border border-red-200 px-3 py-1.5 text-sm text-red-700 hover:bg-red-50">
+            class="gt-btn-danger text-xs">
             Delete
           </button>
         </div>

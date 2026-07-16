@@ -5,59 +5,62 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Friends and Family Game Tracker</title>
   <link rel="icon" href="favicon.png" type="image/png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Nunito:wght@500;600;700;800&display=swap" rel="stylesheet" />
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            felt: { DEFAULT: "#1f6b4a", dark: "#154f36", light: "#2d8a60" },
+            wood: { DEFAULT: "#8b6914", deep: "#5c4510", muted: "#a8893a" },
+            parchment: { DEFAULT: "#f3ebd8", deep: "#e8dcc4" },
+            ink: { DEFAULT: "#1f1a14", muted: "#5c5348" },
+            gold: { DEFAULT: "#c9a227", soft: "#f5e6b8" },
+          },
+          fontFamily: {
+            display: ['"Fraunces"', "Georgia", "serif"],
+            body: ['"Nunito"', "system-ui", "sans-serif"],
+          },
+        },
+      },
+    };
+  </script>
+  <link rel="stylesheet" href="css/theme.css" />
 </head>
-<body class="min-h-screen bg-slate-100 text-slate-900">
+<body class="gt-body font-body">
+  <div class="gt-wood-strip"></div>
   <div class="mx-auto max-w-5xl px-6 py-14">
-    <nav class="mb-8 flex flex-wrap gap-x-6 gap-y-2 text-xl font-medium">
-      <a href="index.html" class="text-slate-600 hover:text-slate-900">Home</a>
-      <a href="tournaments.html" class="text-slate-600 hover:text-slate-900">Tournaments</a>
-
-      <a href="games.html" class="text-slate-600 hover:text-slate-900">Games</a>
-      <a href="players.html" class="text-slate-600 hover:text-slate-900">Players</a>
-      <a href="history.html" class="text-slate-600 hover:text-slate-900">History</a>
+    <nav class="gt-nav mb-8 flex flex-wrap gap-x-6 gap-y-2 text-xl font-bold">
+      <a href="index.html">Home</a>
+      <a href="tournaments.html">Tournaments</a>
+      <a href="games.html">Games</a>
+      <a href="players.html">Players</a>
+      <a href="history.html">History</a>
     </nav>
     <header class="mb-12">
-      <h1 class="text-5xl font-bold tracking-tight">Friends and Family Game Tracker</h1>
-      <p class="mt-4 text-xl text-slate-600">Track the games of family and friends to determine who wins the day of games.</p>
+      <h1 class="gt-title text-5xl font-bold tracking-tight">Friends and Family Game Tracker</h1>
+      <p class="gt-subtitle mt-4 text-xl">Keep score through a night of games and crown the day’s champion.</p>
     </header>
 
     <nav class="space-y-6">
       <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
-        <a
-          href="tournaments.html"
-          class="inline-flex shrink-0 items-center justify-center rounded-lg bg-slate-900 px-6 py-3 text-lg font-semibold text-white hover:bg-slate-800 sm:min-w-[14rem]"
-        >
-          Tournaments
-        </a>
-        <p class="text-lg text-slate-600">Tournaments are meant to track winners of games over time — for example, an evening or a weekend. <strong>Click Tournament Button to start a new tournament.</strong></p>
+        <a href="tournaments.html" class="gt-home-btn">Tournaments</a>
+        <p class="gt-home-desc">Start a night or weekend of games and track every win as you go. <strong>Click Tournaments to begin a new tournament.</strong></p>
       </div>
       <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
-        <a
-          href="games.html"
-          class="inline-flex shrink-0 items-center justify-center rounded-lg bg-slate-900 px-6 py-3 text-lg font-semibold text-white hover:bg-slate-800 sm:min-w-[14rem]"
-        >
-          Games
-        </a>
-        <p class="text-lg text-slate-600">List of games that can be added to a tournament. <strong>Click here to see the list of games or to add a new game.</strong></p>
+        <a href="games.html" class="gt-home-btn">Games</a>
+        <p class="gt-home-desc">Your shelf of titles ready for tournament play. <strong>Click here to browse the list or add a new game.</strong></p>
       </div>
       <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
-        <a
-          href="players.html"
-          class="inline-flex shrink-0 items-center justify-center rounded-lg bg-slate-900 px-6 py-3 text-lg font-semibold text-white hover:bg-slate-800 sm:min-w-[14rem]"
-        >
-          Players
-        </a>
-        <p class="text-lg text-slate-600">Players are the family and friends who compete in a tournament. <strong>Click here to view, add, or update the list of all player names.</strong></p>
+        <a href="players.html" class="gt-home-btn">Players</a>
+        <p class="gt-home-desc">The family and friends who make up your roster. <strong>Click here to view, add, or update player names.</strong></p>
       </div>
       <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
-        <a
-          href="history.html"
-          class="inline-flex shrink-0 items-center justify-center rounded-lg bg-slate-900 px-6 py-3 text-lg font-semibold text-white hover:bg-slate-800 sm:min-w-[14rem]"
-        >
-          History
-        </a>
-        <p class="text-lg text-slate-600">History shows ended tournaments, who won, and final summaries after a day of games.</p>
+        <a href="history.html" class="gt-home-btn">History</a>
+        <p class="gt-home-desc">Look back at finished nights — winners, standings, and final summaries after the games are done.</p>
       </div>
     </nav>
   </div>

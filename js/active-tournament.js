@@ -68,8 +68,8 @@
       return;
     }
     formStatus.textContent = message;
-    formStatus.classList.remove("hidden", "text-red-600", "text-emerald-700");
-    formStatus.classList.add(isError ? "text-red-600" : "text-emerald-700");
+    formStatus.classList.remove("hidden", "gt-status-err", "gt-status-ok");
+    formStatus.classList.add(isError ? "gt-status-err" : "gt-status-ok");
   }
 
   function playerLabel(playerId) {
@@ -148,6 +148,7 @@
     editingPlayId = null;
     playIdInput.value = "";
     playGame.value = "";
+    playGame.classList.remove("gt-pending");
     if (playWinner) playWinner.value = "";
     playFormTitle.textContent = "Add a Game to the Tournament";
     savePlayBtn.textContent = "Add game to tournament";
@@ -178,7 +179,7 @@
         : "Games in the Tournament";
 
     if (!plays.length) {
-      playsList.innerHTML = '<p class="text-sm text-slate-500">No games played yet.</p>';
+      playsList.innerHTML = '<p class="text-sm gt-muted">No games played yet.</p>';
       return;
     }
 
@@ -191,7 +192,7 @@
       .join("");
 
     playsList.innerHTML = `
-      <ul class="divide-y divide-slate-100">
+      <ul class="divide-y divide-wood/20">
         ${plays
           .map(
             (play) => {
@@ -204,23 +205,22 @@
               return `
           <li class="space-y-2 py-2">
             <div class="flex flex-wrap items-center justify-between gap-2">
-              <span class="text-sm font-medium text-slate-900">${escapeHtml(gameLabel(play.gameId))}</span>
+              <span class="text-sm font-medium text-ink">${escapeHtml(gameLabel(play.gameId))}</span>
               <div class="flex gap-2">
                 <button type="button" data-action="delete-play" data-play-id="${escapeHtml(play.id)}"
-                  class="rounded-md border border-red-200 px-2 py-1 text-xs text-red-700 hover:bg-red-50">
+                  class="gt-btn-danger text-xs">
                   Remove
                 </button>
               </div>
             </div>
             <div class="flex flex-wrap items-center gap-2">
               <select data-assign-winner data-play-id="${escapeHtml(play.id)}"
-                class="rounded-md border border-slate-300 px-2 py-1 text-xs outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200 ${play.winnerPlayerId ? 'text-slate-900' : 'text-red-600'}"
-                onchange="this.classList.toggle('text-red-600', !this.value); this.classList.toggle('text-slate-900', !!this.value);">
+                class="gt-input text-xs">
                 <option value="">Select winner</option>
                 ${winnerSelectOptions}
               </select>
               <button type="button" data-action="assign-winner" data-play-id="${escapeHtml(play.id)}"
-                class="rounded-md bg-emerald-600 px-2 py-1 text-xs font-medium text-white hover:bg-emerald-700">
+                class="gt-btn text-xs">
                 Update Winner
               </button>
             </div>
@@ -235,7 +235,7 @@
   function renderPlayerCheckboxes() {
     const rosterIds = Array.isArray(tournament.playerIds) ? tournament.playerIds : [];
     if (!players.length) {
-      addPlayersList.innerHTML = '<p class="text-sm text-slate-500">No players available. Add players first.</p>';
+      addPlayersList.innerHTML = '<p class="text-sm gt-muted">No players available. Add players first.</p>';
       return;
     }
     addPlayersList.innerHTML = players
@@ -243,9 +243,9 @@
         const checked = rosterIds.includes(p.id) ? "checked" : "";
         const label = p.nickname ? `${p.name} (${p.nickname})` : p.name;
         return `
-          <label class="flex items-center gap-2 text-sm">
+          <label class="flex items-center gap-2 text-sm text-ink">
             <input type="checkbox" name="player" value="${escapeHtml(p.id)}" ${checked}
-              class="rounded border-slate-300 text-slate-900 focus:ring-slate-200" />
+              class="rounded border-wood/40 text-felt focus:ring-felt/30" />
             ${escapeHtml(label)}
           </label>`;
       })
@@ -259,13 +259,13 @@
       return;
     }
     playersStatus.textContent = message;
-    playersStatus.classList.remove("hidden", "text-red-600", "text-emerald-700");
-    playersStatus.classList.add(isError ? "text-red-600" : "text-emerald-700");
+    playersStatus.classList.remove("hidden", "gt-status-err", "gt-status-ok");
+    playersStatus.classList.add(isError ? "gt-status-err" : "gt-status-ok");
   }
 
   function renderActive() {
     const rosterIds = Array.isArray(tournament.playerIds) ? tournament.playerIds : [];
-    tournamentName.innerHTML = `${escapeHtml(tournament.name || "Tournament")} <span class="rounded-md bg-emerald-100 px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-emerald-800">Active</span>`;
+    tournamentName.innerHTML = `${escapeHtml(tournament.name || "Tournament")} <span class="gt-badge-active">Active</span>`;
     tournamentDate.textContent = formatDate(tournament.date);
     tournamentPlayers.textContent = rosterIds.length
       ? `Players: ${rosterIds.map((id) => playerLabel(id)).join(", ")}`
@@ -303,7 +303,7 @@
     if (!id) {
       showMessageState(
         "Missing tournament id.",
-        ' <a href="tournaments.html" class="text-slate-700 underline">Back to tournaments</a>'
+        ' <a href="tournaments.html" class="underline text-gold-soft">Back to tournaments</a>'
       );
       return;
     }
@@ -326,8 +326,8 @@
       if (tournament.status === "ended") {
         showMessageState(
           "This tournament has ended.",
-          ` <a href="tournament-summary.html?id=${encodeURIComponent(tournament.id)}" class="text-slate-700 underline">View summary</a>` +
-            ` · <a href="tournaments.html" class="text-slate-700 underline">Tournaments</a>`
+          ` <a href="tournament-summary.html?id=${encodeURIComponent(tournament.id)}" class="underline text-gold-soft">View summary</a>` +
+            ` · <a href="tournaments.html" class="underline text-gold-soft">Tournaments</a>`
         );
         return;
       }
@@ -335,7 +335,7 @@
       if (tournament.status !== "active") {
         showMessageState(
           "This tournament is not active.",
-          ' <a href="tournaments.html" class="text-slate-700 underline">Back to tournaments</a>'
+          ' <a href="tournaments.html" class="underline text-gold-soft">Back to tournaments</a>'
         );
         return;
       }
@@ -344,10 +344,18 @@
     } catch (err) {
       showMessageState(
         err.message || "Failed to load tournament.",
-        ' <a href="tournaments.html" class="text-slate-700 underline">Back to tournaments</a>'
+        ' <a href="tournaments.html" class="underline text-gold-soft">Back to tournaments</a>'
       );
     }
   }
+
+  playGame.addEventListener("change", () => {
+    if (playGame.value) {
+      playGame.classList.add("gt-pending");
+    } else {
+      playGame.classList.remove("gt-pending");
+    }
+  });
 
   playForm.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -393,6 +401,16 @@
     resetPlayForm();
     fillSelects();
     setFormStatus("");
+  });
+
+  playsList.addEventListener("change", (event) => {
+    const select = event.target.closest("select[data-assign-winner]");
+    if (!select) return;
+    if (select.value) {
+      select.classList.add("gt-pending");
+    } else {
+      select.classList.remove("gt-pending");
+    }
   });
 
   playsList.addEventListener("click", async (event) => {
@@ -458,8 +476,8 @@
       return;
     }
     newGameStatus.textContent = message;
-    newGameStatus.classList.remove("hidden", "text-red-600", "text-emerald-700");
-    newGameStatus.classList.add(isError ? "text-red-600" : "text-emerald-700");
+    newGameStatus.classList.remove("hidden", "gt-status-err", "gt-status-ok");
+    newGameStatus.classList.add(isError ? "gt-status-err" : "gt-status-ok");
   }
 
   newGameForm.addEventListener("submit", async (event) => {
@@ -478,6 +496,18 @@
       fillSelects();
     } catch (err) {
       setNewGameStatus(err.message || "Failed to add game.", true);
+    }
+  });
+
+  addPlayersList.addEventListener("change", (event) => {
+    const checkbox = event.target.closest('input[name="player"]');
+    if (!checkbox || !tournament) return;
+    const rosterIds = Array.isArray(tournament.playerIds) ? tournament.playerIds : [];
+    const savedChecked = rosterIds.includes(checkbox.value);
+    if (checkbox.checked !== savedChecked) {
+      checkbox.classList.add("gt-pending");
+    } else {
+      checkbox.classList.remove("gt-pending");
     }
   });
 

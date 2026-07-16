@@ -59,14 +59,121 @@
         ]
     },
     {
-        "id": "85ed0170-c4ca-4fa9-a7df-94c5a89e066c",
-        "name": "Game Night",
+        "id": "a9c20431-4598-47fb-8953-4b9f0901a850",
+        "name": "Tournament Test 2",
         "date": "2026-07-14",
         "status": "active",
         "playerIds": [
             "1b515770-1a35-4304-8f02-da3ab88bfdc4",
-            "7225aa68-9d67-47e5-9a0b-8112667c9d1d"
+            "7225aa68-9d67-47e5-9a0b-8112667c9d1d",
+            "c4ea2388-c708-4b78-a942-5eda4bc401ca"
         ],
-        "plays": []
+        "plays": [
+            {
+                "id": "d82bf77f-e287-4f29-9894-763ff21f69ca",
+                "gameId": "4381af23-9fda-43b1-ad0d-de3681ba055f",
+                "winnerPlayerId": "1b515770-1a35-4304-8f02-da3ab88bfdc4"
+            },
+            {
+                "id": "abdd4f33-9eea-4d40-a334-3acb81477d24",
+                "gameId": "80e84b94-ae3f-4a21-8652-76ee503a0968",
+                "winnerPlayerId": "7225aa68-9d67-47e5-9a0b-8112667c9d1d"
+            },
+            {
+                "id": "66d5d8f0-2d3b-4934-8d9b-cf37f80f824e",
+                "gameId": "80e84b94-ae3f-4a21-8652-76ee503a0968",
+                "winnerPlayerId": ""
+            }
+        ]
+    },
+    {
+        "id": "afde1d0a-39bc-4376-8d5c-ee91d1658698",
+        "name": "tourney 3",
+        "date": "2026-07-14",
+        "status": "active",
+        "playerIds": [
+            "1b515770-1a35-4304-8f02-da3ab88bfdc4",
+            "7225aa68-9d67-47e5-9a0b-8112667c9d1d",
+            "4434e489-84c7-4e58-a99a-545db0621f33"
+        ],
+        "plays": [
+            {
+                "id": "20463058-1550-47b0-9a13-6997eeac124f",
+                "gameId": "441042e9-c42a-4a59-9974-a1e1b80f97cf",
+                "winnerPlayerId": ""
+            }
+        ]
+    },
+    {
+        "id": "0af5818d-813a-4346-a563-ef24a9295c0e",
+        "name": "Last years Tournament",
+        "date": "2025-12-25",
+        "status": "ended",
+        "playerIds": [
+            "1b515770-1a35-4304-8f02-da3ab88bfdc4",
+            "7225aa68-9d67-47e5-9a0b-8112667c9d1d",
+            "4434e489-84c7-4e58-a99a-545db0621f33",
+            "731bae1f-0141-422a-935c-724157119964",
+            "1b9928fc-b58b-4b34-9ed0-089ae5992e00"
+        ],
+        "plays": [
+            {
+                "id": "c490decc-f2d4-49b4-94f5-6b8201fcc246",
+                "gameId": "80e84b94-ae3f-4a21-8652-76ee503a0968",
+                "winnerPlayerId": "4434e489-84c7-4e58-a99a-545db0621f33"
+            },
+            {
+                "id": "a320a90a-606b-4641-8ebd-1e1468a869ec",
+                "gameId": "80e84b94-ae3f-4a21-8652-76ee503a0968",
+                "winnerPlayerId": "1b9928fc-b58b-4b34-9ed0-089ae5992e00"
+            },
+            {
+                "id": "39692691-5036-426d-beb2-3e325094eb42",
+                "gameId": "835c0046-5b8d-4092-8827-192f986d900d",
+                "winnerPlayerId": "1b9928fc-b58b-4b34-9ed0-089ae5992e00"
+            },
+            {
+                "id": "eb2232ca-8163-49ff-a143-d3ca8c6d2841",
+                "gameId": "835c0046-5b8d-4092-8827-192f986d900d",
+                "winnerPlayerId": "1b9928fc-b58b-4b34-9ed0-089ae5992e00"
+            },
+            {
+                "id": "59ba9e5f-8ff3-4887-95a8-e650ed15ae83",
+                "gameId": "835c0046-5b8d-4092-8827-192f986d900d",
+                "winnerPlayerId": "1b9928fc-b58b-4b34-9ed0-089ae5992e00"
+            }
+        ]
+    },
+    {
+        "id": "8f860474-14f8-4bf7-a5b5-dc73c430b231",
+        "name": "Test tournament 2024",
+        "date": "2024-10-31",
+        "status": "ended",
+        "playerIds": [
+            "1b515770-1a35-4304-8f02-da3ab88bfdc4",
+            "7225aa68-9d67-47e5-9a0b-8112667c9d1d",
+            "4434e489-84c7-4e58-a99a-545db0621f33",
+            "731bae1f-0141-422a-935c-724157119964",
+            "97ee445a-a073-4cea-bd8e-9d4b8f97500a",
+            "c4ea2388-c708-4b78-a942-5eda4bc401ca",
+            "1b9928fc-b58b-4b34-9ed0-089ae5992e00"
+        ],
+        "plays": [
+            {
+                "id": "ccd6c7f6-381c-4948-b8eb-c834663aaeb6",
+                "gameId": "835c0046-5b8d-4092-8827-192f986d900d",
+                "winnerPlayerId": "1b9928fc-b58b-4b34-9ed0-089ae5992e00"
+            },
+            {
+                "id": "1177a131-9133-4c62-8e79-3115e7068286",
+                "gameId": "80e84b94-ae3f-4a21-8652-76ee503a0968",
+                "winnerPlayerId": "4434e489-84c7-4e58-a99a-545db0621f33"
+            },
+            {
+                "id": "ab846eff-8164-4710-8f0b-549fd0a7d237",
+                "gameId": "441042e9-c42a-4a59-9974-a1e1b80f97cf",
+                "winnerPlayerId": "1b9928fc-b58b-4b34-9ed0-089ae5992e00"
+            }
+        ]
     }
 ]

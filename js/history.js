@@ -42,8 +42,8 @@
       return;
     }
     actionStatus.textContent = message;
-    actionStatus.classList.remove("hidden", "text-red-600", "text-emerald-700");
-    actionStatus.classList.add(isError ? "text-red-600" : "text-emerald-700");
+    actionStatus.classList.remove("hidden", "gt-status-err", "gt-status-ok");
+    actionStatus.classList.add(isError ? "gt-status-err" : "gt-status-ok");
   }
 
   function playerLabel(playerId) {
@@ -55,10 +55,10 @@
   function formatPlayers(playerIds) {
     const ids = Array.isArray(playerIds) ? playerIds : [];
     if (!ids.length) {
-      return '<p class="mt-1 text-sm text-slate-500">No players</p>';
+      return '<p class="mt-1 text-sm gt-muted">No players</p>';
     }
     const names = ids.map((id) => escapeHtml(playerLabel(id))).join(", ");
-    return `<p class="mt-1 text-sm text-slate-500">Players: ${names}</p>`;
+    return `<p class="mt-1 text-sm gt-muted">Players: ${names}</p>`;
   }
 
   function formatWinners(tournament) {
@@ -84,12 +84,12 @@
     }));
 
     if (!entries.length) {
-      return '<p class="mt-1 text-sm text-slate-500">Winners: None</p>';
+      return '<p class="mt-1 text-sm gt-muted">Winners: None</p>';
     }
 
     const topWins = Math.max(...entries.map((entry) => entry.wins));
     if (topWins <= 0) {
-      return '<p class="mt-1 text-sm text-slate-500">Winners: None</p>';
+      return '<p class="mt-1 text-sm gt-muted">Winners: None</p>';
     }
 
     const winners = entries
@@ -97,7 +97,43 @@
       .map((entry) => escapeHtml(playerLabel(entry.id)));
 
     const winLabel = `${topWins} win${topWins === 1 ? "" : "s"}`;
-    return `<p class="mt-1 text-sm font-medium text-emerald-800">Winners: ${winners.join(", ")} (${winLabel})</p>`;
+    return `<p class="mt-1 text-sm font-bold text-felt-dark">Winners: ${winners.join(", ")} (${winLabel})</p>`;
+  }
+
+  function tournamentYear(tournament) {
+    const date = String(tournament.date || "");
+    const year = date.slice(0, 4);
+    if (/^\d{4}$/.test(year)) return year;
+    return "Unknown";
+  }
+
+  function tournamentItemHtml(tournament) {
+    return `
+      <li class="flex flex-wrap items-start justify-between gap-3 py-3">
+        <div>
+          <p class="font-medium text-ink">${escapeHtml(tournament.name)}</p>
+          ${formatWinners(tournament)}
+          <p class="mt-1 text-sm gt-muted">${formatDate(tournament.date)}</p>
+          ${formatPlayers(tournament.playerIds)}
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <a
+            href="tournament-summary.html?id=${encodeURIComponent(tournament.id)}"
+            class="gt-btn-secondary text-sm"
+          >
+            View summary
+          </a>
+          <button
+            type="button"
+            data-action="delete"
+            data-id="${escapeHtml(tournament.id)}"
+            class="gt-btn-danger text-sm"
+          >
+            Remove
+          </button>
+        </div>
+      </li>
+    `;
   }
 
   function renderHistory() {
@@ -115,37 +151,48 @@
 
     emptyState.classList.add("hidden");
 
+    const currentYear = String(new Date().getFullYear());
+    const byYear = {};
+
     for (const tournament of ended) {
-      const li = document.createElement("li");
-      li.className = "flex flex-wrap items-start justify-between gap-3 py-3";
-      li.innerHTML = `
-        <div>
-          <p class="font-medium text-slate-900">${escapeHtml(tournament.name)}</p>
-          ${formatWinners(tournament)}
-          <p class="mt-1 text-sm text-slate-500">${formatDate(tournament.date)}</p>
-          ${formatPlayers(tournament.playerIds)}
-          <div class="mt-2">
-            <span class="rounded-md bg-slate-200 px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-slate-700">Ended</span>
-          </div>
-        </div>
-        <div class="flex flex-wrap gap-2">
-          <a
-            href="tournament-summary.html?id=${encodeURIComponent(tournament.id)}"
-            class="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            View summary
-          </a>
-          <button
-            type="button"
-            data-action="delete"
-            data-id="${escapeHtml(tournament.id)}"
-            class="rounded-md border border-red-200 px-3 py-1.5 text-sm text-red-700 hover:bg-red-50"
-          >
-            Remove
-          </button>
-        </div>
+      const year = tournamentYear(tournament);
+      if (!byYear[year]) byYear[year] = [];
+      byYear[year].push(tournament);
+    }
+
+    const years = Object.keys(byYear).sort((a, b) => {
+      if (a === "Unknown") return 1;
+      if (b === "Unknown") return -1;
+      return Number(b) - Number(a);
+    });
+
+    for (const year of years) {
+      const isCurrentYear = year === currentYear;
+      const section = document.createElement("div");
+      section.className = "rounded-md border border-wood/25 bg-parchment-deep/40 p-3";
+      section.setAttribute("data-year-section", year);
+
+      const yearLabel =
+        year === "Unknown"
+          ? "Tournaments History for Unknown Year"
+          : `Tournaments History for ${year}`;
+
+      section.innerHTML = `
+        <a
+          href="#"
+          data-action="toggle-year"
+          data-year="${escapeHtml(year)}"
+          class="inline-block font-display text-xl font-semibold text-felt-dark underline hover:text-felt"
+          aria-expanded="${isCurrentYear ? "true" : "false"}"
+        >
+          ${escapeHtml(yearLabel)}
+        </a>
+        <ul class="mt-2 divide-y divide-wood/20${isCurrentYear ? "" : " hidden"}" data-year-list="${escapeHtml(year)}">
+          ${byYear[year].map(tournamentItemHtml).join("")}
+        </ul>
       `;
-      historyList.appendChild(li);
+
+      historyList.appendChild(section);
     }
   }
 
@@ -195,6 +242,29 @@
   }
 
   historyList.addEventListener("click", async (event) => {
+    const yearToggle = event.target.closest('[data-action="toggle-year"]');
+    if (yearToggle) {
+      event.preventDefault();
+      const year = yearToggle.getAttribute("data-year");
+      const selectedList = historyList.querySelector(`ul[data-year-list="${year}"]`);
+      if (!selectedList) return;
+
+      const willOpen = selectedList.classList.contains("hidden");
+
+      historyList.querySelectorAll("ul[data-year-list]").forEach((list) => {
+        list.classList.add("hidden");
+      });
+      historyList.querySelectorAll('[data-action="toggle-year"]').forEach((link) => {
+        link.setAttribute("aria-expanded", "false");
+      });
+
+      if (willOpen) {
+        selectedList.classList.remove("hidden");
+        yearToggle.setAttribute("aria-expanded", "true");
+      }
+      return;
+    }
+
     const button = event.target.closest('button[data-action="delete"]');
     if (!button) return;
 

@@ -23,8 +23,8 @@
       return;
     }
     formStatus.textContent = message;
-    formStatus.classList.remove("hidden", "text-red-600", "text-emerald-700");
-    formStatus.classList.add(isError ? "text-red-600" : "text-emerald-700");
+    formStatus.classList.remove("hidden", "gt-status-err", "gt-status-ok");
+    formStatus.classList.add(isError ? "gt-status-err" : "gt-status-ok");
   }
 
   function resetForm() {
@@ -75,15 +75,15 @@
 
       li.innerHTML = `
         <div>
-          <p class="font-medium text-slate-900">${escapeHtml(game.name)}</p>
+          <p class="font-medium text-ink">${escapeHtml(game.name)}</p>
         </div>
         <div class="flex gap-2">
           <button type="button" data-action="edit" data-id="${escapeHtml(game.id)}"
-            class="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50">
+            class="gt-btn-secondary text-sm">
             Edit
           </button>
           <button type="button" data-action="delete" data-id="${escapeHtml(game.id)}"
-            class="rounded-md border border-red-200 px-3 py-1.5 text-sm text-red-700 hover:bg-red-50">
+            class="gt-btn-danger text-sm">
             Delete
           </button>
         </div>
