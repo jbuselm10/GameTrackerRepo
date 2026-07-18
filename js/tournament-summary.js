@@ -77,12 +77,12 @@
       winCounts[id] = 0;
     }
     for (const play of plays) {
-      const winnerId = play && play.winnerPlayerId ? String(play.winnerPlayerId) : "";
-      if (!winnerId) continue;
-      if (!(winnerId in winCounts)) {
-        winCounts[winnerId] = 0;
+      for (const winnerId of getPlayWinnerIds(play)) {
+        if (!(winnerId in winCounts)) {
+          winCounts[winnerId] = 0;
+        }
+        winCounts[winnerId] += 1;
       }
-      winCounts[winnerId] += 1;
     }
 
     const standings = rosterIds.map((id, index) => {

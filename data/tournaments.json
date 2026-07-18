@@ -66,23 +66,22 @@
         "playerIds": [
             "1b515770-1a35-4304-8f02-da3ab88bfdc4",
             "7225aa68-9d67-47e5-9a0b-8112667c9d1d",
+            "97ee445a-a073-4cea-bd8e-9d4b8f97500a",
             "c4ea2388-c708-4b78-a942-5eda4bc401ca"
         ],
         "plays": [
             {
                 "id": "d82bf77f-e287-4f29-9894-763ff21f69ca",
                 "gameId": "4381af23-9fda-43b1-ad0d-de3681ba055f",
-                "winnerPlayerId": "1b515770-1a35-4304-8f02-da3ab88bfdc4"
+                "winnerPlayerIds": [
+                    "c4ea2388-c708-4b78-a942-5eda4bc401ca",
+                    "7225aa68-9d67-47e5-9a0b-8112667c9d1d"
+                ]
             },
             {
                 "id": "abdd4f33-9eea-4d40-a334-3acb81477d24",
                 "gameId": "80e84b94-ae3f-4a21-8652-76ee503a0968",
                 "winnerPlayerId": "7225aa68-9d67-47e5-9a0b-8112667c9d1d"
-            },
-            {
-                "id": "66d5d8f0-2d3b-4934-8d9b-cf37f80f824e",
-                "gameId": "80e84b94-ae3f-4a21-8652-76ee503a0968",
-                "winnerPlayerId": ""
             }
         ]
     },
@@ -173,6 +172,41 @@
                 "id": "ab846eff-8164-4710-8f0b-549fd0a7d237",
                 "gameId": "441042e9-c42a-4a59-9974-a1e1b80f97cf",
                 "winnerPlayerId": "1b9928fc-b58b-4b34-9ed0-089ae5992e00"
+            }
+        ]
+    },
+    {
+        "id": "06e805e8-c230-4918-ad3f-36770fb14fe5",
+        "name": "New Tournament",
+        "date": "2026-07-18",
+        "status": "active",
+        "playerIds": [
+            "1b515770-1a35-4304-8f02-da3ab88bfdc4",
+            "7225aa68-9d67-47e5-9a0b-8112667c9d1d",
+            "4434e489-84c7-4e58-a99a-545db0621f33",
+            "731bae1f-0141-422a-935c-724157119964",
+            "97ee445a-a073-4cea-bd8e-9d4b8f97500a",
+            "c4ea2388-c708-4b78-a942-5eda4bc401ca",
+            "1b9928fc-b58b-4b34-9ed0-089ae5992e00"
+        ],
+        "plays": [
+            {
+                "id": "aa3b9691-89bb-4746-b8ae-93e104450f0b",
+                "gameId": "80e84b94-ae3f-4a21-8652-76ee503a0968",
+                "winnerPlayerIds": [
+                    "4434e489-84c7-4e58-a99a-545db0621f33",
+                    "1b515770-1a35-4304-8f02-da3ab88bfdc4",
+                    "97ee445a-a073-4cea-bd8e-9d4b8f97500a"
+                ]
+            },
+            {
+                "id": "bc114a63-81ae-41c6-afee-a2836dacd6e6",
+                "gameId": "114ce818-ad13-410b-83fe-d20391f8dc52",
+                "winnerPlayerIds": [
+                    "731bae1f-0141-422a-935c-724157119964",
+                    "1b515770-1a35-4304-8f02-da3ab88bfdc4",
+                    "c4ea2388-c708-4b78-a942-5eda4bc401ca"
+                ]
             }
         ]
     }

@@ -30,6 +30,42 @@
   let players = [];
   let games = [];
   let editingPlayId = null;
+  const addingWinnerPlayIds = new Set();
+  const dirtyWinnerSelects = new Set();
+  const pendingWinnerValues = {};
+
+  function assignWinnerKey(playId) {
+    return `assign:${playId}`;
+  }
+
+  function updateWinnerKey(playId, index) {
+    return `update:${playId}:${index}`;
+  }
+
+  function addWinnerKey(playId) {
+    return `add:${playId}`;
+  }
+
+  function winnerSelectPendingClass(key, selectedId) {
+    return dirtyWinnerSelects.has(key) && selectedId ? " gt-pending" : "";
+  }
+
+  function clearWinnerPendingForPlay(playId) {
+    dirtyWinnerSelects.delete(assignWinnerKey(playId));
+    dirtyWinnerSelects.delete(addWinnerKey(playId));
+    delete pendingWinnerValues[assignWinnerKey(playId)];
+    delete pendingWinnerValues[addWinnerKey(playId)];
+    for (const key of [...dirtyWinnerSelects]) {
+      if (key.startsWith(`update:${playId}:`)) {
+        dirtyWinnerSelects.delete(key);
+      }
+    }
+    for (const key of Object.keys(pendingWinnerValues)) {
+      if (key.startsWith(`update:${playId}:`)) {
+        delete pendingWinnerValues[key];
+      }
+    }
+  }
 
   function escapeHtml(value) {
     return String(value)
@@ -81,6 +117,69 @@
   function gameLabel(gameId) {
     const game = games.find((g) => g.id === gameId);
     return game ? game.name : gameId;
+  }
+
+  function buildRosterOptions(rosterIds, selectedId = "", excludeIds = []) {
+    const exclude = new Set(excludeIds.filter((id) => id !== selectedId));
+    return rosterIds
+      .filter((id) => !exclude.has(id))
+      .map(
+        (id) =>
+          `<option value="${escapeHtml(id)}"${id === selectedId ? " selected" : ""}>${escapeHtml(playerLabel(id))}</option>`
+      )
+      .join("");
+  }
+
+  async function savePlayWinners(playId, play, winnerPlayerIds, button, successMessage) {
+    if (button) button.disabled = true;
+    try {
+      await api(API_URL, "PUT", {
+        tournamentId: tournament.id,
+        playId,
+        gameId: play.gameId,
+        winnerPlayerIds,
+      });
+      tournament = await api(`${API_URL}?id=${encodeURIComponent(tournament.id)}`, "GET");
+      renderActive();
+      setFormStatus(successMessage);
+    } catch (err) {
+      setFormStatus(err.message || "Failed to update winners.", true);
+    } finally {
+      if (button) button.disabled = false;
+    }
+  }
+
+  function renderAddWinnerControls(playId, winnerIds, rosterIds) {
+    if (!winnerIds.length || winnerIds.length >= MAX_WINNERS_PER_PLAY) {
+      return "";
+    }
+    const availableToAdd = rosterIds.filter((id) => !winnerIds.includes(id));
+    if (!availableToAdd.length) {
+      return "";
+    }
+
+    const inAddMode = addingWinnerPlayIds.has(playId);
+    if (!inAddMode) {
+      return `
+              <button type="button" data-action="show-add-winner" data-play-id="${escapeHtml(playId)}"
+                class="gt-btn text-xs">
+                Add another winner
+              </button>`;
+    }
+
+    const pendingId = pendingWinnerValues[addWinnerKey(playId)] || "";
+    const pendingClass = winnerSelectPendingClass(addWinnerKey(playId), pendingId);
+    return `
+            <div class="flex flex-wrap items-center gap-2">
+              <select data-add-winner data-play-id="${escapeHtml(playId)}" class="gt-input text-xs${pendingClass}">
+                <option value="">Select winner</option>
+                ${buildRosterOptions(availableToAdd, pendingId)}
+              </select>
+              <button type="button" data-action="confirm-add-winner" data-play-id="${escapeHtml(playId)}"
+                class="gt-btn text-xs">
+                Update Winner
+              </button>
+            </div>`;
   }
 
   async function api(url, method, body) {
@@ -160,7 +259,7 @@
     playIdInput.value = play.id;
     fillSelects();
     playGame.value = play.gameId || "";
-    if (playWinner) playWinner.value = play.winnerPlayerId || "";
+    if (playWinner) playWinner.value = getPlayWinnerIds(play)[0] || "";
     playFormTitle.textContent = "Edit game";
     savePlayBtn.textContent = "Add game to tournament";
     cancelPlayEditBtn.classList.remove("hidden");
@@ -171,12 +270,7 @@
 
   function renderPlays() {
     const plays = Array.isArray(tournament.plays) ? tournament.plays : [];
-    const allHaveWinner = plays.length > 0 && plays.every((p) => p.winnerPlayerId);
-    playsTitle.textContent = !plays.length
-      ? "Games in the Tournament"
-      : allHaveWinner
-        ? "Completed Games with Winner"
-        : "Games in the Tournament";
+    playsTitle.textContent = "Games in the Tournament";
 
     if (!plays.length) {
       playsList.innerHTML = '<p class="text-sm gt-muted">No games played yet.</p>';
@@ -184,28 +278,91 @@
     }
 
     const rosterIds = Array.isArray(tournament.playerIds) ? tournament.playerIds : [];
-    const rosterOptions = rosterIds
-      .map(
-        (id) =>
-          `<option value="${escapeHtml(id)}">${escapeHtml(playerLabel(id))}</option>`
-      )
-      .join("");
 
     playsList.innerHTML = `
       <ul class="divide-y divide-wood/20">
         ${plays
           .map(
             (play) => {
-              const winnerSelectOptions = rosterIds
-                .map(
-                  (id) =>
-                    `<option value="${escapeHtml(id)}"${id === play.winnerPlayerId ? ' selected' : ''}>${escapeHtml(playerLabel(id))}</option>`
-                )
-                .join("");
+              const winnerIds = getPlayWinnerIds(play);
+              const winnerNamesHtml = winnerIds.length
+                ? winnerIds
+                    .map((id) => `<span class="font-bold text-ink">${escapeHtml(playerLabel(id))}</span>`)
+                    .join(", ")
+                : "None yet";
+              const addControls = renderAddWinnerControls(play.id, winnerIds, rosterIds);
+
+              let winnerControls = "";
+              if (winnerIds.length === 0) {
+                const assignKey = assignWinnerKey(play.id);
+                const pendingAssignId = pendingWinnerValues[assignKey] || "";
+                winnerControls = `
+            <div class="flex flex-wrap items-center gap-2">
+              <select data-assign-winner data-play-id="${escapeHtml(play.id)}"
+                class="gt-input text-xs${winnerSelectPendingClass(assignKey, pendingAssignId)}">
+                <option value="">Select winner</option>
+                ${buildRosterOptions(rosterIds, pendingAssignId)}
+              </select>
+              <button type="button" data-action="assign-winner" data-play-id="${escapeHtml(play.id)}"
+                class="gt-btn text-xs">
+                Update Winner
+              </button>
+            </div>`;
+              } else if (winnerIds.length === 1) {
+                const inAddMode = addingWinnerPlayIds.has(play.id);
+                if (inAddMode) {
+                  winnerControls = renderAddWinnerControls(play.id, winnerIds, rosterIds);
+                } else {
+                  const assignKey = assignWinnerKey(play.id);
+                  const savedAssignId = winnerIds[0];
+                  const pendingAssignId = dirtyWinnerSelects.has(assignKey)
+                    ? (pendingWinnerValues[assignKey] ?? savedAssignId)
+                    : savedAssignId;
+                  winnerControls = `
+            <div class="flex flex-wrap items-center gap-2">
+              <select data-assign-winner data-play-id="${escapeHtml(play.id)}"
+                class="gt-input text-xs${winnerSelectPendingClass(assignKey, pendingAssignId)}">
+                <option value="">Select winner</option>
+                ${buildRosterOptions(rosterIds, pendingAssignId)}
+              </select>
+              <button type="button" data-action="assign-winner" data-play-id="${escapeHtml(play.id)}"
+                class="gt-btn text-xs">
+                Update Winner
+              </button>
+              ${addControls}
+            </div>`;
+                }
+              } else {
+                winnerControls = `
+            <div class="space-y-2">
+              ${winnerIds
+                .map((winnerId, index) => {
+                  const updateKey = updateWinnerKey(play.id, index);
+                  const savedUpdateId = winnerId;
+                  const pendingUpdateId = dirtyWinnerSelects.has(updateKey)
+                    ? (pendingWinnerValues[updateKey] ?? savedUpdateId)
+                    : savedUpdateId;
+                  return `
+              <div class="flex flex-wrap items-center gap-2">
+                <select data-update-winner data-play-id="${escapeHtml(play.id)}" data-winner-index="${index}"
+                  class="gt-input text-xs${winnerSelectPendingClass(updateKey, pendingUpdateId)}">
+                  ${buildRosterOptions(rosterIds, pendingUpdateId, winnerIds)}
+                </select>
+                <button type="button" data-action="update-winner" data-play-id="${escapeHtml(play.id)}"
+                  data-winner-index="${index}" class="gt-btn text-xs">
+                  Update Winner
+                </button>
+              </div>`;
+                })
+                .join("")}
+              ${addControls}
+            </div>`;
+              }
+
               return `
           <li class="space-y-2 py-2">
             <div class="flex flex-wrap items-center justify-between gap-2">
-              <span class="text-sm font-medium text-ink">${escapeHtml(gameLabel(play.gameId))}</span>
+              <span class="text-lg font-bold text-ink">${escapeHtml(gameLabel(play.gameId))}</span>
               <div class="flex gap-2">
                 <button type="button" data-action="delete-play" data-play-id="${escapeHtml(play.id)}"
                   class="gt-btn-danger text-xs">
@@ -213,17 +370,10 @@
                 </button>
               </div>
             </div>
-            <div class="flex flex-wrap items-center gap-2">
-              <select data-assign-winner data-play-id="${escapeHtml(play.id)}"
-                class="gt-input text-xs">
-                <option value="">Select winner</option>
-                ${winnerSelectOptions}
-              </select>
-              <button type="button" data-action="assign-winner" data-play-id="${escapeHtml(play.id)}"
-                class="gt-btn text-xs">
-                Update Winner
-              </button>
-            </div>
+            <p class="text-xs gt-muted">
+              Winners: ${winnerNamesHtml}
+            </p>
+            ${winnerControls}
           </li>`;
             }
           )
@@ -283,7 +433,7 @@
       const play = (tournament.plays || []).find((p) => p.id === editingPlayId);
       if (play) {
         playGame.value = play.gameId || "";
-        if (playWinner) playWinner.value = play.winnerPlayerId || "";
+        if (playWinner) playWinner.value = getPlayWinnerIds(play)[0] || "";
       } else {
         resetPlayForm();
       }
@@ -362,7 +512,7 @@
     if (!tournament) return;
 
     const gameId = playGame.value;
-    const winnerPlayerId = playWinner ? playWinner.value : "";
+    const winnerPlayerIds = playWinner && playWinner.value ? [playWinner.value] : [];
     if (!gameId) {
       setFormStatus("Select a game.", true);
       return;
@@ -376,14 +526,14 @@
           tournamentId: tournament.id,
           playId: editingPlayId,
           gameId,
-          winnerPlayerId: winnerPlayerId || "",
+          winnerPlayerIds,
         });
         setFormStatus("Game updated.");
       } else {
         await api(API_URL, "POST", {
           tournamentId: tournament.id,
           gameId,
-          winnerPlayerId: "",
+          winnerPlayerIds: [],
         });
         setFormStatus("Game added to tournament.");
       }
@@ -404,13 +554,35 @@
   });
 
   playsList.addEventListener("change", (event) => {
-    const select = event.target.closest("select[data-assign-winner]");
+    const select = event.target.closest(
+      "select[data-assign-winner], select[data-add-winner], select[data-update-winner]"
+    );
     if (!select) return;
-    if (select.value) {
-      select.classList.add("gt-pending");
-    } else {
-      select.classList.remove("gt-pending");
+
+    const playId = select.getAttribute("data-play-id");
+    let pendingKey = "";
+    if (select.matches("select[data-assign-winner]")) {
+      pendingKey = assignWinnerKey(playId);
+    } else if (select.matches("select[data-update-winner]")) {
+      pendingKey = updateWinnerKey(playId, select.getAttribute("data-winner-index"));
+    } else if (select.matches("select[data-add-winner]")) {
+      pendingKey = addWinnerKey(playId);
     }
+
+    if (select.value) {
+      pendingWinnerValues[pendingKey] = select.value;
+      dirtyWinnerSelects.add(pendingKey);
+    } else {
+      delete pendingWinnerValues[pendingKey];
+      dirtyWinnerSelects.delete(pendingKey);
+    }
+
+    if (select.matches("select[data-add-winner]")) {
+      renderPlays();
+      return;
+    }
+
+    select.classList.toggle("gt-pending", dirtyWinnerSelects.has(pendingKey) && !!select.value);
   });
 
   playsList.addEventListener("click", async (event) => {
@@ -424,27 +596,98 @@
 
     if (action === "assign-winner") {
       const select = playsList.querySelector(`select[data-assign-winner][data-play-id="${playId}"]`);
-      const winnerPlayerId = select ? select.value : "";
-      if (!winnerPlayerId) {
+      const selectedId = select ? select.value : "";
+      if (!selectedId) {
         setFormStatus("Select a winner to assign.", true);
         return;
       }
-      button.disabled = true;
-      try {
-        await api(API_URL, "PUT", {
-          tournamentId: tournament.id,
-          playId,
-          gameId: play.gameId,
-          winnerPlayerId,
-        });
-        tournament = await api(`${API_URL}?id=${encodeURIComponent(tournament.id)}`, "GET");
-        renderActive();
-        setFormStatus("Winner assigned.");
-      } catch (err) {
-        setFormStatus(err.message || "Failed to assign winner.", true);
-      } finally {
-        button.disabled = false;
+
+      const existing = getPlayWinnerIds(play);
+      if (!existing.length) {
+        dirtyWinnerSelects.delete(assignWinnerKey(playId));
+        delete pendingWinnerValues[assignWinnerKey(playId)];
+        await savePlayWinners(playId, play, [selectedId], button, "Winner assigned.");
+        return;
       }
+      if (existing.includes(selectedId) && existing[0] !== selectedId) {
+        setFormStatus("That player is already a winner for this game.", true);
+        return;
+      }
+      const winnerPlayerIds = [selectedId, ...existing.slice(1)];
+      dirtyWinnerSelects.delete(assignWinnerKey(playId));
+      delete pendingWinnerValues[assignWinnerKey(playId)];
+      await savePlayWinners(playId, play, winnerPlayerIds, button, "Winner updated.");
+      return;
+    }
+
+    if (action === "update-winner") {
+      const winnerIndex = Number(button.getAttribute("data-winner-index"));
+      if (!Number.isInteger(winnerIndex) || winnerIndex < 0) {
+        return;
+      }
+      const updateKey = updateWinnerKey(playId, winnerIndex);
+      const select = playsList.querySelector(
+        `select[data-update-winner][data-play-id="${playId}"][data-winner-index="${winnerIndex}"]`
+      );
+      const selectedId = select ? select.value : "";
+      if (!selectedId) {
+        setFormStatus("Select a winner to assign.", true);
+        return;
+      }
+
+      const existing = getPlayWinnerIds(play);
+      if (!existing[winnerIndex]) {
+        setFormStatus("Winner slot not found.", true);
+        return;
+      }
+      if (existing.includes(selectedId) && existing[winnerIndex] !== selectedId) {
+        setFormStatus("That player is already a winner for this game.", true);
+        return;
+      }
+      const winnerPlayerIds = [...existing];
+      winnerPlayerIds[winnerIndex] = selectedId;
+      dirtyWinnerSelects.delete(updateKey);
+      delete pendingWinnerValues[updateKey];
+      await savePlayWinners(playId, play, winnerPlayerIds, button, "Winner updated.");
+      return;
+    }
+
+    if (action === "show-add-winner") {
+      addingWinnerPlayIds.add(playId);
+      dirtyWinnerSelects.delete(addWinnerKey(playId));
+      delete pendingWinnerValues[addWinnerKey(playId)];
+      renderPlays();
+      setFormStatus("Select another winner from the list.");
+      return;
+    }
+
+    if (action === "confirm-add-winner") {
+      const existing = getPlayWinnerIds(play);
+      if (!existing.length) {
+        setFormStatus("Assign the first winner with Update Winner.", true);
+        return;
+      }
+      if (existing.length >= MAX_WINNERS_PER_PLAY) {
+        setFormStatus(`A game can have at most ${MAX_WINNERS_PER_PLAY} winners.`, true);
+        return;
+      }
+
+      const select = playsList.querySelector(`select[data-add-winner][data-play-id="${playId}"]`);
+      const addKey = addWinnerKey(playId);
+      const selectedId = (select && select.value) || pendingWinnerValues[addKey] || "";
+      if (!selectedId) {
+        setFormStatus("Select a winner to add.", true);
+        return;
+      }
+      if (existing.includes(selectedId)) {
+        setFormStatus("That player is already a winner for this game.", true);
+        return;
+      }
+
+      addingWinnerPlayIds.delete(playId);
+      dirtyWinnerSelects.delete(addKey);
+      delete pendingWinnerValues[addKey];
+      await savePlayWinners(playId, play, [...existing, selectedId], button, "Winner added.");
       return;
     }
 
@@ -460,6 +703,8 @@
         if (editingPlayId === playId) {
           resetPlayForm();
         }
+        addingWinnerPlayIds.delete(playId);
+        clearWinnerPendingForPlay(playId);
         tournament = await api(`${API_URL}?id=${encodeURIComponent(tournament.id)}`, "GET");
         renderActive();
         setFormStatus("Game result removed.");
