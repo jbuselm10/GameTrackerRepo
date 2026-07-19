@@ -26,6 +26,9 @@
   let tournaments = [];
   let players = [];
   let editingId = null;
+  let savedPlayerIds = new Set();
+  const escapeHtml = GameTracker.escapeHtml.bind(GameTracker);
+  const api = GameTracker.api.bind(GameTracker);
 
   function todayIsoDate() {
     const now = new Date();
@@ -71,6 +74,14 @@
     playersLocked.classList.toggle("hidden", editable);
   }
 
+  function syncPlayerCheckboxStyles() {
+    GameTracker.syncPlayerCheckboxStyles(playersContainer, savedPlayerIds, {
+      active: !!editingId,
+      inputSelector: 'input[type="checkbox"][data-player-id]',
+      getPlayerId: (input) => input.getAttribute("data-player-id"),
+    });
+  }
+
   function renderPlayerOptions() {
     playersContainer.innerHTML = "";
 
@@ -99,10 +110,12 @@
     }
 
     updatePlayersLockState();
+    syncPlayerCheckboxStyles();
   }
 
   function resetForm() {
     editingId = null;
+    savedPlayerIds = new Set();
     tournamentIdInput.value = "";
     nameInput.value = "";
     dateInput.value = todayIsoDate();
@@ -117,10 +130,12 @@
     newTournamentBtn.classList.remove("hidden");
     formSection.classList.remove("gt-edit-highlight");
     updatePlayersLockState();
+    syncPlayerCheckboxStyles();
   }
 
   function startEdit(tournament) {
     editingId = tournament.id;
+    savedPlayerIds = new Set((tournament.playerIds || []).map(String));
     tournamentIdInput.value = tournament.id;
     nameInput.value = tournament.name || "";
     dateInput.value = tournament.date || "";
@@ -135,18 +150,10 @@
     newTournamentBtn.classList.add("hidden");
     formSection.classList.add("gt-edit-highlight");
     updatePlayersLockState();
+    syncPlayerCheckboxStyles();
     formSection.scrollIntoView({ behavior: "smooth", block: "nearest" });
     nameInput.focus();
     setFormStatus("");
-  }
-
-  function escapeHtml(value) {
-    return String(value)
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#39;");
   }
 
   function formatDate(value) {
@@ -231,32 +238,6 @@
     }
   }
 
-  async function api(url, method, body) {
-    const options = {
-      method,
-      headers: { Accept: "application/json" },
-    };
-    if (body !== undefined) {
-      options.headers["Content-Type"] = "application/json";
-      options.body = JSON.stringify(body);
-    }
-    const response = await fetch(url, options);
-    let data = null;
-    const text = await response.text();
-    if (text) {
-      try {
-        data = JSON.parse(text);
-      } catch {
-        throw new Error("Server returned invalid JSON. Is PHP running?");
-      }
-    }
-    if (!response.ok) {
-      const message = (data && data.error) || `Request failed (${response.status})`;
-      throw new Error(message);
-    }
-    return data;
-  }
-
   async function loadPlayers() {
     const data = await api(PLAYERS_API_URL, "GET");
     players = Array.isArray(data) ? data : [];
@@ -282,6 +263,12 @@
 
   statusInput.addEventListener("change", () => {
     updatePlayersLockState();
+  });
+
+  playersContainer.addEventListener("change", (event) => {
+    const checkbox = event.target.closest('input[type="checkbox"][data-player-id]');
+    if (!checkbox || !editingId) return;
+    syncPlayerCheckboxStyles();
   });
 
   form.addEventListener("submit", async (event) => {
@@ -320,13 +307,16 @@
     try {
       if (editingId) {
         await api(API_URL, "PUT", { id: editingId, name, date, status, playerIds });
+        savedPlayerIds = new Set(playerIds.map(String));
+        syncPlayerCheckboxStyles();
         setFormStatus("Tournament updated.");
+        await loadTournaments();
       } else {
         await api(API_URL, "POST", { name, date, status, playerIds });
         setFormStatus("Tournament added.");
+        resetForm();
+        await loadTournaments();
       }
-      resetForm();
-      await loadTournaments();
     } catch (err) {
       setFormStatus(err.message || "Save failed.", true);
     } finally {

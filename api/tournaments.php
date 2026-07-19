@@ -8,113 +8,12 @@
  * Legacy winnerPlayerId (single string) is still accepted on POST/PUT.
  */
 
-header('Content-Type: application/json; charset=utf-8');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
-
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(204);
-    exit;
-}
+require_once __DIR__ . '/_lib.php';
+sendCorsHeaders();
 
 $dataFile = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'tournaments.json';
 $playersFile = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'players.json';
 $gamesFile = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'games.json';
-
-function respond(int $status, $payload): void
-{
-    http_response_code($status);
-    echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
-    exit;
-}
-
-function readBody(): array
-{
-    $raw = file_get_contents('php://input');
-    if ($raw === false || $raw === '') {
-        return [];
-    }
-    $decoded = json_decode($raw, true);
-    if (!is_array($decoded)) {
-        respond(400, ['error' => 'Invalid JSON body']);
-    }
-    return $decoded;
-}
-
-function loadJsonArray(string $path, string $corruptMessage): array
-{
-    if (!file_exists($path)) {
-        return [];
-    }
-    $raw = file_get_contents($path);
-    if ($raw === false || trim($raw) === '') {
-        return [];
-    }
-    if (strncmp($raw, "\xEF\xBB\xBF", 3) === 0) {
-        $raw = substr($raw, 3);
-    }
-    $decoded = json_decode($raw, true);
-    if (!is_array($decoded)) {
-        respond(500, ['error' => $corruptMessage]);
-    }
-    return $decoded;
-}
-
-function loadTournaments(string $path): array
-{
-    return loadJsonArray($path, 'Corrupt tournaments.json');
-}
-
-function saveTournaments(string $path, array $tournaments): void
-{
-    $dir = dirname($path);
-    if (!is_dir($dir)) {
-        mkdir($dir, 0755, true);
-    }
-
-    $fp = fopen($path, 'c+');
-    if ($fp === false) {
-        respond(500, ['error' => 'Unable to open tournaments.json']);
-    }
-
-    if (!flock($fp, LOCK_EX)) {
-        fclose($fp);
-        respond(500, ['error' => 'Unable to lock tournaments.json']);
-    }
-
-    ftruncate($fp, 0);
-    rewind($fp);
-    $json = json_encode(array_values($tournaments), JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
-    if ($json === false || fwrite($fp, $json . "\n") === false) {
-        flock($fp, LOCK_UN);
-        fclose($fp);
-        respond(500, ['error' => 'Unable to write tournaments.json']);
-    }
-
-    fflush($fp);
-    flock($fp, LOCK_UN);
-    fclose($fp);
-}
-
-function newId(): string
-{
-    if (function_exists('random_bytes')) {
-        $bytes = random_bytes(16);
-        $bytes[6] = chr((ord($bytes[6]) & 0x0f) | 0x40);
-        $bytes[8] = chr((ord($bytes[8]) & 0x3f) | 0x80);
-        $hex = bin2hex($bytes);
-        return sprintf(
-            '%s-%s-%s-%s-%s',
-            substr($hex, 0, 8),
-            substr($hex, 8, 4),
-            substr($hex, 12, 4),
-            substr($hex, 16, 4),
-            substr($hex, 20, 12)
-        );
-    }
-    return uniqid('tournament_', true);
-}
 
 function normalizeStatus($value): string
 {
@@ -312,9 +211,9 @@ function normalizeTournamentForResponse(array $tournament): array
 }
 
 $method = $_SERVER['REQUEST_METHOD'];
-$tournaments = loadTournaments($dataFile);
 
 if ($method === 'GET') {
+    $tournaments = loadJsonArray($dataFile, 'Corrupt tournaments.json');
     if (isset($_GET['id']) && (string) $_GET['id'] !== '') {
         $id = (string) $_GET['id'];
         $index = findTournamentIndex($tournaments, $id);
@@ -339,36 +238,46 @@ if ($method === 'POST') {
         if ($gameId === '') {
             respond(400, ['error' => 'gameId is required']);
         }
-        $index = findTournamentIndex($tournaments, $tournamentId);
-        if ($index < 0) {
-            respond(404, ['error' => 'Tournament not found']);
-        }
-
-        $tournament = $tournaments[$index];
-        if (normalizeStatus($tournament['status'] ?? 'active') !== 'active') {
-            respond(400, ['error' => 'Games can only be added to active tournaments']);
-        }
 
         $validGames = loadIdSet($gamesFile, 'Corrupt games.json');
         if (!isset($validGames[$gameId])) {
             respond(400, ['error' => 'Unknown game id']);
         }
 
-        $roster = isset($tournament['playerIds']) && is_array($tournament['playerIds'])
-            ? array_map('strval', $tournament['playerIds'])
-            : [];
         $winnerPlayerIds = parseWinnerPlayerIdsFromBody($body);
-        validateWinnerPlayerIds($winnerPlayerIds, $roster);
+        $play = null;
 
-        $play = formatPlayForStorage(newId(), $gameId, $winnerPlayerIds);
-        $plays = getPlays($tournament);
-        $plays[] = $play;
-        $tournaments[$index]['plays'] = $plays;
-        if (!isset($tournaments[$index]['playerIds'])) {
-            $tournaments[$index]['playerIds'] = $roster;
-        }
+        mutateJsonArray($dataFile, 'Corrupt tournaments.json', static function (array $tournaments) use (
+            $tournamentId,
+            $gameId,
+            $winnerPlayerIds,
+            &$play
+        ) {
+            $index = findTournamentIndex($tournaments, $tournamentId);
+            if ($index < 0) {
+                respond(404, ['error' => 'Tournament not found']);
+            }
 
-        saveTournaments($dataFile, $tournaments);
+            $tournament = $tournaments[$index];
+            if (normalizeStatus($tournament['status'] ?? 'active') !== 'active') {
+                respond(400, ['error' => 'Games can only be added to active tournaments']);
+            }
+
+            $roster = isset($tournament['playerIds']) && is_array($tournament['playerIds'])
+                ? array_map('strval', $tournament['playerIds'])
+                : [];
+            validateWinnerPlayerIds($winnerPlayerIds, $roster);
+
+            $play = formatPlayForStorage(newId('tournament_'), $gameId, $winnerPlayerIds);
+            $plays = getPlays($tournament);
+            $plays[] = $play;
+            $tournaments[$index]['plays'] = $plays;
+            if (!isset($tournaments[$index]['playerIds'])) {
+                $tournaments[$index]['playerIds'] = $roster;
+            }
+
+            return $tournaments;
+        });
         respond(201, formatPlayForResponse($play));
     }
 
@@ -379,17 +288,21 @@ if ($method === 'POST') {
 
     $status = normalizeStatus($body['status'] ?? 'active');
     $playerIds = normalizePlayerIds($body['playerIds'] ?? [], $playersFile, true);
+    $date = normalizeDate($body['date'] ?? '');
 
     $tournament = [
-        'id' => newId(),
+        'id' => newId('tournament_'),
         'name' => $name,
-        'date' => normalizeDate($body['date'] ?? ''),
+        'date' => $date,
         'status' => $status,
         'playerIds' => $playerIds,
         'plays' => [],
     ];
-    $tournaments[] = $tournament;
-    saveTournaments($dataFile, $tournaments);
+
+    mutateJsonArray($dataFile, 'Corrupt tournaments.json', static function (array $tournaments) use ($tournament) {
+        $tournaments[] = $tournament;
+        return $tournaments;
+    });
     respond(201, $tournament);
 }
 
@@ -411,45 +324,54 @@ if ($method === 'PUT') {
             respond(400, ['error' => 'gameId is required']);
         }
 
-        $index = findTournamentIndex($tournaments, $tournamentId);
-        if ($index < 0) {
-            respond(404, ['error' => 'Tournament not found']);
-        }
-
-        $tournament = $tournaments[$index];
-        if (normalizeStatus($tournament['status'] ?? 'active') !== 'active') {
-            respond(400, ['error' => 'Games can only be edited on active tournaments']);
-        }
-
         $validGames = loadIdSet($gamesFile, 'Corrupt games.json');
         if (!isset($validGames[$gameId])) {
             respond(400, ['error' => 'Unknown game id']);
         }
 
-        $roster = isset($tournament['playerIds']) && is_array($tournament['playerIds'])
-            ? array_map('strval', $tournament['playerIds'])
-            : [];
         $winnerPlayerIds = parseWinnerPlayerIdsFromBody($body);
-        validateWinnerPlayerIds($winnerPlayerIds, $roster);
-
-        $plays = getPlays($tournament);
-        $foundPlay = false;
         $updatedPlay = null;
-        foreach ($plays as $p => $play) {
-            if (($play['id'] ?? '') === $playId) {
-                $plays[$p] = formatPlayForStorage($playId, $gameId, $winnerPlayerIds);
-                $updatedPlay = $plays[$p];
-                $foundPlay = true;
-                break;
+
+        mutateJsonArray($dataFile, 'Corrupt tournaments.json', static function (array $tournaments) use (
+            $tournamentId,
+            $playId,
+            $gameId,
+            $winnerPlayerIds,
+            &$updatedPlay
+        ) {
+            $index = findTournamentIndex($tournaments, $tournamentId);
+            if ($index < 0) {
+                respond(404, ['error' => 'Tournament not found']);
             }
-        }
 
-        if (!$foundPlay) {
-            respond(404, ['error' => 'Play not found']);
-        }
+            $tournament = $tournaments[$index];
+            if (normalizeStatus($tournament['status'] ?? 'active') !== 'active') {
+                respond(400, ['error' => 'Games can only be edited on active tournaments']);
+            }
 
-        $tournaments[$index]['plays'] = $plays;
-        saveTournaments($dataFile, $tournaments);
+            $roster = isset($tournament['playerIds']) && is_array($tournament['playerIds'])
+                ? array_map('strval', $tournament['playerIds'])
+                : [];
+            validateWinnerPlayerIds($winnerPlayerIds, $roster);
+
+            $plays = getPlays($tournament);
+            $foundPlay = false;
+            foreach ($plays as $p => $play) {
+                if (($play['id'] ?? '') === $playId) {
+                    $plays[$p] = formatPlayForStorage($playId, $gameId, $winnerPlayerIds);
+                    $updatedPlay = $plays[$p];
+                    $foundPlay = true;
+                    break;
+                }
+            }
+
+            if (!$foundPlay) {
+                respond(404, ['error' => 'Play not found']);
+            }
+
+            $tournaments[$index]['plays'] = $plays;
+            return $tournaments;
+        });
         respond(200, formatPlayForResponse($updatedPlay));
     }
 
@@ -463,51 +385,60 @@ if ($method === 'PUT') {
         respond(400, ['error' => 'Name is required']);
     }
 
-    $found = false;
-    foreach ($tournaments as $i => $tournament) {
-        if (($tournament['id'] ?? '') === $id) {
-            $currentStatus = normalizeStatus($tournament['status'] ?? 'active');
-            $newStatus = normalizeStatus($body['status'] ?? $currentStatus);
-            $existingPlayerIds = isset($tournament['playerIds']) && is_array($tournament['playerIds'])
-                ? array_values(array_map('strval', $tournament['playerIds']))
-                : [];
+    $updated = null;
+    mutateJsonArray($dataFile, 'Corrupt tournaments.json', static function (array $tournaments) use (
+        $id,
+        $name,
+        $body,
+        $playersFile,
+        &$updated
+    ) {
+        $found = false;
+        foreach ($tournaments as $i => $tournament) {
+            if (($tournament['id'] ?? '') === $id) {
+                $currentStatus = normalizeStatus($tournament['status'] ?? 'active');
+                $newStatus = normalizeStatus($body['status'] ?? $currentStatus);
+                $existingPlayerIds = isset($tournament['playerIds']) && is_array($tournament['playerIds'])
+                    ? array_values(array_map('strval', $tournament['playerIds']))
+                    : [];
 
-            if ($currentStatus === 'ended') {
-                if (array_key_exists('playerIds', $body)) {
-                    $incoming = normalizePlayerIds($body['playerIds'], $playersFile, false);
-                    sort($incoming);
-                    $compareExisting = $existingPlayerIds;
-                    sort($compareExisting);
-                    if ($incoming !== $compareExisting) {
-                        respond(400, ['error' => 'Players cannot be changed after a tournament has ended']);
+                if ($currentStatus === 'ended') {
+                    if (array_key_exists('playerIds', $body)) {
+                        $incoming = normalizePlayerIds($body['playerIds'], $playersFile, false);
+                        sort($incoming);
+                        $compareExisting = $existingPlayerIds;
+                        sort($compareExisting);
+                        if ($incoming !== $compareExisting) {
+                            respond(400, ['error' => 'Players cannot be changed after a tournament has ended']);
+                        }
+                    }
+                    $playerIds = $existingPlayerIds;
+                } else {
+                    $playerIds = array_key_exists('playerIds', $body)
+                        ? normalizePlayerIds($body['playerIds'], $playersFile, true)
+                        : $existingPlayerIds;
+                    if (count($playerIds) === 0) {
+                        respond(400, ['error' => 'At least one player is required']);
                     }
                 }
-                $playerIds = $existingPlayerIds;
-            } else {
-                $playerIds = array_key_exists('playerIds', $body)
-                    ? normalizePlayerIds($body['playerIds'], $playersFile, true)
-                    : $existingPlayerIds;
-                if (count($playerIds) === 0) {
-                    respond(400, ['error' => 'At least one player is required']);
-                }
+
+                $tournaments[$i]['name'] = $name;
+                $tournaments[$i]['date'] = normalizeDate($body['date'] ?? ($tournament['date'] ?? ''));
+                $tournaments[$i]['status'] = $newStatus;
+                $tournaments[$i]['playerIds'] = $playerIds;
+                $tournaments[$i]['plays'] = getPlays($tournament);
+                $found = true;
+                $updated = $tournaments[$i];
+                break;
             }
-
-            $tournaments[$i]['name'] = $name;
-            $tournaments[$i]['date'] = normalizeDate($body['date'] ?? ($tournament['date'] ?? ''));
-            $tournaments[$i]['status'] = $newStatus;
-            $tournaments[$i]['playerIds'] = $playerIds;
-            $tournaments[$i]['plays'] = getPlays($tournament);
-            $found = true;
-            $updated = $tournaments[$i];
-            break;
         }
-    }
 
-    if (!$found) {
-        respond(404, ['error' => 'Tournament not found']);
-    }
+        if (!$found) {
+            respond(404, ['error' => 'Tournament not found']);
+        }
 
-    saveTournaments($dataFile, $tournaments);
+        return $tournaments;
+    });
     respond(200, $updated);
 }
 
@@ -518,27 +449,29 @@ if ($method === 'DELETE') {
     $tournamentId = isset($body['tournamentId']) ? trim((string) $body['tournamentId']) : '';
     $playId = isset($body['playId']) ? trim((string) $body['playId']) : '';
     if ($tournamentId !== '' && $playId !== '') {
-        $index = findTournamentIndex($tournaments, $tournamentId);
-        if ($index < 0) {
-            respond(404, ['error' => 'Tournament not found']);
-        }
+        mutateJsonArray($dataFile, 'Corrupt tournaments.json', static function (array $tournaments) use ($tournamentId, $playId) {
+            $index = findTournamentIndex($tournaments, $tournamentId);
+            if ($index < 0) {
+                respond(404, ['error' => 'Tournament not found']);
+            }
 
-        if (normalizeStatus($tournaments[$index]['status'] ?? 'active') !== 'active') {
-            respond(400, ['error' => 'Games can only be removed from active tournaments']);
-        }
+            if (normalizeStatus($tournaments[$index]['status'] ?? 'active') !== 'active') {
+                respond(400, ['error' => 'Games can only be removed from active tournaments']);
+            }
 
-        $plays = getPlays($tournaments[$index]);
-        $before = count($plays);
-        $plays = array_values(array_filter($plays, static function ($play) use ($playId) {
-            return (($play['id'] ?? '') !== $playId);
-        }));
+            $plays = getPlays($tournaments[$index]);
+            $before = count($plays);
+            $plays = array_values(array_filter($plays, static function ($play) use ($playId) {
+                return (($play['id'] ?? '') !== $playId);
+            }));
 
-        if (count($plays) === $before) {
-            respond(404, ['error' => 'Play not found']);
-        }
+            if (count($plays) === $before) {
+                respond(404, ['error' => 'Play not found']);
+            }
 
-        $tournaments[$index]['plays'] = $plays;
-        saveTournaments($dataFile, $tournaments);
+            $tournaments[$index]['plays'] = $plays;
+            return $tournaments;
+        });
         respond(200, ['ok' => true, 'playId' => $playId]);
     }
 
@@ -550,16 +483,18 @@ if ($method === 'DELETE') {
         respond(400, ['error' => 'id is required']);
     }
 
-    $before = count($tournaments);
-    $tournaments = array_values(array_filter($tournaments, static function ($tournament) use ($id) {
-        return ($tournament['id'] ?? '') !== $id;
-    }));
+    mutateJsonArray($dataFile, 'Corrupt tournaments.json', static function (array $tournaments) use ($id) {
+        $before = count($tournaments);
+        $tournaments = array_values(array_filter($tournaments, static function ($tournament) use ($id) {
+            return ($tournament['id'] ?? '') !== $id;
+        }));
 
-    if (count($tournaments) === $before) {
-        respond(404, ['error' => 'Tournament not found']);
-    }
+        if (count($tournaments) === $before) {
+            respond(404, ['error' => 'Tournament not found']);
+        }
 
-    saveTournaments($dataFile, $tournaments);
+        return $tournaments;
+    });
     respond(200, ['ok' => true, 'id' => $id]);
 }
 

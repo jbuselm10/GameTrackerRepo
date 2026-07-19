@@ -3,113 +3,15 @@
  * Games API — CRUD against ../data/games.json
  */
 
-header('Content-Type: application/json; charset=utf-8');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
-
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(204);
-    exit;
-}
+require_once __DIR__ . '/_lib.php';
+sendCorsHeaders();
 
 $dataFile = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'games.json';
 
-function respond(int $status, $payload): void
-{
-    http_response_code($status);
-    echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
-    exit;
-}
-
-function readBody(): array
-{
-    $raw = file_get_contents('php://input');
-    if ($raw === false || $raw === '') {
-        return [];
-    }
-    $decoded = json_decode($raw, true);
-    if (!is_array($decoded)) {
-        respond(400, ['error' => 'Invalid JSON body']);
-    }
-    return $decoded;
-}
-
-function loadGames(string $path): array
-{
-    if (!file_exists($path)) {
-        return [];
-    }
-    $raw = file_get_contents($path);
-    if ($raw === false || trim($raw) === '') {
-        return [];
-    }
-    // Strip UTF-8 BOM if present (common on Windows editors).
-    if (strncmp($raw, "\xEF\xBB\xBF", 3) === 0) {
-        $raw = substr($raw, 3);
-    }
-    $decoded = json_decode($raw, true);
-    if (!is_array($decoded)) {
-        respond(500, ['error' => 'Corrupt games.json']);
-    }
-    return $decoded;
-}
-
-function saveGames(string $path, array $games): void
-{
-    $dir = dirname($path);
-    if (!is_dir($dir)) {
-        mkdir($dir, 0755, true);
-    }
-
-    $fp = fopen($path, 'c+');
-    if ($fp === false) {
-        respond(500, ['error' => 'Unable to open games.json']);
-    }
-
-    if (!flock($fp, LOCK_EX)) {
-        fclose($fp);
-        respond(500, ['error' => 'Unable to lock games.json']);
-    }
-
-    ftruncate($fp, 0);
-    rewind($fp);
-    $json = json_encode(array_values($games), JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
-    if ($json === false || fwrite($fp, $json . "\n") === false) {
-        flock($fp, LOCK_UN);
-        fclose($fp);
-        respond(500, ['error' => 'Unable to write games.json']);
-    }
-
-    fflush($fp);
-    flock($fp, LOCK_UN);
-    fclose($fp);
-}
-
-function newId(): string
-{
-    if (function_exists('random_bytes')) {
-        $bytes = random_bytes(16);
-        $bytes[6] = chr((ord($bytes[6]) & 0x0f) | 0x40);
-        $bytes[8] = chr((ord($bytes[8]) & 0x3f) | 0x80);
-        $hex = bin2hex($bytes);
-        return sprintf(
-            '%s-%s-%s-%s-%s',
-            substr($hex, 0, 8),
-            substr($hex, 8, 4),
-            substr($hex, 12, 4),
-            substr($hex, 16, 4),
-            substr($hex, 20, 12)
-        );
-    }
-    return uniqid('game_', true);
-}
-
 $method = $_SERVER['REQUEST_METHOD'];
-$games = loadGames($dataFile);
 
 if ($method === 'GET') {
-    respond(200, $games);
+    respond(200, loadJsonArray($dataFile, 'Corrupt games.json'));
 }
 
 if ($method === 'POST') {
@@ -120,11 +22,14 @@ if ($method === 'POST') {
     }
 
     $game = [
-        'id' => newId(),
+        'id' => newId('game_'),
         'name' => $name,
     ];
-    $games[] = $game;
-    saveGames($dataFile, $games);
+
+    mutateJsonArray($dataFile, 'Corrupt games.json', static function (array $games) use ($game) {
+        $games[] = $game;
+        return $games;
+    });
     respond(201, $game);
 }
 
@@ -140,21 +45,24 @@ if ($method === 'PUT') {
         respond(400, ['error' => 'Name is required']);
     }
 
-    $found = false;
-    foreach ($games as $i => $game) {
-        if (($game['id'] ?? '') === $id) {
-            $games[$i]['name'] = $name;
-            $found = true;
-            $updated = $games[$i];
-            break;
+    $updated = null;
+    mutateJsonArray($dataFile, 'Corrupt games.json', static function (array $games) use ($id, $name, &$updated) {
+        $found = false;
+        foreach ($games as $i => $game) {
+            if (($game['id'] ?? '') === $id) {
+                $games[$i]['name'] = $name;
+                $found = true;
+                $updated = $games[$i];
+                break;
+            }
         }
-    }
 
-    if (!$found) {
-        respond(404, ['error' => 'Game not found']);
-    }
+        if (!$found) {
+            respond(404, ['error' => 'Game not found']);
+        }
 
-    saveGames($dataFile, $games);
+        return $games;
+    });
     respond(200, $updated);
 }
 
@@ -168,16 +76,18 @@ if ($method === 'DELETE') {
         respond(400, ['error' => 'id is required']);
     }
 
-    $before = count($games);
-    $games = array_values(array_filter($games, static function ($game) use ($id) {
-        return ($game['id'] ?? '') !== $id;
-    }));
+    mutateJsonArray($dataFile, 'Corrupt games.json', static function (array $games) use ($id) {
+        $before = count($games);
+        $games = array_values(array_filter($games, static function ($game) use ($id) {
+            return ($game['id'] ?? '') !== $id;
+        }));
 
-    if (count($games) === $before) {
-        respond(404, ['error' => 'Game not found']);
-    }
+        if (count($games) === $before) {
+            respond(404, ['error' => 'Game not found']);
+        }
 
-    saveGames($dataFile, $games);
+        return $games;
+    });
     respond(200, ['ok' => true, 'id' => $id]);
 }
 

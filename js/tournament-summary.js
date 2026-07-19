@@ -12,15 +12,8 @@
   const topWinnersText = document.getElementById("top-winners-text");
   const standingsList = document.getElementById("standings-list");
   const standingsEmpty = document.getElementById("standings-empty");
-
-  function escapeHtml(value) {
-    return String(value)
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#39;");
-  }
+  const escapeHtml = GameTracker.escapeHtml.bind(GameTracker);
+  const fetchJson = GameTracker.api.bind(GameTracker);
 
   function formatDate(value) {
     if (!value) return "";
@@ -46,26 +39,6 @@
   function getQueryId() {
     const params = new URLSearchParams(window.location.search);
     return params.get("id") || "";
-  }
-
-  async function fetchJson(url) {
-    const response = await fetch(url, {
-      method: "GET",
-      headers: { Accept: "application/json" },
-    });
-    const text = await response.text();
-    let data = null;
-    if (text) {
-      try {
-        data = JSON.parse(text);
-      } catch {
-        throw new Error("Server returned invalid JSON. Is PHP running?");
-      }
-    }
-    if (!response.ok) {
-      throw new Error((data && data.error) || `Request failed (${response.status})`);
-    }
-    return data;
   }
 
   function buildStandings(tournament, players) {

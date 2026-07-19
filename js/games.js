@@ -15,6 +15,8 @@
 
   let games = [];
   let editingId = null;
+  const escapeHtml = GameTracker.escapeHtml.bind(GameTracker);
+  const api = (method, body) => GameTracker.api(API_URL, method, body);
 
   function setFormStatus(message, isError = false) {
     if (!message) {
@@ -49,15 +51,6 @@
     setFormStatus("");
   }
 
-  function escapeHtml(value) {
-    return String(value)
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#39;");
-  }
-
   function renderGames() {
     gameList.innerHTML = "";
     listStatus.classList.add("hidden");
@@ -90,32 +83,6 @@
       `;
       gameList.appendChild(li);
     }
-  }
-
-  async function api(method, body) {
-    const options = {
-      method,
-      headers: { Accept: "application/json" },
-    };
-    if (body !== undefined) {
-      options.headers["Content-Type"] = "application/json";
-      options.body = JSON.stringify(body);
-    }
-    const response = await fetch(API_URL, options);
-    let data = null;
-    const text = await response.text();
-    if (text) {
-      try {
-        data = JSON.parse(text);
-      } catch {
-        throw new Error("Server returned invalid JSON. Is PHP running?");
-      }
-    }
-    if (!response.ok) {
-      const message = (data && data.error) || `Request failed (${response.status})`;
-      throw new Error(message);
-    }
-    return data;
   }
 
   async function loadGames() {

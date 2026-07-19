@@ -9,15 +9,8 @@
 
   let players = [];
   let tournaments = [];
-
-  function escapeHtml(value) {
-    return String(value)
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#39;");
-  }
+  const escapeHtml = GameTracker.escapeHtml.bind(GameTracker);
+  const fetchJson = GameTracker.api.bind(GameTracker);
 
   function formatDate(value) {
     if (!value) return "";
@@ -194,31 +187,6 @@
 
       historyList.appendChild(section);
     }
-  }
-
-  async function fetchJson(url, method = "GET", body) {
-    const options = {
-      method,
-      headers: { Accept: "application/json" },
-    };
-    if (body !== undefined) {
-      options.headers["Content-Type"] = "application/json";
-      options.body = JSON.stringify(body);
-    }
-    const response = await fetch(url, options);
-    const text = await response.text();
-    let data = null;
-    if (text) {
-      try {
-        data = JSON.parse(text);
-      } catch {
-        throw new Error("Server returned invalid JSON. Is PHP running?");
-      }
-    }
-    if (!response.ok) {
-      throw new Error((data && data.error) || `Request failed (${response.status})`);
-    }
-    return data;
   }
 
   async function loadHistory() {

@@ -226,6 +226,33 @@ input[type="checkbox"].gt-pending {
   accent-color: var(--danger);
 }
 
+/* accent-color only tints the check; show a red filled box when unchecked pending */
+input[type="checkbox"].gt-pending:not(:checked) {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  min-width: 1rem;
+  min-height: 1rem;
+  margin: 0;
+  border: 2px solid var(--danger);
+  border-radius: 0.25rem;
+  background-color: var(--danger);
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+input[type="checkbox"].gt-pending:not(:checked):focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(180, 35, 24, 0.25);
+}
+
+input[type="checkbox"].gt-saved {
+  accent-color: #2563eb;
+}
+
 .gt-label {
   display: block;
   margin-bottom: 0.25rem;

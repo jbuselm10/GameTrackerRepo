@@ -66,7 +66,6 @@
         "playerIds": [
             "1b515770-1a35-4304-8f02-da3ab88bfdc4",
             "7225aa68-9d67-47e5-9a0b-8112667c9d1d",
-            "97ee445a-a073-4cea-bd8e-9d4b8f97500a",
             "c4ea2388-c708-4b78-a942-5eda4bc401ca"
         ],
         "plays": [
@@ -75,13 +74,15 @@
                 "gameId": "4381af23-9fda-43b1-ad0d-de3681ba055f",
                 "winnerPlayerIds": [
                     "c4ea2388-c708-4b78-a942-5eda4bc401ca",
-                    "7225aa68-9d67-47e5-9a0b-8112667c9d1d"
+                    "97ee445a-a073-4cea-bd8e-9d4b8f97500a"
                 ]
             },
             {
                 "id": "abdd4f33-9eea-4d40-a334-3acb81477d24",
                 "gameId": "80e84b94-ae3f-4a21-8652-76ee503a0968",
-                "winnerPlayerId": "7225aa68-9d67-47e5-9a0b-8112667c9d1d"
+                "winnerPlayerIds": [
+                    "97ee445a-a073-4cea-bd8e-9d4b8f97500a"
+                ]
             }
         ]
     },
@@ -186,7 +187,6 @@
             "4434e489-84c7-4e58-a99a-545db0621f33",
             "731bae1f-0141-422a-935c-724157119964",
             "97ee445a-a073-4cea-bd8e-9d4b8f97500a",
-            "c4ea2388-c708-4b78-a942-5eda4bc401ca",
             "1b9928fc-b58b-4b34-9ed0-089ae5992e00"
         ],
         "plays": [
@@ -207,6 +207,33 @@
                     "1b515770-1a35-4304-8f02-da3ab88bfdc4",
                     "c4ea2388-c708-4b78-a942-5eda4bc401ca"
                 ]
+            }
+        ]
+    },
+    {
+        "id": "2b8cb3b5-31d4-448d-8b38-31a8917898a2",
+        "name": "Braunn's tournament",
+        "date": "2026-07-18",
+        "status": "active",
+        "playerIds": [
+            "1b515770-1a35-4304-8f02-da3ab88bfdc4",
+            "7225aa68-9d67-47e5-9a0b-8112667c9d1d",
+            "731bae1f-0141-422a-935c-724157119964",
+            "97ee445a-a073-4cea-bd8e-9d4b8f97500a"
+        ],
+        "plays": [
+            {
+                "id": "9a635725-d02c-45cc-ad26-8b19c945b83d",
+                "gameId": "114ce818-ad13-410b-83fe-d20391f8dc52",
+                "winnerPlayerIds": [
+                    "7225aa68-9d67-47e5-9a0b-8112667c9d1d",
+                    "1b515770-1a35-4304-8f02-da3ab88bfdc4"
+                ]
+            },
+            {
+                "id": "7bbd84e6-b0cf-411a-a400-a262ec2f8d70",
+                "gameId": "4381af23-9fda-43b1-ad0d-de3681ba055f",
+                "winnerPlayerIds": []
             }
         ]
     }

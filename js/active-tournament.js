@@ -28,6 +28,8 @@
 
   let tournament = null;
   let players = [];
+  const escapeHtml = GameTracker.escapeHtml.bind(GameTracker);
+  const api = GameTracker.api.bind(GameTracker);
   let games = [];
   let editingPlayId = null;
   const addingWinnerPlayIds = new Set();
@@ -65,15 +67,6 @@
         delete pendingWinnerValues[key];
       }
     }
-  }
-
-  function escapeHtml(value) {
-    return String(value)
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#39;");
   }
 
   function formatDate(value) {
@@ -180,32 +173,6 @@
                 Update Winner
               </button>
             </div>`;
-  }
-
-  async function api(url, method, body) {
-    const options = {
-      method,
-      headers: { Accept: "application/json" },
-    };
-    if (body !== undefined) {
-      options.headers["Content-Type"] = "application/json";
-      options.body = JSON.stringify(body);
-    }
-    const response = await fetch(url, options);
-    let data = null;
-    const text = await response.text();
-    if (text) {
-      try {
-        data = JSON.parse(text);
-      } catch {
-        throw new Error("Server returned invalid JSON. Is PHP running?");
-      }
-    }
-    if (!response.ok) {
-      const message = (data && data.error) || `Request failed (${response.status})`;
-      throw new Error(message);
-    }
-    return data;
   }
 
   function fillSelects() {
@@ -400,6 +367,16 @@
           </label>`;
       })
       .join("");
+    syncPlayerCheckboxStyles();
+  }
+
+  function syncPlayerCheckboxStyles() {
+    if (!tournament) return;
+    GameTracker.syncPlayerCheckboxStyles(addPlayersList, tournament.playerIds, {
+      active: true,
+      inputSelector: 'input[name="player"]',
+      getPlayerId: (input) => input.value,
+    });
   }
 
   function setPlayersStatus(message, isError = false) {
@@ -747,13 +724,7 @@
   addPlayersList.addEventListener("change", (event) => {
     const checkbox = event.target.closest('input[name="player"]');
     if (!checkbox || !tournament) return;
-    const rosterIds = Array.isArray(tournament.playerIds) ? tournament.playerIds : [];
-    const savedChecked = rosterIds.includes(checkbox.value);
-    if (checkbox.checked !== savedChecked) {
-      checkbox.classList.add("gt-pending");
-    } else {
-      checkbox.classList.remove("gt-pending");
-    }
+    syncPlayerCheckboxStyles();
   });
 
   savePlayersBtn.addEventListener("click", async () => {
