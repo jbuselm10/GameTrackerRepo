@@ -1,11 +1,12 @@
 <?php
 /**
  * Tournaments API — CRUD against ../data/tournaments.json
- * Plays: POST { tournamentId, gameId, winnerPlayerIds? }
- *        PUT  { tournamentId, playId, gameId, winnerPlayerIds? }
- *        DELETE { tournamentId, playId }
- * winnerPlayerIds accepts up to 4 unique roster player ids per play.
- * Legacy winnerPlayerId (single string) is still accepted on POST/PUT.
+ * scoringMode: "gameWins" (default) | "points"
+ * Plays (gameWins): POST/PUT { tournamentId, playId?, gameId, winnerPlayerIds? }
+ * Plays (points):   POST/PUT { tournamentId, playId?, gameId, placementPlayerIds? }
+ * winnerPlayerIds: up to 4 unique roster ids. Legacy winnerPlayerId still accepted.
+ * placementPlayerIds: ordered [1st, 2nd, 3rd] — 3/2/1 points; empty slots omitted.
+ * DELETE { tournamentId, playId }
  */
 
 require_once __DIR__ . '/_lib.php';
@@ -113,6 +114,19 @@ function findTournamentIndex(array $tournaments, string $id): int
 }
 
 const MAX_WINNERS_PER_PLAY = 4;
+const MAX_PLACEMENTS_PER_PLAY = 3;
+
+function normalizeScoringMode($value): string
+{
+    $mode = strtolower(trim((string) ($value ?? '')));
+    if ($mode === '' || $mode === 'gamewins' || $mode === 'game_wins') {
+        return 'gameWins';
+    }
+    if ($mode === 'points') {
+        return 'points';
+    }
+    respond(400, ['error' => 'scoringMode must be gameWins or points']);
+}
 
 function normalizePlayWinners(array $play): array
 {
@@ -135,6 +149,27 @@ function normalizePlayWinners(array $play): array
 
     $single = isset($play['winnerPlayerId']) ? trim((string) $play['winnerPlayerId']) : '';
     return $single !== '' ? [$single] : [];
+}
+
+function normalizePlayPlacements(array $play): array
+{
+    if (!isset($play['placementPlayerIds']) || !is_array($play['placementPlayerIds'])) {
+        return [];
+    }
+    $ids = [];
+    $seen = [];
+    foreach ($play['placementPlayerIds'] as $id) {
+        $id = trim((string) $id);
+        if ($id === '' || isset($seen[$id])) {
+            continue;
+        }
+        $seen[$id] = true;
+        $ids[] = $id;
+        if (count($ids) >= MAX_PLACEMENTS_PER_PLAY) {
+            break;
+        }
+    }
+    return $ids;
 }
 
 function parseWinnerPlayerIdsFromBody(array $body): array
@@ -160,6 +195,33 @@ function parseWinnerPlayerIdsFromBody(array $body): array
     return $winnerPlayerId !== '' ? [$winnerPlayerId] : [];
 }
 
+function parsePlacementPlayerIdsFromBody(array $body): array
+{
+    if (!isset($body['placementPlayerIds'])) {
+        return [];
+    }
+    if (!is_array($body['placementPlayerIds'])) {
+        respond(400, ['error' => 'placementPlayerIds must be an array']);
+    }
+    $ids = [];
+    $seen = [];
+    foreach ($body['placementPlayerIds'] as $id) {
+        $id = trim((string) $id);
+        if ($id === '') {
+            continue;
+        }
+        if (isset($seen[$id])) {
+            respond(400, ['error' => 'Duplicate placement is not allowed']);
+        }
+        $seen[$id] = true;
+        $ids[] = $id;
+    }
+    if (count($ids) > MAX_PLACEMENTS_PER_PLAY) {
+        respond(400, ['error' => 'A game can have at most ' . MAX_PLACEMENTS_PER_PLAY . ' placements']);
+    }
+    return $ids;
+}
+
 function validateWinnerPlayerIds(array $winnerPlayerIds, array $roster): void
 {
     if (count($winnerPlayerIds) > MAX_WINNERS_PER_PLAY) {
@@ -178,22 +240,50 @@ function validateWinnerPlayerIds(array $winnerPlayerIds, array $roster): void
     }
 }
 
-function formatPlayForStorage(string $playId, string $gameId, array $winnerPlayerIds): array
+function validatePlacementPlayerIds(array $placementPlayerIds, array $roster): void
 {
-    return [
+    if (count($placementPlayerIds) > MAX_PLACEMENTS_PER_PLAY) {
+        respond(400, ['error' => 'A game can have at most ' . MAX_PLACEMENTS_PER_PLAY . ' placements']);
+    }
+
+    $seen = [];
+    foreach ($placementPlayerIds as $id) {
+        if (isset($seen[$id])) {
+            respond(400, ['error' => 'Duplicate placement is not allowed']);
+        }
+        $seen[$id] = true;
+        if (!in_array($id, $roster, true)) {
+            respond(400, ['error' => 'Placement must be a player in the tournament']);
+        }
+    }
+}
+
+function formatPlayForStorage(string $playId, string $gameId, string $scoringMode, array $resultIds): array
+{
+    $play = [
         'id' => $playId,
         'gameId' => $gameId,
-        'winnerPlayerIds' => array_values($winnerPlayerIds),
     ];
+    if ($scoringMode === 'points') {
+        $play['placementPlayerIds'] = array_values($resultIds);
+    } else {
+        $play['winnerPlayerIds'] = array_values($resultIds);
+    }
+    return $play;
 }
 
 function formatPlayForResponse(array $play): array
 {
-    return [
+    $response = [
         'id' => (string) ($play['id'] ?? ''),
         'gameId' => (string) ($play['gameId'] ?? ''),
-        'winnerPlayerIds' => normalizePlayWinners($play),
     ];
+    if (array_key_exists('placementPlayerIds', $play)) {
+        $response['placementPlayerIds'] = normalizePlayPlacements($play);
+    } else {
+        $response['winnerPlayerIds'] = normalizePlayWinners($play);
+    }
+    return $response;
 }
 
 function normalizeTournamentForResponse(array $tournament): array
@@ -207,6 +297,7 @@ function normalizeTournamentForResponse(array $tournament): array
         $normalizedPlays[] = formatPlayForResponse($play);
     }
     $tournament['plays'] = $normalizedPlays;
+    $tournament['scoringMode'] = normalizeScoringMode($tournament['scoringMode'] ?? 'gameWins');
     return $tournament;
 }
 
@@ -244,13 +335,19 @@ if ($method === 'POST') {
             respond(400, ['error' => 'Unknown game id']);
         }
 
+        $hasWinners = array_key_exists('winnerPlayerIds', $body) || array_key_exists('winnerPlayerId', $body);
+        $hasPlacements = array_key_exists('placementPlayerIds', $body);
         $winnerPlayerIds = parseWinnerPlayerIdsFromBody($body);
+        $placementPlayerIds = parsePlacementPlayerIdsFromBody($body);
         $play = null;
 
         mutateJsonArray($dataFile, 'Corrupt tournaments.json', static function (array $tournaments) use (
             $tournamentId,
             $gameId,
+            $hasWinners,
+            $hasPlacements,
             $winnerPlayerIds,
+            $placementPlayerIds,
             &$play
         ) {
             $index = findTournamentIndex($tournaments, $tournamentId);
@@ -263,12 +360,29 @@ if ($method === 'POST') {
                 respond(400, ['error' => 'Games can only be added to active tournaments']);
             }
 
+            $scoringMode = normalizeScoringMode($tournament['scoringMode'] ?? 'gameWins');
+            if ($scoringMode === 'points') {
+                if ($hasWinners) {
+                    respond(400, ['error' => 'This tournament uses points scoring; send placementPlayerIds']);
+                }
+                $resultIds = $placementPlayerIds;
+            } else {
+                if ($hasPlacements) {
+                    respond(400, ['error' => 'This tournament uses game wins; send winnerPlayerIds']);
+                }
+                $resultIds = $winnerPlayerIds;
+            }
+
             $roster = isset($tournament['playerIds']) && is_array($tournament['playerIds'])
                 ? array_map('strval', $tournament['playerIds'])
                 : [];
-            validateWinnerPlayerIds($winnerPlayerIds, $roster);
+            if ($scoringMode === 'points') {
+                validatePlacementPlayerIds($resultIds, $roster);
+            } else {
+                validateWinnerPlayerIds($resultIds, $roster);
+            }
 
-            $play = formatPlayForStorage(newId('tournament_'), $gameId, $winnerPlayerIds);
+            $play = formatPlayForStorage(newId('tournament_'), $gameId, $scoringMode, $resultIds);
             $plays = getPlays($tournament);
             $plays[] = $play;
             $tournaments[$index]['plays'] = $plays;
@@ -289,12 +403,14 @@ if ($method === 'POST') {
     $status = normalizeStatus($body['status'] ?? 'active');
     $playerIds = normalizePlayerIds($body['playerIds'] ?? [], $playersFile, true);
     $date = normalizeDate($body['date'] ?? '');
+    $scoringMode = normalizeScoringMode($body['scoringMode'] ?? 'gameWins');
 
     $tournament = [
         'id' => newId('tournament_'),
         'name' => $name,
         'date' => $date,
         'status' => $status,
+        'scoringMode' => $scoringMode,
         'playerIds' => $playerIds,
         'plays' => [],
     ];
@@ -303,7 +419,7 @@ if ($method === 'POST') {
         $tournaments[] = $tournament;
         return $tournaments;
     });
-    respond(201, $tournament);
+    respond(201, normalizeTournamentForResponse($tournament));
 }
 
 if ($method === 'PUT') {
@@ -329,14 +445,20 @@ if ($method === 'PUT') {
             respond(400, ['error' => 'Unknown game id']);
         }
 
+        $hasWinners = array_key_exists('winnerPlayerIds', $body) || array_key_exists('winnerPlayerId', $body);
+        $hasPlacements = array_key_exists('placementPlayerIds', $body);
         $winnerPlayerIds = parseWinnerPlayerIdsFromBody($body);
+        $placementPlayerIds = parsePlacementPlayerIdsFromBody($body);
         $updatedPlay = null;
 
         mutateJsonArray($dataFile, 'Corrupt tournaments.json', static function (array $tournaments) use (
             $tournamentId,
             $playId,
             $gameId,
+            $hasWinners,
+            $hasPlacements,
             $winnerPlayerIds,
+            $placementPlayerIds,
             &$updatedPlay
         ) {
             $index = findTournamentIndex($tournaments, $tournamentId);
@@ -349,16 +471,33 @@ if ($method === 'PUT') {
                 respond(400, ['error' => 'Games can only be edited on active tournaments']);
             }
 
+            $scoringMode = normalizeScoringMode($tournament['scoringMode'] ?? 'gameWins');
+            if ($scoringMode === 'points') {
+                if ($hasWinners) {
+                    respond(400, ['error' => 'This tournament uses points scoring; send placementPlayerIds']);
+                }
+                $resultIds = $placementPlayerIds;
+            } else {
+                if ($hasPlacements) {
+                    respond(400, ['error' => 'This tournament uses game wins; send winnerPlayerIds']);
+                }
+                $resultIds = $winnerPlayerIds;
+            }
+
             $roster = isset($tournament['playerIds']) && is_array($tournament['playerIds'])
                 ? array_map('strval', $tournament['playerIds'])
                 : [];
-            validateWinnerPlayerIds($winnerPlayerIds, $roster);
+            if ($scoringMode === 'points') {
+                validatePlacementPlayerIds($resultIds, $roster);
+            } else {
+                validateWinnerPlayerIds($resultIds, $roster);
+            }
 
             $plays = getPlays($tournament);
             $foundPlay = false;
             foreach ($plays as $p => $play) {
                 if (($play['id'] ?? '') === $playId) {
-                    $plays[$p] = formatPlayForStorage($playId, $gameId, $winnerPlayerIds);
+                    $plays[$p] = formatPlayForStorage($playId, $gameId, $scoringMode, $resultIds);
                     $updatedPlay = $plays[$p];
                     $foundPlay = true;
                     break;
@@ -401,6 +540,18 @@ if ($method === 'PUT') {
                 $existingPlayerIds = isset($tournament['playerIds']) && is_array($tournament['playerIds'])
                     ? array_values(array_map('strval', $tournament['playerIds']))
                     : [];
+                $existingScoringMode = normalizeScoringMode($tournament['scoringMode'] ?? 'gameWins');
+                $plays = getPlays($tournament);
+
+                if (array_key_exists('scoringMode', $body)) {
+                    $incomingMode = normalizeScoringMode($body['scoringMode']);
+                    if ($incomingMode !== $existingScoringMode && count($plays) > 0) {
+                        respond(400, ['error' => 'Scoring mode cannot be changed after games are recorded']);
+                    }
+                    $scoringMode = $incomingMode;
+                } else {
+                    $scoringMode = $existingScoringMode;
+                }
 
                 if ($currentStatus === 'ended') {
                     if (array_key_exists('playerIds', $body)) {
@@ -425,10 +576,11 @@ if ($method === 'PUT') {
                 $tournaments[$i]['name'] = $name;
                 $tournaments[$i]['date'] = normalizeDate($body['date'] ?? ($tournament['date'] ?? ''));
                 $tournaments[$i]['status'] = $newStatus;
+                $tournaments[$i]['scoringMode'] = $scoringMode;
                 $tournaments[$i]['playerIds'] = $playerIds;
-                $tournaments[$i]['plays'] = getPlays($tournament);
+                $tournaments[$i]['plays'] = $plays;
                 $found = true;
-                $updated = $tournaments[$i];
+                $updated = normalizeTournamentForResponse($tournaments[$i]);
                 break;
             }
         }

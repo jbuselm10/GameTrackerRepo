@@ -1,0 +1,4 @@
+js/config.js
+api/config.php
+/vendor/
+.htpasswd

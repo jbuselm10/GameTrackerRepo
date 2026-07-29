@@ -1,19 +1,45 @@
 # GameTrackerRepo
-The repo will be for the code for tracking who won the card games. 
 
-It will be a website that features:
-Initial Page: Introduction, Instructions, and links to the capabilities
-Player Profiles: Dedicated profiles for each player. That can be added, updated, or deleted
-Game Profiles: Dedicated list of games that can be chosen from. Games should be able to be chosen from the list, or new games added, updated, or deleted.
-Tournaments: The Ability to create a tournament that will include naming the Tournament, Date, and how many games must be won to win the tournament.
-Tournaments: Select the players only 1 time for each tournament.
-Game Tracking: The ability to choose individual games from the list until winners hit the total number of games won to win the tournament.
-History: Records tracked and organized by tournament, game and Player to see summary information on wins.
-# MVP
-The smallest MVP should include an initial page with instructions for adding games, players, and tournaments. 
-# TechStack
-Frontend: HTML + Tailwind CSS + JavaScript + Python
-Hosting: GreenGeeks (static files in public_html)
-Version Control: GitHub
-Game Tracking: Simple JSON file or localStorage
-Profiles: Include Mandatory field of Name and optional field of a Nickname
+Website for tracking who won card games among friends and family.
+
+## Features
+
+- **Home:** Introduction, instructions, and links
+- **Players:** Add, update, or delete player profiles (name required; nickname optional)
+- **Games:** Maintain the list of games that can be played
+- **Tournaments:** Create a tournament (name, date, games needed to win), pick players once, then track plays until someone wins
+- **History:** Summaries by tournament, game, and player
+
+## Tech stack
+
+| Layer | Choice |
+|-------|--------|
+| Frontend | HTML + Tailwind CSS (CDN) + vanilla JavaScript |
+| Backend | PHP 7.4+ JSON REST API (`api/`) |
+| Storage | JSON files in `data/` (no MySQL) |
+| Hosting | GreenGeeks shared hosting (`public_html`) |
+| Version control | GitHub |
+| Optional | Sentry (browser + PHP via Composer) |
+
+## Local development
+
+1. Copy configs (once): run `setup-configs.bat`, or:
+
+   ```powershell
+   Copy-Item js/config.example.js js/config.js
+   Copy-Item api/config.example.php api/config.php
+   ```
+
+2. Start PHP’s built-in server from the repo root:
+
+   ```bat
+   run.bat
+   ```
+
+   Or: `php -S localhost:8000`
+
+3. Open http://localhost:8000
+
+## Deploy
+
+See [DEPLOY.md](DEPLOY.md) for GreenGeeks upload steps, writable `data/`, server configs, and password protection.

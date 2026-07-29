@@ -1,0 +1,11 @@
+{
+  "name": "gametracker/app",
+  "description": "Friends and Family Game Tracker",
+  "require": {
+    "php": ">=7.4",
+    "sentry/sentry": "^4.0"
+  },
+  "config": {
+    "sort-packages": true
+  }
+}

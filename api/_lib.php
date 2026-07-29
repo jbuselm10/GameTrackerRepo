@@ -14,6 +14,51 @@ if (basename((string) ($_SERVER['SCRIPT_FILENAME'] ?? '')) === basename(__FILE__
 /** @var resource[] */
 $GLOBALS['_gt_json_locks'] = [];
 
+initSentry();
+
+function initSentry(): void
+{
+    static $initialized = false;
+    if ($initialized) {
+        return;
+    }
+    $initialized = true;
+
+    $autoload = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR . 'autoload.php';
+    $configFile = __DIR__ . DIRECTORY_SEPARATOR . 'config.php';
+    if (!file_exists($autoload) || !file_exists($configFile)) {
+        return;
+    }
+
+    require_once $autoload;
+    $config = require $configFile;
+    if (!is_array($config)) {
+        return;
+    }
+
+    $dsn = isset($config['sentryDsn']) ? trim((string) $config['sentryDsn']) : '';
+    if ($dsn === '') {
+        return;
+    }
+
+    \Sentry\init([
+        'dsn' => $dsn,
+        'environment' => isset($config['environment']) ? (string) $config['environment'] : 'production',
+    ]);
+}
+
+function captureSentryServerError(int $status, $payload): void
+{
+    if ($status < 500 || !function_exists('\Sentry\captureMessage')) {
+        return;
+    }
+
+    $message = is_array($payload) && isset($payload['error'])
+        ? (string) $payload['error']
+        : 'Server error ' . $status;
+    \Sentry\captureMessage($message, \Sentry\Severity::error());
+}
+
 function sendCorsHeaders(): void
 {
     header('Content-Type: application/json; charset=utf-8');
@@ -40,6 +85,7 @@ function releaseJsonLocks(): void
 
 function respond(int $status, $payload): void
 {
+    captureSentryServerError($status, $payload);
     releaseJsonLocks();
     http_response_code($status);
     echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);

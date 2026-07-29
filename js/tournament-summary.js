@@ -42,38 +42,32 @@
   }
 
   function buildStandings(tournament, players) {
-    const rosterIds = Array.isArray(tournament.playerIds) ? tournament.playerIds.map(String) : [];
+    const { mode, standings, topScore, leaders } = getTournamentLeaders(tournament);
     const plays = Array.isArray(tournament.plays) ? tournament.plays : [];
-    const winCounts = {};
 
-    for (const id of rosterIds) {
-      winCounts[id] = 0;
-    }
-    for (const play of plays) {
-      for (const winnerId of getPlayWinnerIds(play)) {
-        if (!(winnerId in winCounts)) {
-          winCounts[winnerId] = 0;
-        }
-        winCounts[winnerId] += 1;
-      }
-    }
-
-    const standings = rosterIds.map((id, index) => {
-      const player = players.find((p) => p.id === id);
+    const rows = standings.map((row) => {
+      const player = players.find((p) => p.id === row.id);
       return {
-        id,
-        label: playerLabel(player, id),
-        wins: winCounts[id] || 0,
-        rosterIndex: index,
+        id: row.id,
+        label: playerLabel(player, row.id),
+        score: row.score,
       };
     });
 
-    standings.sort((a, b) => {
-      if (b.wins !== a.wins) return b.wins - a.wins;
-      return a.rosterIndex - b.rosterIndex;
-    });
-
-    return { standings, totalPlays: plays.length };
+    return {
+      mode,
+      standings: rows,
+      totalPlays: plays.length,
+      topScore,
+      leaders: leaders.map((row) => {
+        const player = players.find((p) => p.id === row.id);
+        return {
+          id: row.id,
+          label: playerLabel(player, row.id),
+          score: row.score,
+        };
+      }),
+    };
   }
 
   function renderSummary(tournament, players) {
@@ -85,10 +79,17 @@
       return;
     }
 
-    const { standings, totalPlays } = buildStandings(tournament, players);
+    const { mode, standings, totalPlays, topScore, leaders } = buildStandings(tournament, players);
+    const isPoints = mode === "points";
+
+    summarySubtitle.textContent = isPoints
+      ? "Results ranked by points (3-2-1 per game)."
+      : "Results ranked by wins.";
 
     tournamentName.textContent = tournament.name || "Tournament";
-    tournamentMeta.textContent = formatDate(tournament.date);
+    tournamentMeta.textContent = `${formatDate(tournament.date)} · ${
+      isPoints ? "Points scoring" : "Game wins"
+    }`;
     gamesPlayed.textContent = `Games played: ${totalPlays}`;
 
     if (!standings.length) {
@@ -97,22 +98,30 @@
       topWinners.classList.add("hidden");
     } else {
       standingsEmpty.classList.add("hidden");
-      const topWins = standings[0].wins;
-      const leaders = standings.filter((row) => row.wins === topWins);
 
-      if (topWins > 0) {
+      if (topScore > 0) {
         topWinners.classList.remove("hidden");
-        topWinnersText.textContent =
-          leaders.length === 1
-            ? `${leaders[0].label} — ${topWins} win${topWins === 1 ? "" : "s"}`
-            : `Tied: ${leaders.map((l) => l.label).join(", ")} — ${topWins} wins each`;
+        if (isPoints) {
+          topWinnersText.textContent =
+            leaders.length === 1
+              ? `${leaders[0].label} — ${topScore} point${topScore === 1 ? "" : "s"}`
+              : `Tied: ${leaders.map((l) => l.label).join(", ")} — ${topScore} points each`;
+        } else {
+          topWinnersText.textContent =
+            leaders.length === 1
+              ? `${leaders[0].label} — ${topScore} win${topScore === 1 ? "" : "s"}`
+              : `Tied: ${leaders.map((l) => l.label).join(", ")} — ${topScore} wins each`;
+        }
       } else {
         topWinners.classList.add("hidden");
       }
 
       standingsList.innerHTML = standings
         .map((row, index) => {
-          const isLeader = topWins > 0 && row.wins === topWins;
+          const isLeader = topScore > 0 && row.score === topScore;
+          const scoreLabel = isPoints
+            ? `${row.score} pt${row.score === 1 ? "" : "s"}`
+            : `${row.score} win${row.score === 1 ? "" : "s"}`;
           return `
             <li class="flex items-center justify-between gap-3 rounded-md px-3 py-2 ${
               isLeader ? "bg-gold-soft ring-1 ring-gold" : "bg-parchment-deep"
@@ -121,7 +130,7 @@
                 <span class="text-sm font-medium gt-muted">#${index + 1}</span>
                 <span class="font-medium text-ink">${escapeHtml(row.label)}</span>
               </div>
-              <span class="text-sm font-semibold text-ink">${row.wins} win${row.wins === 1 ? "" : "s"}</span>
+              <span class="text-sm font-semibold text-ink">${scoreLabel}</span>
             </li>
           `;
         })

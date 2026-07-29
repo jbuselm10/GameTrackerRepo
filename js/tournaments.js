@@ -8,6 +8,8 @@
   const nameInput = document.getElementById("tournament-name");
   const dateInput = document.getElementById("tournament-date");
   const statusInput = document.getElementById("tournament-status");
+  const scoringInput = document.getElementById("tournament-scoring");
+  const scoringLocked = document.getElementById("scoring-locked");
   const playersContainer = document.getElementById("tournament-players");
   const playersEmpty = document.getElementById("players-empty");
   const playersError = document.getElementById("players-error");
@@ -51,6 +53,23 @@
 
   function playersEditable() {
     return statusInput.value !== "ended";
+  }
+
+  function scoringModeOf(tournament) {
+    return tournament?.scoringMode === "points" ? "points" : "gameWins";
+  }
+
+  function scoringBadge(tournament) {
+    if (scoringModeOf(tournament) === "points") {
+      return '<span class="gt-badge-active">Points 3-2-1</span>';
+    }
+    return '<span class="gt-badge-ended">Game wins</span>';
+  }
+
+  function updateScoringLockState(tournament) {
+    const hasPlays = Array.isArray(tournament?.plays) && tournament.plays.length > 0;
+    scoringInput.disabled = hasPlays;
+    scoringLocked.classList.toggle("hidden", !hasPlays);
   }
 
   function getSelectedPlayerIds() {
@@ -120,6 +139,9 @@
     nameInput.value = "";
     dateInput.value = todayIsoDate();
     statusInput.value = "active";
+    scoringInput.value = "gameWins";
+    scoringInput.disabled = false;
+    scoringLocked.classList.add("hidden");
     setSelectedPlayerIds([]);
     nameError.classList.add("hidden");
     dateError.classList.add("hidden");
@@ -140,6 +162,8 @@
     nameInput.value = tournament.name || "";
     dateInput.value = tournament.date || "";
     statusInput.value = tournament.status === "ended" ? "ended" : "active";
+    scoringInput.value = scoringModeOf(tournament);
+    updateScoringLockState(tournament);
     setSelectedPlayerIds(tournament.playerIds || []);
     nameError.classList.add("hidden");
     dateError.classList.add("hidden");
@@ -213,7 +237,7 @@
 
       li.innerHTML = `
         <div>
-          <p class="font-medium text-ink">${escapeHtml(tournament.name)} ${statusBadge(tournament.status)}</p>
+          <p class="font-medium text-ink">${escapeHtml(tournament.name)} ${statusBadge(tournament.status)} ${scoringBadge(tournament)}</p>
           <p class="mt-1 text-sm gt-muted">${formatDate(tournament.date)}</p>
           ${formatPlayers(tournament.playerIds)}
         </div>
@@ -276,6 +300,7 @@
     const name = nameInput.value.trim();
     const date = dateInput.value.trim();
     const status = statusInput.value === "ended" ? "ended" : "active";
+    const scoringMode = scoringInput.value === "points" ? "points" : "gameWins";
     const playerIds = getSelectedPlayerIds();
 
     let valid = true;
@@ -306,13 +331,17 @@
 
     try {
       if (editingId) {
-        await api(API_URL, "PUT", { id: editingId, name, date, status, playerIds });
+        await api(API_URL, "PUT", { id: editingId, name, date, status, scoringMode, playerIds });
         savedPlayerIds = new Set(playerIds.map(String));
         syncPlayerCheckboxStyles();
         setFormStatus("Tournament updated.");
         await loadTournaments();
+        const updated = tournaments.find((t) => t.id === editingId);
+        if (updated) {
+          updateScoringLockState(updated);
+        }
       } else {
-        await api(API_URL, "POST", { name, date, status, playerIds });
+        await api(API_URL, "POST", { name, date, status, scoringMode, playerIds });
         setFormStatus("Tournament added.");
         resetForm();
         await loadTournaments();

@@ -55,42 +55,26 @@
   }
 
   function formatWinners(tournament) {
-    const rosterIds = Array.isArray(tournament.playerIds) ? tournament.playerIds.map(String) : [];
-    const plays = Array.isArray(tournament.plays) ? tournament.plays : [];
-    const winCounts = {};
+    const { mode, leaders, topScore } = getTournamentLeaders(tournament);
+    const scoringNote =
+      mode === "points"
+        ? '<p class="mt-1 text-xs gt-muted">Points scoring</p>'
+        : "";
 
-    for (const id of rosterIds) {
-      winCounts[id] = 0;
-    }
-    for (const play of plays) {
-      for (const winnerId of getPlayWinnerIds(play)) {
-        if (!(winnerId in winCounts)) {
-          winCounts[winnerId] = 0;
-        }
-        winCounts[winnerId] += 1;
-      }
+    if (!leaders.length || topScore <= 0) {
+      return `${scoringNote}<p class="mt-1 text-sm gt-muted">${
+        mode === "points" ? "Leader: None" : "Winners: None"
+      }</p>`;
     }
 
-    const entries = Object.keys(winCounts).map((id) => ({
-      id,
-      wins: winCounts[id],
-    }));
-
-    if (!entries.length) {
-      return '<p class="mt-1 text-sm gt-muted">Winners: None</p>';
+    const names = leaders.map((entry) => escapeHtml(playerLabel(entry.id)));
+    if (mode === "points") {
+      const pointLabel = `${topScore} point${topScore === 1 ? "" : "s"}`;
+      return `${scoringNote}<p class="mt-1 text-sm font-bold text-felt-dark">Leader: ${names.join(", ")} (${pointLabel})</p>`;
     }
 
-    const topWins = Math.max(...entries.map((entry) => entry.wins));
-    if (topWins <= 0) {
-      return '<p class="mt-1 text-sm gt-muted">Winners: None</p>';
-    }
-
-    const winners = entries
-      .filter((entry) => entry.wins === topWins)
-      .map((entry) => escapeHtml(playerLabel(entry.id)));
-
-    const winLabel = `${topWins} win${topWins === 1 ? "" : "s"}`;
-    return `<p class="mt-1 text-sm font-bold text-felt-dark">Winners: ${winners.join(", ")} (${winLabel})</p>`;
+    const winLabel = `${topScore} win${topScore === 1 ? "" : "s"}`;
+    return `${scoringNote}<p class="mt-1 text-sm font-bold text-felt-dark">Winners: ${names.join(", ")} (${winLabel})</p>`;
   }
 
   function tournamentYear(tournament) {

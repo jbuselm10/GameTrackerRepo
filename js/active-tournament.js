@@ -8,6 +8,7 @@
   const activePanel = document.getElementById("active-panel");
   const tournamentName = document.getElementById("tournament-name");
   const tournamentDate = document.getElementById("tournament-date");
+  const tournamentScoring = document.getElementById("tournament-scoring");
   const tournamentPlayers = document.getElementById("tournament-players");
   const playsList = document.getElementById("plays-list");
   const playsTitle = document.getElementById("plays-title");
@@ -123,6 +124,10 @@
       .join("");
   }
 
+  function placementKey(playId, index) {
+    return `place:${playId}:${index}`;
+  }
+
   async function savePlayWinners(playId, play, winnerPlayerIds, button, successMessage) {
     if (button) button.disabled = true;
     try {
@@ -140,6 +145,88 @@
     } finally {
       if (button) button.disabled = false;
     }
+  }
+
+  async function savePlayPlacements(playId, play, placementPlayerIds, button, successMessage) {
+    if (button) button.disabled = true;
+    try {
+      await api(API_URL, "PUT", {
+        tournamentId: tournament.id,
+        playId,
+        gameId: play.gameId,
+        placementPlayerIds,
+      });
+      clearWinnerPendingForPlay(playId);
+      for (let i = 0; i < MAX_PLACEMENTS_PER_PLAY; i++) {
+        dirtyWinnerSelects.delete(placementKey(playId, i));
+        delete pendingWinnerValues[placementKey(playId, i)];
+      }
+      tournament = await api(`${API_URL}?id=${encodeURIComponent(tournament.id)}`, "GET");
+      renderActive();
+      setFormStatus(successMessage);
+    } catch (err) {
+      setFormStatus(err.message || "Failed to update placements.", true);
+    } finally {
+      if (button) button.disabled = false;
+    }
+  }
+
+  function collectPlacementIdsFromUi(playId, savedPlacements) {
+    const ids = [];
+    for (let index = 0; index < MAX_PLACEMENTS_PER_PLAY; index++) {
+      const key = placementKey(playId, index);
+      const select = playsList.querySelector(
+        `select[data-placement][data-play-id="${playId}"][data-place-index="${index}"]`
+      );
+      let value = "";
+      if (dirtyWinnerSelects.has(key)) {
+        value = pendingWinnerValues[key] || "";
+      } else if (select) {
+        value = select.value || "";
+      } else {
+        value = savedPlacements[index] || "";
+      }
+      if (value) ids.push(value);
+    }
+    return ids;
+  }
+
+  function renderPlacementControls(play, rosterIds) {
+    const saved = getPlayPlacementIds(play);
+    const labels = PLACE_LABELS;
+    const points = POINTS_BY_PLACE;
+
+    return `
+      <div class="space-y-2">
+        ${labels
+          .map((label, index) => {
+            const key = placementKey(play.id, index);
+            const savedId = saved[index] || "";
+            const pendingId = dirtyWinnerSelects.has(key)
+              ? (pendingWinnerValues[key] ?? savedId)
+              : savedId;
+            const currentSelections = labels.map((_, i) => {
+              const k = placementKey(play.id, i);
+              if (dirtyWinnerSelects.has(k)) return pendingWinnerValues[k] || "";
+              return saved[i] || "";
+            });
+            const exclude = currentSelections.filter((id, i) => id && i !== index);
+            return `
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="w-24 text-xs font-bold text-ink">${label} (+${points[index]})</span>
+            <select data-placement data-play-id="${escapeHtml(play.id)}" data-place-index="${index}"
+              class="gt-input text-xs${winnerSelectPendingClass(key, pendingId)}">
+              <option value="">— None —</option>
+              ${buildRosterOptions(rosterIds, pendingId, exclude)}
+            </select>
+          </div>`;
+          })
+          .join("")}
+        <button type="button" data-action="save-placements" data-play-id="${escapeHtml(play.id)}"
+          class="gt-btn text-xs">
+          Update placements
+        </button>
+      </div>`;
   }
 
   function renderAddWinnerControls(playId, winnerIds, rosterIds) {
@@ -238,6 +325,7 @@
   function renderPlays() {
     const plays = Array.isArray(tournament.plays) ? tournament.plays : [];
     playsTitle.textContent = "Games in the Tournament";
+    const scoringMode = getScoringMode(tournament);
 
     if (!plays.length) {
       playsList.innerHTML = '<p class="text-sm gt-muted">No games played yet.</p>';
@@ -245,6 +333,43 @@
     }
 
     const rosterIds = Array.isArray(tournament.playerIds) ? tournament.playerIds : [];
+
+    if (scoringMode === "points") {
+      playsList.innerHTML = `
+      <ul class="divide-y divide-wood/20">
+        ${plays
+          .map((play) => {
+            const placements = getPlayPlacementIds(play);
+            const placementSummary = placements.length
+              ? placements
+                  .map(
+                    (id, index) =>
+                      `${PLACE_LABELS[index]}: <span class="font-bold text-ink">${escapeHtml(playerLabel(id))}</span>`
+                  )
+                  .join(", ")
+              : "None yet";
+            return `
+          <li class="space-y-2 py-2">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <span class="text-lg font-bold text-ink">${escapeHtml(gameLabel(play.gameId))}</span>
+              <div class="flex gap-2">
+                <button type="button" data-action="delete-play" data-play-id="${escapeHtml(play.id)}"
+                  class="gt-btn-danger text-xs">
+                  Remove
+                </button>
+              </div>
+            </div>
+            <p class="text-xs gt-muted">
+              Places: ${placementSummary}
+            </p>
+            ${renderPlacementControls(play, rosterIds)}
+          </li>`;
+          })
+          .join("")}
+      </ul>
+    `;
+      return;
+    }
 
     playsList.innerHTML = `
       <ul class="divide-y divide-wood/20">
@@ -392,8 +517,13 @@
 
   function renderActive() {
     const rosterIds = Array.isArray(tournament.playerIds) ? tournament.playerIds : [];
+    const scoringMode = getScoringMode(tournament);
     tournamentName.innerHTML = `${escapeHtml(tournament.name || "Tournament")} <span class="gt-badge-active">Active</span>`;
     tournamentDate.textContent = formatDate(tournament.date);
+    tournamentScoring.textContent =
+      scoringMode === "points"
+        ? "Scoring: Points (3-2-1)"
+        : "Scoring: Game wins";
     tournamentPlayers.textContent = rosterIds.length
       ? `Players: ${rosterIds.map((id) => playerLabel(id)).join(", ")}`
       : "No players";
@@ -489,7 +619,7 @@
     if (!tournament) return;
 
     const gameId = playGame.value;
-    const winnerPlayerIds = playWinner && playWinner.value ? [playWinner.value] : [];
+    const scoringMode = getScoringMode(tournament);
     if (!gameId) {
       setFormStatus("Select a game.", true);
       return;
@@ -499,19 +629,34 @@
     setFormStatus("");
     try {
       if (editingPlayId) {
-        await api(API_URL, "PUT", {
+        const payload = {
           tournamentId: tournament.id,
           playId: editingPlayId,
           gameId,
-          winnerPlayerIds,
-        });
+        };
+        if (scoringMode === "points") {
+          payload.placementPlayerIds = getPlayPlacementIds(
+            (tournament.plays || []).find((p) => p.id === editingPlayId) || {}
+          );
+        } else {
+          payload.winnerPlayerIds =
+            playWinner && playWinner.value ? [playWinner.value] : getPlayWinnerIds(
+              (tournament.plays || []).find((p) => p.id === editingPlayId) || {}
+            );
+        }
+        await api(API_URL, "PUT", payload);
         setFormStatus("Game updated.");
       } else {
-        await api(API_URL, "POST", {
+        const payload = {
           tournamentId: tournament.id,
           gameId,
-          winnerPlayerIds: [],
-        });
+        };
+        if (scoringMode === "points") {
+          payload.placementPlayerIds = [];
+        } else {
+          payload.winnerPlayerIds = [];
+        }
+        await api(API_URL, "POST", payload);
         setFormStatus("Game added to tournament.");
       }
       tournament = await api(`${API_URL}?id=${encodeURIComponent(tournament.id)}`, "GET");
@@ -532,7 +677,7 @@
 
   playsList.addEventListener("change", (event) => {
     const select = event.target.closest(
-      "select[data-assign-winner], select[data-add-winner], select[data-update-winner]"
+      "select[data-assign-winner], select[data-add-winner], select[data-update-winner], select[data-placement]"
     );
     if (!select) return;
 
@@ -544,6 +689,8 @@
       pendingKey = updateWinnerKey(playId, select.getAttribute("data-winner-index"));
     } else if (select.matches("select[data-add-winner]")) {
       pendingKey = addWinnerKey(playId);
+    } else if (select.matches("select[data-placement]")) {
+      pendingKey = placementKey(playId, select.getAttribute("data-place-index"));
     }
 
     if (select.value) {
@@ -554,7 +701,7 @@
       dirtyWinnerSelects.delete(pendingKey);
     }
 
-    if (select.matches("select[data-add-winner]")) {
+    if (select.matches("select[data-add-winner]") || select.matches("select[data-placement]")) {
       renderPlays();
       return;
     }
@@ -570,6 +717,18 @@
     const action = button.getAttribute("data-action");
     const play = (tournament.plays || []).find((p) => p.id === playId);
     if (!play) return;
+
+    if (action === "save-placements") {
+      const saved = getPlayPlacementIds(play);
+      const placementPlayerIds = collectPlacementIdsFromUi(playId, saved);
+      const unique = new Set(placementPlayerIds);
+      if (unique.size !== placementPlayerIds.length) {
+        setFormStatus("Each player can only have one place in a game.", true);
+        return;
+      }
+      await savePlayPlacements(playId, play, placementPlayerIds, button, "Placements updated.");
+      return;
+    }
 
     if (action === "assign-winner") {
       const select = playsList.querySelector(`select[data-assign-winner][data-play-id="${playId}"]`);
@@ -743,6 +902,7 @@
         name: tournament.name,
         date: tournament.date,
         status: tournament.status,
+        scoringMode: getScoringMode(tournament),
         playerIds: checked,
       });
       tournament = await api(`${API_URL}?id=${encodeURIComponent(tournament.id)}`, "GET");
@@ -769,6 +929,7 @@
         name: tournament.name,
         date: tournament.date,
         status: "ended",
+        scoringMode: getScoringMode(tournament),
         playerIds: Array.isArray(tournament.playerIds) ? tournament.playerIds : [],
       });
       window.location.href = `tournament-summary.html?id=${encodeURIComponent(tournament.id)}`;

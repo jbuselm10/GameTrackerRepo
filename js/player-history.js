@@ -21,36 +21,33 @@
   }
 
   function gameWinsInTournament(tournament) {
-    const rosterIds = Array.isArray(tournament.playerIds)
-      ? tournament.playerIds.map(String)
-      : [];
-    const plays = Array.isArray(tournament.plays) ? tournament.plays : [];
-    const winCounts = {};
-
-    for (const id of rosterIds) {
-      winCounts[id] = 0;
-    }
-    for (const play of plays) {
-      for (const winnerId of getPlayWinnerIds(play)) {
-        if (!(winnerId in winCounts)) {
-          winCounts[winnerId] = 0;
-        }
-        winCounts[winnerId] += 1;
+    if (getScoringMode(tournament) === "points") {
+      const rosterIds = Array.isArray(tournament.playerIds)
+        ? tournament.playerIds.map(String)
+        : [];
+      const plays = Array.isArray(tournament.plays) ? tournament.plays : [];
+      const winCounts = {};
+      for (const id of rosterIds) {
+        winCounts[id] = 0;
       }
+      for (const play of plays) {
+        const placements = getPlayPlacementIds(play);
+        const firstPlace = placements[0];
+        if (!firstPlace) continue;
+        if (!(firstPlace in winCounts)) {
+          winCounts[firstPlace] = 0;
+        }
+        winCounts[firstPlace] += 1;
+      }
+      return winCounts;
     }
-    return winCounts;
+    return buildGameWinCounts(tournament);
   }
 
   function topWinnerIds(tournament) {
-    const winCounts = gameWinsInTournament(tournament);
-    const entries = Object.keys(winCounts).map((id) => ({
-      id,
-      wins: winCounts[id],
-    }));
-    if (!entries.length) return [];
-    const topWins = Math.max(...entries.map((entry) => entry.wins));
-    if (topWins <= 0) return [];
-    return entries.filter((entry) => entry.wins === topWins).map((entry) => entry.id);
+    const { leaders, topScore } = getTournamentLeaders(tournament);
+    if (!leaders.length || topScore <= 0) return [];
+    return leaders.map((entry) => entry.id);
   }
 
   function buildStandings(players, tournaments) {

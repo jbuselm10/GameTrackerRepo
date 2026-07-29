@@ -17,19 +17,41 @@ window.GameTracker = {
       options.headers["Content-Type"] = "application/json";
       options.body = JSON.stringify(body);
     }
-    const response = await fetch(url, options);
+
+    let response;
+    try {
+      response = await fetch(url, options);
+    } catch (err) {
+      if (window.Sentry?.captureException) {
+        Sentry.captureException(err, { extra: { url, method } });
+      }
+      throw err;
+    }
+
     let data = null;
     const text = await response.text();
     if (text) {
       try {
         data = JSON.parse(text);
-      } catch {
-        throw new Error("Server returned invalid JSON. Is PHP running?");
+      } catch (parseErr) {
+        const err = new Error("Server returned invalid JSON. Is PHP running?");
+        if (window.Sentry?.captureException) {
+          Sentry.captureException(err, {
+            extra: { url, method, status: response.status, cause: parseErr.message },
+          });
+        }
+        throw err;
       }
     }
     if (!response.ok) {
       const message = (data && data.error) || `Request failed (${response.status})`;
-      throw new Error(message);
+      const err = new Error(message);
+      if (window.Sentry?.captureException) {
+        Sentry.captureException(err, {
+          extra: { url, method, status: response.status },
+        });
+      }
+      throw err;
     }
     return data;
   },

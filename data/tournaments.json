@@ -62,7 +62,7 @@
         "id": "a9c20431-4598-47fb-8953-4b9f0901a850",
         "name": "Tournament Test 2",
         "date": "2026-07-14",
-        "status": "active",
+        "status": "ended",
         "playerIds": [
             "1b515770-1a35-4304-8f02-da3ab88bfdc4",
             "7225aa68-9d67-47e5-9a0b-8112667c9d1d",
@@ -74,33 +74,23 @@
                 "gameId": "4381af23-9fda-43b1-ad0d-de3681ba055f",
                 "winnerPlayerIds": [
                     "c4ea2388-c708-4b78-a942-5eda4bc401ca",
-                    "97ee445a-a073-4cea-bd8e-9d4b8f97500a"
+                    "1b515770-1a35-4304-8f02-da3ab88bfdc4"
                 ]
             },
             {
                 "id": "abdd4f33-9eea-4d40-a334-3acb81477d24",
                 "gameId": "80e84b94-ae3f-4a21-8652-76ee503a0968",
                 "winnerPlayerIds": [
-                    "97ee445a-a073-4cea-bd8e-9d4b8f97500a"
+                    "c4ea2388-c708-4b78-a942-5eda4bc401ca",
+                    "1b515770-1a35-4304-8f02-da3ab88bfdc4"
                 ]
-            }
-        ]
-    },
-    {
-        "id": "afde1d0a-39bc-4376-8d5c-ee91d1658698",
-        "name": "tourney 3",
-        "date": "2026-07-14",
-        "status": "active",
-        "playerIds": [
-            "1b515770-1a35-4304-8f02-da3ab88bfdc4",
-            "7225aa68-9d67-47e5-9a0b-8112667c9d1d",
-            "4434e489-84c7-4e58-a99a-545db0621f33"
-        ],
-        "plays": [
+            },
             {
-                "id": "20463058-1550-47b0-9a13-6997eeac124f",
-                "gameId": "441042e9-c42a-4a59-9974-a1e1b80f97cf",
-                "winnerPlayerId": ""
+                "id": "33b84488-4dbe-4741-bf43-24a82deb4094",
+                "gameId": "835c0046-5b8d-4092-8827-192f986d900d",
+                "winnerPlayerIds": [
+                    "7225aa68-9d67-47e5-9a0b-8112667c9d1d"
+                ]
             }
         ]
     },
@@ -180,7 +170,7 @@
         "id": "06e805e8-c230-4918-ad3f-36770fb14fe5",
         "name": "New Tournament",
         "date": "2026-07-18",
-        "status": "active",
+        "status": "ended",
         "playerIds": [
             "1b515770-1a35-4304-8f02-da3ab88bfdc4",
             "7225aa68-9d67-47e5-9a0b-8112667c9d1d",
@@ -211,29 +201,41 @@
         ]
     },
     {
-        "id": "2b8cb3b5-31d4-448d-8b38-31a8917898a2",
-        "name": "Braunn's tournament",
-        "date": "2026-07-18",
-        "status": "active",
+        "id": "c50cc7d8-bfbb-491f-afa5-786030f6b793",
+        "name": "Friday tourn",
+        "date": "2026-07-27",
+        "status": "ended",
+        "scoringMode": "points",
         "playerIds": [
             "1b515770-1a35-4304-8f02-da3ab88bfdc4",
             "7225aa68-9d67-47e5-9a0b-8112667c9d1d",
             "731bae1f-0141-422a-935c-724157119964",
-            "97ee445a-a073-4cea-bd8e-9d4b8f97500a"
+            "97ee445a-a073-4cea-bd8e-9d4b8f97500a",
+            "c4ea2388-c708-4b78-a942-5eda4bc401ca",
+            "1b9928fc-b58b-4b34-9ed0-089ae5992e00"
         ],
         "plays": [
             {
-                "id": "9a635725-d02c-45cc-ad26-8b19c945b83d",
+                "id": "d07b0ec0-6c56-44d2-80dc-f794675401cb",
                 "gameId": "114ce818-ad13-410b-83fe-d20391f8dc52",
-                "winnerPlayerIds": [
+                "placementPlayerIds": [
                     "7225aa68-9d67-47e5-9a0b-8112667c9d1d",
                     "1b515770-1a35-4304-8f02-da3ab88bfdc4"
                 ]
             },
             {
-                "id": "7bbd84e6-b0cf-411a-a400-a262ec2f8d70",
-                "gameId": "4381af23-9fda-43b1-ad0d-de3681ba055f",
-                "winnerPlayerIds": []
+                "id": "4aa14e23-ee41-460c-adbd-71b51d52f166",
+                "gameId": "80e84b94-ae3f-4a21-8652-76ee503a0968",
+                "placementPlayerIds": [
+                    "7225aa68-9d67-47e5-9a0b-8112667c9d1d"
+                ]
+            },
+            {
+                "id": "8c8db924-3555-4768-833a-4b0fb3478fb2",
+                "gameId": "835c0046-5b8d-4092-8827-192f986d900d",
+                "placementPlayerIds": [
+                    "1b9928fc-b58b-4b34-9ed0-089ae5992e00"
+                ]
             }
         ]
     }

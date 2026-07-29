@@ -29,6 +29,9 @@
     };
   </script>
   <link rel="stylesheet" href="css/theme.css" />
+  <script src="js/config.js"></script>
+  <script src="https://browser.sentry-cdn.com/8.55.0/bundle.replay.min.js" crossorigin="anonymous"></script>
+  <script src="js/sentry-init.js"></script>
 </head>
 <body class="gt-body font-body">
   <div class="gt-wood-strip"></div>
@@ -55,10 +58,11 @@
           <div>
             <h2 id="tournament-name" class="font-display text-lg font-semibold text-ink"></h2>
             <p id="tournament-date" class="mt-1 text-sm gt-muted"></p>
+            <p id="tournament-scoring" class="mt-1 text-sm font-bold text-felt-dark"></p>
             <p id="tournament-players" class="mt-1 text-sm font-bold text-ink"></p>
           </div>
           <button type="button" id="end-tournament-btn" class="gt-btn-warn text-sm">
-            End tournament
+            End the Tournament
           </button>
         </div>
       </div>

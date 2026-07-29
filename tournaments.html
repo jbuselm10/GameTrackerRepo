@@ -29,6 +29,9 @@
     };
   </script>
   <link rel="stylesheet" href="css/theme.css" />
+  <script src="js/config.js"></script>
+  <script src="https://browser.sentry-cdn.com/8.55.0/bundle.replay.min.js" crossorigin="anonymous"></script>
+  <script src="js/sentry-init.js"></script>
 </head>
 <body class="gt-body font-body">
   <div class="gt-wood-strip"></div>
@@ -87,6 +90,16 @@
               <option value="active">Active</option>
               <option value="ended">Ended</option>
             </select>
+          </div>
+          <div>
+            <label for="tournament-scoring" class="gt-label">Select type of Scoring (Wins or Points)</label>
+            <select id="tournament-scoring" name="scoringMode" class="gt-input">
+              <option value="gameWins">Game wins (count each game won)</option>
+              <option value="points">Track Top 3 Places with 3/2/1 points</option>
+            </select>
+            <p id="scoring-locked" class="mt-1 hidden text-sm gt-muted">
+              Scoring mode cannot be changed after games are recorded.
+            </p>
           </div>
           <div>
             <p class="gt-label mb-2">Players <span class="text-red-600">*</span></p>
