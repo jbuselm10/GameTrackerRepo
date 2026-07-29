@@ -1,4 +1,5 @@
-/**
+/**
+
  * Copy this file to js/config.js and paste your Sentry browser DSN.
  * Create a project at https://sentry.io (JavaScript → Browser).
  *
