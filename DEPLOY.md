@@ -18,19 +18,13 @@ If the GitHub repo is private, add a deploy key or use a token as GreenGeeks/cPa
 
 ## 2. Set the deploy path in `.cpanel.yml`
 
-Edit [`.cpanel.yml`](.cpanel.yml) and replace `USERNAME` with your cPanel username:
+Configured for subdomain **gametracker.buselmeier.com**:
 
 ```yaml
-- export DEPLOYPATH=/home/USERNAME/public_html/
+- export DEPLOYPATH=/home/jbuse10/public_html/gametracker.buselmeier.com/
 ```
 
-Subfolder / subdomain example:
-
-```yaml
-- export DEPLOYPATH=/home/USERNAME/public_html/gametracker/
-```
-
-Commit and push that change to GitHub, then in cPanel Git → **Update from Remote**.
+Confirm the folder name under `public_html` in File Manager (cPanel often lowercases it). If the folder differs (e.g. `GameTracker.buselmeier.com`), update `DEPLOYPATH` to match, commit, and push, then in cPanel Git → **Update from Remote**.
 
 ## 3. Deploy
 
@@ -104,13 +98,13 @@ Only if you want server-side Sentry: in the **deployed** folder, `composer insta
 
 ## Checklist
 
-- [ ] `.cpanel.yml` has the correct `DEPLOYPATH` (`USERNAME` replaced)
+- [ ] `.cpanel.yml` `DEPLOYPATH` matches the subdomain folder under `public_html`
 - [ ] Repo cloned outside `public_html`; Deploy HEAD Commit succeeded
 - [ ] PHP 7.4+ selected
 - [ ] `data/` writable; `data/.htaccess` present; JSON seeded or preserved
 - [ ] `js/config.js` and `api/config.php` created on the server; `environment` = `production`
-- [ ] Password protection enabled
-- [ ] Smoke test passed
+- [ ] Password protection enabled on `gametracker.buselmeier.com` docroot
+- [ ] Smoke test passed at https://gametracker.buselmeier.com/
 
 ## Ongoing updates
 
