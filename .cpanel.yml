@@ -1,10 +1,10 @@
 ---
 # cPanel / GreenGeeks Git Version Control deploy.
 # Clone this repo outside public_html (e.g. ~/repositories/GameTracker), then Deploy HEAD Commit.
-# Site: https://gametracker.buselmeier.com → public_html/gametracker.buselmeier.com/
+# Site: https://gametracker.buselmeier.com → public_html/GameTracker/
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/jbuse10/public_html/gametracker.buselmeier.com/
+    - export DEPLOYPATH=/home/jbuse10/public_html/GameTracker/
     - /bin/cp -f index.html active-tournament.html games.html history.html player-history.html players.html tournament-summary.html tournaments.html favicon.png composer.json .htaccess $DEPLOYPATH
     - /bin/cp -Rf api css js $DEPLOYPATH
     - /bin/mkdir -p $DEPLOYPATHdata

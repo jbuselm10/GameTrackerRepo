@@ -16,15 +16,15 @@ GameTracker is PHP + static HTML/JS with JSON file storage. No Node.js, MySQL, o
 
 If the GitHub repo is private, add a deploy key or use a token as GreenGeeks/cPanel docs describe for private clones.
 
-## 2. Set the deploy path in `.cpanel.yml`
+## 2. Deploy path in `.cpanel.yml`
 
-Configured for subdomain **gametracker.buselmeier.com**:
+Configured for subdomain **gametracker.buselmeier.com** with docroot **`public_html/GameTracker`**:
 
 ```yaml
-- export DEPLOYPATH=/home/jbuse10/public_html/gametracker.buselmeier.com/
+- export DEPLOYPATH=/home/jbuse10/public_html/GameTracker/
 ```
 
-Confirm the folder name under `public_html` in File Manager (cPanel often lowercases it). If the folder differs (e.g. `GameTracker.buselmeier.com`), update `DEPLOYPATH` to match, commit, and push, then in cPanel Git → **Update from Remote**.
+Path casing must match File Manager exactly (`GameTracker`, not `gametracker`).
 
 ## 3. Deploy
 
@@ -98,12 +98,12 @@ Only if you want server-side Sentry: in the **deployed** folder, `composer insta
 
 ## Checklist
 
-- [ ] `.cpanel.yml` `DEPLOYPATH` matches the subdomain folder under `public_html`
+- [ ] `.cpanel.yml` `DEPLOYPATH` is `/home/jbuse10/public_html/GameTracker/`
 - [ ] Repo cloned outside `public_html`; Deploy HEAD Commit succeeded
 - [ ] PHP 7.4+ selected
 - [ ] `data/` writable; `data/.htaccess` present; JSON seeded or preserved
 - [ ] `js/config.js` and `api/config.php` created on the server; `environment` = `production`
-- [ ] Password protection enabled on `gametracker.buselmeier.com` docroot
+- [ ] Password protection enabled on `public_html/GameTracker`
 - [ ] Smoke test passed at https://gametracker.buselmeier.com/
 
 ## Ongoing updates
