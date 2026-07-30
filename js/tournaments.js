@@ -25,12 +25,100 @@
   const formSection = document.getElementById("form-section");
   const newTournamentBtn = document.getElementById("new-tournament-btn");
 
+  const FORM_DRAFT_KEY = "gametracker.tournamentFormDraft";
+
   let tournaments = [];
   let players = [];
   let editingId = null;
   let savedPlayerIds = new Set();
   const escapeHtml = GameTracker.escapeHtml.bind(GameTracker);
   const api = GameTracker.api.bind(GameTracker);
+
+  function saveFormDraft() {
+    const draft = {
+      editingId,
+      name: nameInput.value,
+      date: dateInput.value,
+      status: statusInput.value,
+      scoringMode: scoringInput.value,
+      playerIds: getSelectedPlayerIds(),
+    };
+    try {
+      sessionStorage.setItem(FORM_DRAFT_KEY, JSON.stringify(draft));
+    } catch {
+      // Ignore storage failures; navigation still works.
+    }
+  }
+
+  function restoreFormDraft() {
+    let raw;
+    try {
+      raw = sessionStorage.getItem(FORM_DRAFT_KEY);
+    } catch {
+      return false;
+    }
+    if (!raw) return false;
+
+    try {
+      sessionStorage.removeItem(FORM_DRAFT_KEY);
+    } catch {
+      // Continue with restore even if remove fails.
+    }
+
+    let draft;
+    try {
+      draft = JSON.parse(raw);
+    } catch {
+      return false;
+    }
+    if (!draft || typeof draft !== "object") return false;
+
+    const name = typeof draft.name === "string" ? draft.name : "";
+    const date = typeof draft.date === "string" ? draft.date : todayIsoDate();
+    const status = draft.status === "ended" ? "ended" : "active";
+    const scoringMode = draft.scoringMode === "points" ? "points" : "gameWins";
+    const playerIds = Array.isArray(draft.playerIds) ? draft.playerIds : [];
+
+    if (draft.editingId) {
+      const tournament = tournaments.find((t) => t.id === draft.editingId);
+      if (tournament) {
+        startEdit(tournament);
+        nameInput.value = name;
+        dateInput.value = date;
+        statusInput.value = status;
+        if (!scoringInput.disabled) {
+          scoringInput.value = scoringMode;
+        }
+        setSelectedPlayerIds(playerIds);
+        updatePlayersLockState();
+        syncPlayerCheckboxStyles();
+        return true;
+      }
+    }
+
+    editingId = null;
+    savedPlayerIds = new Set();
+    tournamentIdInput.value = "";
+    nameInput.value = name;
+    dateInput.value = date || todayIsoDate();
+    statusInput.value = status;
+    scoringInput.value = scoringMode;
+    scoringInput.disabled = false;
+    scoringLocked.classList.add("hidden");
+    setSelectedPlayerIds(playerIds);
+    nameError.classList.add("hidden");
+    dateError.classList.add("hidden");
+    playersError.classList.add("hidden");
+    formTitle.textContent = "Add tournament";
+    submitBtn.textContent = "Add tournament";
+    cancelEditBtn.classList.add("hidden");
+    newTournamentBtn.classList.remove("hidden");
+    formSection.classList.remove("gt-edit-highlight");
+    updatePlayersLockState();
+    syncPlayerCheckboxStyles();
+    formSection.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    return true;
+  }
 
   function todayIsoDate() {
     const now = new Date();
@@ -396,6 +484,14 @@
   });
 
   async function init() {
+    const addPlayerLink = document.getElementById("add-player-link");
+    if (addPlayerLink) {
+      addPlayerLink.href = `players.html?returnTo=${encodeURIComponent(window.location.href)}`;
+      addPlayerLink.addEventListener("click", () => {
+        saveFormDraft();
+      });
+    }
+
     try {
       await loadPlayers();
     } catch (err) {
@@ -405,6 +501,7 @@
     }
     resetForm();
     await loadTournaments();
+    restoreFormDraft();
   }
 
   init();

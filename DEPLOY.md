@@ -55,11 +55,13 @@ Gitignored — create once in `public_html/GameTracker`:
 
 Leave `sentryDsn` empty unless you use Sentry. Set `environment` in `api/config.php` to `production`.
 
-## 5. Protect the site
+## 5. Optional: protect the site
 
-cPanel → **Directory Privacy** → select `public_html/GameTracker` → enable + username/password.
+Skip this if you do not want a login prompt. Anyone with the URL can then change players, games, and tournaments.
 
-Root `.htaccess` also blocks web access to `.git/`, Composer files, `vendor/`, and `.htpasswd`.
+To lock it later: cPanel → **Directory Privacy** → `public_html/GameTracker` → enable + username/password.
+
+Root `.htaccess` still blocks web access to `.git/`, Composer files, `vendor/`, `data/` JSON (via `data/.htaccess`), and `.htpasswd`.
 
 ## 6. Optional: Composer / Sentry (PHP)
 
@@ -67,7 +69,7 @@ In `public_html/GameTracker`: `composer install --no-dev`, then set the DSN in `
 
 ## 7. Smoke test
 
-1. https://gametracker.buselmeier.com (login if auth enabled)
+1. https://gametracker.buselmeier.com
 2. **Players** → add player → refresh — persists
 3. `https://gametracker.buselmeier.com/data/players.json` returns **403**
 4. Short tournament + play → **History** updates
@@ -79,7 +81,6 @@ In `public_html/GameTracker`: `composer install --no-dev`, then set the DSN in `
 - [ ] PHP 7.4+
 - [ ] `data/*.json` set to `[]` for fresh start; `data/` writable; `data/.htaccess` present
 - [ ] `js/config.js` and `api/config.php` created; `environment` = `production`
-- [ ] Directory Privacy enabled
 - [ ] Smoke test passed
 
 ## Ongoing updates
