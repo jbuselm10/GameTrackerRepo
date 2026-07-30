@@ -1,13 +1,14 @@
 # GameTracker — Apache rules for GreenGeeks / cPanel shared hosting.
 # Password protection: uncomment Auth* lines after creating .htpasswd,
 # or use cPanel → Directory Privacy instead.
+# When the git clone lives in the docroot, block .git from the web.
 
 # --- HTTP Basic Auth (uncomment after .htpasswd exists) ---
 # AuthType Basic
 # AuthName "Friends and Family Game Tracker"
 # Use a full filesystem path from GreenGeeks (cPanel → File Manager →
 # show path, or ask support). Example:
-# AuthUserFile "/home/YOUR_CPANEL_USER/public_html/.htpasswd"
+# AuthUserFile "/home/YOUR_CPANEL_USER/public_html/GameTracker/.htpasswd"
 # Require valid-user
 
 <FilesMatch "^\.htpasswd$">
@@ -30,8 +31,8 @@
   </IfModule>
 </FilesMatch>
 
-# Deny direct web access to Composer vendor tree if present
+# Deny direct web access to .git, Composer vendor, and deploy leftovers
 <IfModule mod_rewrite.c>
   RewriteEngine On
-  RewriteRule ^vendor(/|$) - [F,L]
+  RewriteRule ^(\.git|vendor)(/|$) - [F,L]
 </IfModule>

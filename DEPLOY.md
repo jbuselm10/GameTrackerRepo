@@ -1,61 +1,52 @@
 # Deploy to GreenGeeks
 
-GameTracker is PHP + static HTML/JS with JSON file storage. No Node.js, MySQL, or build step is required.
+GameTracker is PHP + static HTML/JS with JSON file storage. No Node.js, MySQL, or build step.
 
-**Preferred:** cPanel **Git Version Control** + [`.cpanel.yml`](.cpanel.yml) (below).  
-**Fallback:** File Manager / FTP upload (section 8).
+**Method:** clone this GitHub repo **directly** into the subdomain docroot (`public_html/GameTracker`). The live site *is* the git working tree — no separate clone and no `.cpanel.yml` copy step.
 
-## 1. Clone the GitHub repo in cPanel
+**Site:** https://gametracker.buselmeier.com  
+**Docroot:** `/home/jbuse10/public_html/GameTracker/`
 
-1. Push this repo to GitHub (already: `https://github.com/jbuselm10/GameTrackerRepo.git`).
-2. cPanel → **Git Version Control** → **Create**.
-3. Clone URL: your GitHub repo URL.
-4. Repository Path: **outside** the web root, e.g. `repositories/GameTracker`  
-   (full path like `/home/USERNAME/repositories/GameTracker`).  
-   Do not clone into `public_html` — that can expose `.git`.
+## 0. Remove an old “repositories” clone (if you made one)
 
-If the GitHub repo is private, add a deploy key or use a token as GreenGeeks/cPanel docs describe for private clones.
+If you previously cloned to something like `repositories/GameTracker`:
 
-## 2. Deploy path in `.cpanel.yml`
+1. File Manager → delete that folder (or remove it in **Git Version Control** if listed).
+2. Do **not** use Deploy HEAD Commit / `.cpanel.yml` anymore.
 
-Configured for subdomain **gametracker.buselmeier.com** with docroot **`public_html/GameTracker`**:
+Ensure `public_html/GameTracker` is empty (or only has default cPanel placeholders you can remove) before cloning into it.
 
-```yaml
-- export DEPLOYPATH=/home/jbuse10/public_html/GameTracker/
-```
+## 1. Clone GitHub into `public_html/GameTracker`
 
-Path casing must match File Manager exactly (`GameTracker`, not `gametracker`).
+1. cPanel → **Git Version Control** → **Create**.
+2. Clone URL: `https://github.com/jbuselm10/GameTrackerRepo.git`
+3. Repository Path: `public_html/GameTracker`  
+   (full path: `/home/jbuse10/public_html/GameTracker`)
+4. Create / clone.
 
-## 3. Deploy
+The site files (`index.html`, `api/`, `js/`, `.htaccess`, etc.) appear immediately in that folder. There is **no** separate Deploy step — **Update from Remote** is enough for later updates.
 
-In cPanel → Git Version Control → your repo → **Pull or Deploy**:
+If the GitHub repo is private, use a deploy key or token per GreenGeeks/cPanel docs.
 
-1. **Update from Remote** (pull latest from GitHub).
-2. **Deploy HEAD Commit** (runs `.cpanel.yml`).
-
-What deploy does:
-
-- Copies HTML, `api/`, `css/`, `js/`, root `.htaccess`, `composer.json`, `favicon.png` into `DEPLOYPATH`.
-- Ensures `data/.htaccess` exists.
-- Creates `data/*.json` as `[]` **only if missing** — live data is never overwritten.
-- Does **not** deploy gitignored `js/config.js` / `api/config.php` (create those once on the server). Existing server configs are left alone when you re-deploy `js/` and `api/` (files only on the server stay).
-
-## 4. Confirm PHP
+## 2. Confirm PHP
 
 cPanel → **Select PHP Version** → **7.4 or newer** (8.x is fine).
 
-If pages load but saves fail with a message about PHP, PHP is not running for that folder.
+## 3. Fresh data + writable `data/`
 
-## 5. Make `data/` writable
+Repo `data/*.json` may contain sample/dev data. For an empty production site, in File Manager edit each file under `public_html/GameTracker/data/` to contain only:
 
-1. Keep `data/.htaccess` (deploy copies it).
-2. Set `data/` permissions so the web user can write — typically `755` on the folder and `644` on the JSON files. If saves still fail, try `775` on `data/` (or ask GreenGeeks support).
+```json
+[]
+```
 
-First deploy seeds empty `[]` files when missing. To reset production data later, replace each JSON file’s contents with `[]` in File Manager (do not rely on redeploy for that).
+Files: `players.json`, `games.json`, `tournaments.json`. Keep `data/.htaccess`.
 
-## 6. Create config files on the server
+Set `data/` writable (`755` folder / `644` JSON; try `775` on `data/` if saves fail).
 
-These files are gitignored. Create them once in the **deployed** site (File Manager under `public_html` or your subfolder), not only in the git clone:
+## 4. Create config files on the server
+
+Gitignored — create once in `public_html/GameTracker`:
 
 | Copy from | Create on server |
 |-----------|------------------|
@@ -64,52 +55,37 @@ These files are gitignored. Create them once in the **deployed** site (File Mana
 
 Leave `sentryDsn` empty unless you use Sentry. Set `environment` in `api/config.php` to `production`.
 
-## 7. Protect the site (HTTP Basic Auth)
+## 5. Protect the site
 
-Anyone with the URL can change data unless you lock the folder down.
+cPanel → **Directory Privacy** → select `public_html/GameTracker` → enable + username/password.
 
-### Option A — cPanel (easiest)
+Root `.htaccess` also blocks web access to `.git/`, Composer files, `vendor/`, and `.htpasswd`.
 
-1. cPanel → **Directory Privacy** (sometimes **Password Protect Directories**).
-2. Select `public_html` (or your GameTracker folder).
-3. Enable protection, set a realm name, create a username/password.
+## 6. Optional: Composer / Sentry (PHP)
 
-### Option B — `.htaccess` + `.htpasswd`
+In `public_html/GameTracker`: `composer install --no-dev`, then set the DSN in `api/config.php`. Without `vendor/`, the app still runs.
 
-1. Ensure root `.htaccess` was deployed.
-2. Create `.htpasswd` in the site root (or outside `public_html`).
-3. Uncomment the `AuthType` / `AuthName` / `AuthUserFile` / `Require` lines in `.htaccess` and set `AuthUserFile` to the full server path.
-4. Generate a hash: `htpasswd -nbB yourusername 'your-strong-password'` and put `username:hash` in `.htpasswd`.
+## 7. Smoke test
 
-## 8. Fallback: File Manager / FTP
-
-If you are not using Git Version Control, upload the site into `public_html/` (or a subfolder), preserve `api/`, `css/`, `js/`, `data/`, and both `.htaccess` files, then do steps 4–7. Prefer creating configs on the server. Do not upload `vendor/` unless you ran `composer install` for that environment. For a fresh site, upload `data/*.json` as `[]` each.
-
-## 9. Optional: Composer / Sentry (PHP)
-
-Only if you want server-side Sentry: in the **deployed** folder, `composer install --no-dev`, then set the DSN in `api/config.php`. Without `vendor/`, the app still runs.
-
-## 10. Smoke test
-
-1. Open the site URL (login prompt if auth is enabled).
-2. **Players** → add a player → refresh — it persists.
-3. `https://your-domain/.../data/players.json` returns **403**.
-4. Create a short tournament, record a play, confirm **History** updates.
+1. https://gametracker.buselmeier.com (login if auth enabled)
+2. **Players** → add player → refresh — persists
+3. `https://gametracker.buselmeier.com/data/players.json` returns **403**
+4. Short tournament + play → **History** updates
 
 ## Checklist
 
-- [ ] `.cpanel.yml` `DEPLOYPATH` is `/home/jbuse10/public_html/GameTracker/`
-- [ ] Repo cloned outside `public_html`; Deploy HEAD Commit succeeded
-- [ ] PHP 7.4+ selected
-- [ ] `data/` writable; `data/.htaccess` present; JSON seeded or preserved
-- [ ] `js/config.js` and `api/config.php` created on the server; `environment` = `production`
-- [ ] Password protection enabled on `public_html/GameTracker`
-- [ ] Smoke test passed at https://gametracker.buselmeier.com/
+- [ ] Old `repositories/…` clone removed (if any)
+- [ ] Repo cloned into `public_html/GameTracker`
+- [ ] PHP 7.4+
+- [ ] `data/*.json` set to `[]` for fresh start; `data/` writable; `data/.htaccess` present
+- [ ] `js/config.js` and `api/config.php` created; `environment` = `production`
+- [ ] Directory Privacy enabled
+- [ ] Smoke test passed
 
 ## Ongoing updates
 
 ```text
-Local → git push → cPanel Update from Remote → Deploy HEAD Commit
+Local → git push → cPanel Git Version Control → Update from Remote
 ```
 
-Configs and existing `data/*.json` stay on the server across deploys.
+No Deploy HEAD Commit. Server configs and live `data/*.json` stay on the server if you do not reset them; a hard reset/checkout that overwrites `data/` would replace JSON — avoid force-resetting those files on the server.

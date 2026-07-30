@@ -42,5 +42,5 @@ Website for tracking who won card games among friends and family.
 
 ## Deploy
 
-Preferred: GreenGeeks cPanel **Git Version Control** + [`.cpanel.yml`](.cpanel.yml).  
-See [DEPLOY.md](DEPLOY.md) for clone path, `DEPLOYPATH`, server configs, and password protection.
+Clone this repo directly into GreenGeeks `public_html/GameTracker` via cPanel **Git Version Control**.  
+See [DEPLOY.md](DEPLOY.md).
