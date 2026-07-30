@@ -1,128 +1,121 @@
 # Deploy to GreenGeeks
 
-GameTracker is PHP + static HTML/JS with JSON file storage. Upload the site into `public_html` (or a subdomain folder). No Node.js, MySQL, or build step is required.
+GameTracker is PHP + static HTML/JS with JSON file storage. No Node.js, MySQL, or build step is required.
 
-## 1. Upload files
+**Preferred:** cPanel **Git Version Control** + [`.cpanel.yml`](.cpanel.yml) (below).  
+**Fallback:** File Manager / FTP upload (section 8).
 
-Upload the contents of this repo into your GreenGeeks web root, for example:
+## 1. Clone the GitHub repo in cPanel
 
-- Main domain: `public_html/`
-- Subdomain / subfolder: `public_html/gametracker/` (or the folder cPanel assigned)
+1. Push this repo to GitHub (already: `https://github.com/jbuselm10/GameTrackerRepo.git`).
+2. cPanel → **Git Version Control** → **Create**.
+3. Clone URL: your GitHub repo URL.
+4. Repository Path: **outside** the web root, e.g. `repositories/GameTracker`  
+   (full path like `/home/USERNAME/repositories/GameTracker`).  
+   Do not clone into `public_html` — that can expose `.git`.
 
-Preserve this layout:
+If the GitHub repo is private, add a deploy key or use a token as GreenGeeks/cPanel docs describe for private clones.
 
-```text
-public_html/   (or your chosen folder)
-  index.html
-  *.html
-  api/
-  css/
-  js/
-  data/
-  .htaccess              (included — protects .htpasswd / vendor / composer files)
-  composer.json          (optional — only if using PHP Sentry)
+## 2. Set the deploy path in `.cpanel.yml`
+
+Edit [`.cpanel.yml`](.cpanel.yml) and replace `USERNAME` with your cPanel username:
+
+```yaml
+- export DEPLOYPATH=/home/USERNAME/public_html/
 ```
 
-Do **not** upload local-only files as secrets:
+Subfolder / subdomain example:
 
-- Prefer creating `js/config.js` and `api/config.php` on the server from the examples (see step 4).
-- Do not upload `vendor/` unless you ran `composer install` for that environment.
+```yaml
+- export DEPLOYPATH=/home/USERNAME/public_html/gametracker/
+```
 
-**Ways to upload:** cPanel File Manager, FTP/SFTP, or Git if your plan supports it.
+Commit and push that change to GitHub, then in cPanel Git → **Update from Remote**.
 
-## 2. Confirm PHP
+## 3. Deploy
 
-GreenGeeks enables PHP by default. In cPanel → **Select PHP Version**, use **7.4 or newer** (8.x is fine).
+In cPanel → Git Version Control → your repo → **Pull or Deploy**:
+
+1. **Update from Remote** (pull latest from GitHub).
+2. **Deploy HEAD Commit** (runs `.cpanel.yml`).
+
+What deploy does:
+
+- Copies HTML, `api/`, `css/`, `js/`, root `.htaccess`, `composer.json`, `favicon.png` into `DEPLOYPATH`.
+- Ensures `data/.htaccess` exists.
+- Creates `data/*.json` as `[]` **only if missing** — live data is never overwritten.
+- Does **not** deploy gitignored `js/config.js` / `api/config.php` (create those once on the server). Existing server configs are left alone when you re-deploy `js/` and `api/` (files only on the server stay).
+
+## 4. Confirm PHP
+
+cPanel → **Select PHP Version** → **7.4 or newer** (8.x is fine).
 
 If pages load but saves fail with a message about PHP, PHP is not running for that folder.
 
-## 3. Make `data/` writable
+## 5. Make `data/` writable
 
-The API writes `data/players.json`, `data/games.json`, and `data/tournaments.json`.
+1. Keep `data/.htaccess` (deploy copies it).
+2. Set `data/` permissions so the web user can write — typically `755` on the folder and `644` on the JSON files. If saves still fail, try `775` on `data/` (or ask GreenGeeks support).
 
-1. Keep `data/.htaccess` so browsers cannot download those files directly.
-2. In File Manager (or FTP), set `data/` permissions so the web user can write — typically `755` on the folder and `644` on the JSON files. If saves still fail, try `775` on `data/` (or ask GreenGeeks support for the correct ownership).
+First deploy seeds empty `[]` files when missing. To reset production data later, replace each JSON file’s contents with `[]` in File Manager (do not rely on redeploy for that).
 
-### Fresh vs existing data
+## 6. Create config files on the server
 
-- **Keep current data:** upload the existing `data/*.json` files as-is.
-- **Start empty:** replace each file’s contents with `[]` (a JSON empty array), or create three files containing only `[]`.
-
-## 4. Create config files on the server
-
-These files are gitignored. Create them on GreenGeeks after upload:
+These files are gitignored. Create them once in the **deployed** site (File Manager under `public_html` or your subfolder), not only in the git clone:
 
 | Copy from | Create on server |
 |-----------|------------------|
 | `js/config.example.js` | `js/config.js` |
 | `api/config.example.php` | `api/config.php` |
 
-**On the server (File Manager):** duplicate each example file and rename the copy (remove `.example`), or paste the example contents into new files named `js/config.js` and `api/config.php`.
+Leave `sentryDsn` empty unless you use Sentry. Set `environment` in `api/config.php` to `production`.
 
-**Locally** you can run `setup-configs.bat`, or:
+## 7. Protect the site (HTTP Basic Auth)
 
-```powershell
-Copy-Item js/config.example.js js/config.js
-Copy-Item api/config.example.php api/config.php
-```
-
-```bash
-cp js/config.example.js js/config.js
-cp api/config.example.php api/config.php
-```
-
-Leave `sentryDsn` empty to run without Sentry. Paste real DSNs only if you use Sentry.
-
-Set `environment` in `api/config.php` to `production` on GreenGeeks.
-
-## 5. Optional: Composer / Sentry (PHP)
-
-Only needed if you want server-side Sentry:
-
-1. SSH into the account (if available) or use a terminal that can reach the site root.
-2. Run `composer install --no-dev` in the folder that contains `composer.json`.
-3. Put a real DSN in `api/config.php`.
-
-Without `vendor/`, the app still runs; PHP Sentry simply stays off.
-
-## 6. Protect the site (HTTP Basic Auth)
-
-Anyone with the URL can change players, games, and tournaments unless you lock the folder down.
+Anyone with the URL can change data unless you lock the folder down.
 
 ### Option A — cPanel (easiest)
 
-1. cPanel → **Directory Privacy** (sometimes labeled **Password Protect Directories**).
+1. cPanel → **Directory Privacy** (sometimes **Password Protect Directories**).
 2. Select `public_html` (or your GameTracker folder).
-3. Enable protection, set a realm name (e.g. `Game Tracker`), and create a username/password.
+3. Enable protection, set a realm name, create a username/password.
 
-### Option B — enable auth in the included `.htaccess`
+### Option B — `.htaccess` + `.htpasswd`
 
-1. Upload the repo’s `.htaccess` (already includes deny rules for `.htpasswd`, Composer files, and `vendor/`).
+1. Ensure root `.htaccess` was deployed.
 2. Create `.htpasswd` in the site root (or outside `public_html`).
-3. Edit `.htaccess`: uncomment the `AuthType` / `AuthName` / `AuthUserFile` / `Require` lines and set `AuthUserFile` to the **full server path** of `.htpasswd` (e.g. `/home/USERNAME/public_html/.htpasswd`).
-4. Generate a password hash:
+3. Uncomment the `AuthType` / `AuthName` / `AuthUserFile` / `Require` lines in `.htaccess` and set `AuthUserFile` to the full server path.
+4. Generate a hash: `htpasswd -nbB yourusername 'your-strong-password'` and put `username:hash` in `.htpasswd`.
 
-```bash
-# On the server (or any machine with htpasswd)
-htpasswd -nbB yourusername 'your-strong-password'
-```
+## 8. Fallback: File Manager / FTP
 
-Put the printed `username:hash` line into `.htpasswd`.
+If you are not using Git Version Control, upload the site into `public_html/` (or a subfolder), preserve `api/`, `css/`, `js/`, `data/`, and both `.htaccess` files, then do steps 4–7. Prefer creating configs on the server. Do not upload `vendor/` unless you ran `composer install` for that environment. For a fresh site, upload `data/*.json` as `[]` each.
 
-Or use an [htpasswd generator](https://hostingcanada.org/htpasswd-generator/) and paste the line into `.htpasswd`.
+## 9. Optional: Composer / Sentry (PHP)
 
-## 7. Smoke test
+Only if you want server-side Sentry: in the **deployed** folder, `composer install --no-dev`, then set the DSN in `api/config.php`. Without `vendor/`, the app still runs.
 
-1. Open the site URL; you should see the home page (and a login prompt if auth is enabled).
-2. Open **Players**, add a test player, refresh — it should persist.
-3. Confirm `https://your-domain/.../data/players.json` returns **403** (not downloadable).
-4. Create a short tournament and record a play; confirm History updates.
+## 10. Smoke test
+
+1. Open the site URL (login prompt if auth is enabled).
+2. **Players** → add a player → refresh — it persists.
+3. `https://your-domain/.../data/players.json` returns **403**.
+4. Create a short tournament, record a play, confirm **History** updates.
 
 ## Checklist
 
-- [ ] Files uploaded with `api/`, `js/`, `css/`, `data/` intact
+- [ ] `.cpanel.yml` has the correct `DEPLOYPATH` (`USERNAME` replaced)
+- [ ] Repo cloned outside `public_html`; Deploy HEAD Commit succeeded
 - [ ] PHP 7.4+ selected
-- [ ] `data/` writable; `data/.htaccess` present
-- [ ] `js/config.js` and `api/config.php` created on the server
-- [ ] Password protection enabled (cPanel or `.htaccess`)
+- [ ] `data/` writable; `data/.htaccess` present; JSON seeded or preserved
+- [ ] `js/config.js` and `api/config.php` created on the server; `environment` = `production`
+- [ ] Password protection enabled
 - [ ] Smoke test passed
+
+## Ongoing updates
+
+```text
+Local → git push → cPanel Update from Remote → Deploy HEAD Commit
+```
+
+Configs and existing `data/*.json` stay on the server across deploys.

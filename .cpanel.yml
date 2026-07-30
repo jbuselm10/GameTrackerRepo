@@ -1,0 +1,16 @@
+---
+# cPanel / GreenGeeks Git Version Control deploy.
+# 1. Replace USERNAME with your cPanel account name.
+# 2. If the site lives in a subfolder, append it, e.g. /home/USERNAME/public_html/gametracker/
+# 3. Clone this repo outside public_html (e.g. ~/repositories/GameTracker), then Deploy HEAD Commit.
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/USERNAME/public_html/
+    - /bin/cp -f index.html active-tournament.html games.html history.html player-history.html players.html tournament-summary.html tournaments.html favicon.png composer.json .htaccess $DEPLOYPATH
+    - /bin/cp -Rf api css js $DEPLOYPATH
+    - /bin/mkdir -p $DEPLOYPATHdata
+    - /bin/cp -f data/.htaccess $DEPLOYPATHdata/
+    # Seed empty JSON only when missing — never overwrite live production data.
+    - /usr/bin/test -f $DEPLOYPATHdata/players.json || /bin/printf '%s\n' '[]' > $DEPLOYPATHdata/players.json
+    - /usr/bin/test -f $DEPLOYPATHdata/games.json || /bin/printf '%s\n' '[]' > $DEPLOYPATHdata/games.json
+    - /usr/bin/test -f $DEPLOYPATHdata/tournaments.json || /bin/printf '%s\n' '[]' > $DEPLOYPATHdata/tournaments.json

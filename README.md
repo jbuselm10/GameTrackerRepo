@@ -42,4 +42,5 @@ Website for tracking who won card games among friends and family.
 
 ## Deploy
 
-See [DEPLOY.md](DEPLOY.md) for GreenGeeks upload steps, writable `data/`, server configs, and password protection.
+Preferred: GreenGeeks cPanel **Git Version Control** + [`.cpanel.yml`](.cpanel.yml).  
+See [DEPLOY.md](DEPLOY.md) for clone path, `DEPLOYPATH`, server configs, and password protection.
