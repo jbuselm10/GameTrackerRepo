@@ -23,12 +23,17 @@ Website for tracking who won card games among friends and family.
 
 ## Local development
 
-1. Copy configs (once): run `setup-configs.bat`, or:
+1. Copy configs and empty data files (once): run `setup-configs.bat`, or:
 
    ```powershell
    Copy-Item js/config.example.js js/config.js
    Copy-Item api/config.example.php api/config.php
+   Copy-Item data/players.json.example data/players.json
+   Copy-Item data/games.json.example data/games.json
+   Copy-Item data/tournaments.json.example data/tournaments.json
    ```
+
+   `data/*.json` is gitignored — your local players/games/tournaments stay on your machine only.
 
 2. Start PHP’s built-in server from the repo root:
 

@@ -2,3 +2,8 @@ js/config.js
 api/config.php
 /vendor/
 .htpasswd
+
+# Live app data — local and production only; never commit
+data/players.json
+data/games.json
+data/tournaments.json

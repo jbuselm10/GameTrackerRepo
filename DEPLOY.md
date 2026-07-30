@@ -34,15 +34,19 @@ cPanel → **Select PHP Version** → **7.4 or newer** (8.x is fine).
 
 ## 3. Fresh data + writable `data/`
 
-Repo `data/*.json` may contain sample/dev data. For an empty production site, in File Manager edit each file under `public_html/GameTracker/data/` to contain only:
+`players.json`, `games.json`, and `tournaments.json` are **gitignored** — they are not in the repo. Create them once on the server (File Manager or SSH) from the examples:
 
-```json
-[]
-```
+| Copy from | Create on server |
+|-----------|------------------|
+| `data/players.json.example` | `data/players.json` |
+| `data/games.json.example` | `data/games.json` |
+| `data/tournaments.json.example` | `data/tournaments.json` |
 
-Files: `players.json`, `games.json`, `tournaments.json`. Keep `data/.htaccess`.
+Each file should contain only `[]` for an empty start. Keep `data/.htaccess` (that file stays in git).
 
 Set `data/` writable (`755` folder / `644` JSON; try `775` on `data/` if saves fail).
+
+**Important — first Update from Remote after this change:** Git may delete those JSON files if they were previously tracked. **Back them up first**, run Update from Remote, then restore the three JSON files if they disappeared.
 
 ## 4. Create config files on the server
 
@@ -79,7 +83,7 @@ In `public_html/GameTracker`: `composer install --no-dev`, then set the DSN in `
 - [ ] Old `repositories/…` clone removed (if any)
 - [ ] Repo cloned into `public_html/GameTracker`
 - [ ] PHP 7.4+
-- [ ] `data/*.json` set to `[]` for fresh start; `data/` writable; `data/.htaccess` present
+- [ ] `data/*.json` created from examples (`[]`); `data/` writable; `data/.htaccess` present
 - [ ] `js/config.js` and `api/config.php` created; `environment` = `production`
 - [ ] Smoke test passed
 
@@ -89,4 +93,4 @@ In `public_html/GameTracker`: `composer install --no-dev`, then set the DSN in `
 Local → git push → cPanel Git Version Control → Update from Remote
 ```
 
-No Deploy HEAD Commit. Server configs and live `data/*.json` stay on the server if you do not reset them; a hard reset/checkout that overwrites `data/` would replace JSON — avoid force-resetting those files on the server.
+No Deploy HEAD Commit. Server configs and live `data/*.json` are gitignored and stay on the server across normal **Update from Remote** pulls.
