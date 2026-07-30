@@ -74,13 +74,13 @@
         </div>
 
         <div class="space-y-6">
-          <div class="gt-panel p-5">
+          <div id="play-form-panel" class="gt-panel p-5">
             <h3 id="play-form-title" class="mb-3 font-display text-lg font-semibold text-ink">Add a Game to the Tournament</h3>
-            <form id="play-form" class="space-y-3">
+            <form id="play-form" class="space-y-3" autocomplete="off">
               <input type="hidden" id="play-id" value="" />
               <div>
                 <label for="play-game" class="gt-label">Game</label>
-                <select id="play-game" name="gameId" required class="gt-input"></select>
+                <select id="play-game" name="gtPlayGameId" required autocomplete="off" class="gt-input"></select>
               </div>
               <div class="flex flex-wrap items-center gap-2">
                 <button type="submit" id="save-play-btn" class="gt-btn text-sm">Add game to tournament</button>
@@ -89,22 +89,28 @@
             </form>
           </div>
 
-          <div class="gt-panel p-5">
-            <h3 class="mb-3 text-sm font-bold text-ink">If game is not in the list above, add it here.</h3>
-            <form id="new-game-form" class="flex flex-wrap items-end gap-2">
+          <div id="new-game-panel" class="gt-panel p-5">
+            <h3 id="new-game-heading" class="mb-3 text-sm font-bold text-ink">If game is not in the list above, add it here.</h3>
+            <form id="new-game-form" class="flex flex-wrap items-end gap-2" autocomplete="off">
               <div>
                 <label class="mb-1 block text-xs font-bold text-ink">New Game Name</label>
                 <input
                   type="text"
                   id="new-game-name"
-                  name="newGameName"
+                  name="gtNewGameName"
                   required
                   autocomplete="off"
+                  autocorrect="off"
+                  autocapitalize="none"
+                  spellcheck="false"
+                  data-lpignore="true"
+                  data-1p-ignore
+                  data-form-type="other"
                   placeholder="e.g. Spades"
                   class="gt-input"
                 />
               </div>
-              <button type="submit" class="gt-btn-secondary text-sm">Add game</button>
+              <button type="submit" id="new-game-btn" class="gt-btn-secondary text-sm">Add game</button>
             </form>
             <p id="new-game-status" class="mt-2 hidden text-sm" role="status"></p>
           </div>

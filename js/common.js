@@ -8,6 +8,30 @@ window.GameTracker = {
       .replaceAll("'", "&#39;");
   },
 
+  disableAutofill(root = document) {
+    if (!root) return;
+
+    root.querySelectorAll("form").forEach((form) => {
+      form.setAttribute("autocomplete", "off");
+    });
+
+    root.querySelectorAll("input, select, textarea").forEach((el) => {
+      const type = (el.getAttribute("type") || "").toLowerCase();
+      if (type === "hidden" || type === "checkbox" || type === "radio" || type === "submit" || type === "button") {
+        return;
+      }
+
+      el.setAttribute("autocomplete", "off");
+      el.setAttribute("autocorrect", "off");
+      el.setAttribute("autocapitalize", "none");
+      el.setAttribute("spellcheck", "false");
+      el.setAttribute("data-lpignore", "true");
+      el.setAttribute("data-1p-ignore", "true");
+      el.setAttribute("data-bwignore", "true");
+      el.setAttribute("data-form-type", "other");
+    });
+  },
+
   async api(url, method = "GET", body) {
     const options = {
       method,
@@ -88,3 +112,7 @@ window.GameTracker = {
     });
   },
 };
+
+document.addEventListener("DOMContentLoaded", () => {
+  GameTracker.disableAutofill();
+});

@@ -59,16 +59,22 @@
 
       <section class="gt-panel p-5">
         <h2 id="form-title" class="mb-4 font-display text-lg font-semibold text-ink">Add player</h2>
-        <form id="player-form" class="space-y-4" novalidate>
+        <form id="player-form" class="space-y-4" autocomplete="off" novalidate>
           <input type="hidden" id="player-id" value="" />
           <div>
             <label for="player-name" class="gt-label">Name <span class="text-red-600">*</span></label>
             <input
               id="player-name"
-              name="name"
+              name="gtPlayerName"
               type="text"
               required
               autocomplete="off"
+              autocorrect="off"
+              autocapitalize="none"
+              spellcheck="false"
+              data-lpignore="true"
+              data-1p-ignore
+              data-form-type="other"
               class="gt-input"
               placeholder="e.g. Alice"
             />
@@ -78,9 +84,15 @@
             <label for="player-nickname" class="gt-label">Nickname</label>
             <input
               id="player-nickname"
-              name="nickname"
+              name="gtPlayerNickname"
               type="text"
               autocomplete="off"
+              autocorrect="off"
+              autocapitalize="none"
+              spellcheck="false"
+              data-lpignore="true"
+              data-1p-ignore
+              data-form-type="other"
               class="gt-input"
               placeholder="Optional"
             />

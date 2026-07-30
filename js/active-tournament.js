@@ -26,6 +26,10 @@
   const newGameForm = document.getElementById("new-game-form");
   const newGameNameInput = document.getElementById("new-game-name");
   const newGameStatus = document.getElementById("new-game-status");
+  const newGamePanel = document.getElementById("new-game-panel");
+  const newGameHeading = document.getElementById("new-game-heading");
+  const newGameBtn = document.getElementById("new-game-btn");
+  const playFormPanel = document.getElementById("play-form-panel");
 
   let tournament = null;
   let players = [];
@@ -51,6 +55,36 @@
 
   function winnerSelectPendingClass(key, selectedId) {
     return dirtyWinnerSelects.has(key) && selectedId ? " gt-pending" : "";
+  }
+
+  function winnerButtonPendingClass(key, selectedId) {
+    return dirtyWinnerSelects.has(key) && selectedId ? " gt-btn-highlight gt-btn-warn" : "";
+  }
+
+  function syncWinnerButtonHighlight(select) {
+    if (!select) return;
+    const isPending = select.classList.contains("gt-pending");
+    let button = null;
+    if (select.matches("select[data-assign-winner]")) {
+      button = select
+        .closest("div")
+        ?.querySelector(`button[data-action="assign-winner"][data-play-id="${select.getAttribute("data-play-id")}"]`);
+    } else if (select.matches("select[data-add-winner]")) {
+      button = select
+        .closest("div")
+        ?.querySelector(`button[data-action="confirm-add-winner"][data-play-id="${select.getAttribute("data-play-id")}"]`);
+    } else if (select.matches("select[data-update-winner]")) {
+      const playId = select.getAttribute("data-play-id");
+      const index = select.getAttribute("data-winner-index");
+      button = select
+        .closest("div")
+        ?.querySelector(
+          `button[data-action="update-winner"][data-play-id="${playId}"][data-winner-index="${index}"]`
+        );
+    }
+    if (!button) return;
+    button.classList.toggle("gt-btn-highlight", isPending);
+    button.classList.toggle("gt-btn-warn", isPending);
   }
 
   function clearWinnerPendingForPlay(playId) {
@@ -243,12 +277,13 @@
       return `
               <button type="button" data-action="show-add-winner" data-play-id="${escapeHtml(playId)}"
                 class="gt-btn text-xs">
-                Add another winner
+                Add an Additional Winner
               </button>`;
     }
 
     const pendingId = pendingWinnerValues[addWinnerKey(playId)] || "";
     const pendingClass = winnerSelectPendingClass(addWinnerKey(playId), pendingId);
+    const buttonPendingClass = winnerButtonPendingClass(addWinnerKey(playId), pendingId);
     return `
             <div class="flex flex-wrap items-center gap-2">
               <select data-add-winner data-play-id="${escapeHtml(playId)}" class="gt-input text-xs${pendingClass}">
@@ -256,7 +291,7 @@
                 ${buildRosterOptions(availableToAdd, pendingId)}
               </select>
               <button type="button" data-action="confirm-add-winner" data-play-id="${escapeHtml(playId)}"
-                class="gt-btn text-xs">
+                class="gt-btn text-xs${buttonPendingClass}">
                 Update Winner
               </button>
             </div>`;
@@ -264,9 +299,24 @@
 
   function fillSelects() {
     const rosterIds = Array.isArray(tournament.playerIds) ? tournament.playerIds : [];
+    const hasGames = games.length > 0;
 
-    if (!games.length) {
-      playGame.innerHTML = '<option value="">No games available</option>';
+    if (playFormPanel) {
+      playFormPanel.classList.toggle("hidden", !hasGames);
+    }
+    if (newGamePanel) {
+      newGamePanel.classList.toggle("gt-edit-highlight", !hasGames);
+    }
+    if (newGameHeading) {
+      newGameHeading.classList.toggle("text-base", !hasGames);
+      newGameHeading.textContent = hasGames
+        ? "If game is not in the list above, add it here."
+        : "No games available. Add a game to the tournament.";
+    }
+    syncNewGameBtnHighlight();
+
+    if (!hasGames) {
+      playGame.innerHTML = '<option value="">Add a game to the tournament</option>';
     } else {
       const sorted = [...games].sort((a, b) =>
         a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
@@ -295,6 +345,7 @@
             .join("");
       }
     }
+    syncSavePlayBtnHighlight();
   }
 
   function resetPlayForm() {
@@ -302,6 +353,7 @@
     playIdInput.value = "";
     playGame.value = "";
     playGame.classList.remove("gt-pending");
+    syncSavePlayBtnHighlight();
     if (playWinner) playWinner.value = "";
     playFormTitle.textContent = "Add a Game to the Tournament";
     savePlayBtn.textContent = "Add game to tournament";
@@ -396,7 +448,7 @@
                 ${buildRosterOptions(rosterIds, pendingAssignId)}
               </select>
               <button type="button" data-action="assign-winner" data-play-id="${escapeHtml(play.id)}"
-                class="gt-btn text-xs">
+                class="gt-btn text-xs${winnerButtonPendingClass(assignKey, pendingAssignId)}">
                 Update Winner
               </button>
             </div>`;
@@ -418,7 +470,7 @@
                 ${buildRosterOptions(rosterIds, pendingAssignId)}
               </select>
               <button type="button" data-action="assign-winner" data-play-id="${escapeHtml(play.id)}"
-                class="gt-btn text-xs">
+                class="gt-btn text-xs${winnerButtonPendingClass(assignKey, pendingAssignId)}">
                 Update Winner
               </button>
               ${addControls}
@@ -441,7 +493,7 @@
                   ${buildRosterOptions(rosterIds, pendingUpdateId, winnerIds)}
                 </select>
                 <button type="button" data-action="update-winner" data-play-id="${escapeHtml(play.id)}"
-                  data-winner-index="${index}" class="gt-btn text-xs">
+                  data-winner-index="${index}" class="gt-btn text-xs${winnerButtonPendingClass(updateKey, pendingUpdateId)}">
                   Update Winner
                 </button>
               </div>`;
@@ -478,6 +530,7 @@
     const rosterIds = Array.isArray(tournament.playerIds) ? tournament.playerIds : [];
     if (!players.length) {
       addPlayersList.innerHTML = '<p class="text-sm gt-muted">No players available. Add players first.</p>';
+      syncSavePlayersBtnHighlight();
       return;
     }
     addPlayersList.innerHTML = players
@@ -502,6 +555,31 @@
       inputSelector: 'input[name="player"]',
       getPlayerId: (input) => input.value,
     });
+    syncSavePlayersBtnHighlight();
+  }
+
+  function syncSavePlayersBtnHighlight() {
+    if (!savePlayersBtn) return;
+    const hasPending = !!addPlayersList.querySelector('input[name="player"].gt-pending');
+    savePlayersBtn.classList.toggle("gt-btn-highlight", hasPending);
+    savePlayersBtn.classList.toggle("gt-btn-warn", hasPending);
+  }
+
+  function syncSavePlayBtnHighlight() {
+    if (!savePlayBtn) return;
+    const pending = playGame.classList.contains("gt-pending") && !!playGame.value;
+    savePlayBtn.classList.toggle("gt-btn-highlight", pending);
+    savePlayBtn.classList.toggle("gt-btn-warn", pending);
+  }
+
+  function syncNewGameBtnHighlight() {
+    if (!newGameBtn) return;
+    const noGames = !games.length;
+    const namePending = newGameNameInput.value.length > 0;
+    const highlight = noGames || namePending;
+    newGameBtn.classList.toggle("gt-btn-highlight", highlight);
+    newGameBtn.classList.toggle("gt-btn-warn", highlight);
+    newGameBtn.classList.toggle("gt-btn-secondary", !highlight);
   }
 
   function setPlayersStatus(message, isError = false) {
@@ -612,6 +690,7 @@
     } else {
       playGame.classList.remove("gt-pending");
     }
+    syncSavePlayBtnHighlight();
   });
 
   playForm.addEventListener("submit", async (event) => {
@@ -707,6 +786,7 @@
     }
 
     select.classList.toggle("gt-pending", dirtyWinnerSelects.has(pendingKey) && !!select.value);
+    syncWinnerButtonHighlight(select);
   });
 
   playsList.addEventListener("click", async (event) => {
@@ -861,6 +941,15 @@
     newGameStatus.classList.add(isError ? "gt-status-err" : "gt-status-ok");
   }
 
+  function syncNewGameNamePendingStyle() {
+    newGameNameInput.classList.toggle("gt-pending", newGameNameInput.value.length > 0);
+    syncNewGameBtnHighlight();
+  }
+
+  newGameNameInput.addEventListener("input", () => {
+    syncNewGameNamePendingStyle();
+  });
+
   newGameForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const name = newGameNameInput.value.trim();
@@ -871,6 +960,7 @@
     try {
       await api(GAMES_API_URL, "POST", { name });
       newGameNameInput.value = "";
+      syncNewGameNamePendingStyle();
       setNewGameStatus(`Game "${name}" added.`);
       games = await api(GAMES_API_URL, "GET");
       if (!Array.isArray(games)) games = [];

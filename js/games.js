@@ -15,8 +15,16 @@
 
   let games = [];
   let editingId = null;
+  let savedName = "";
   const escapeHtml = GameTracker.escapeHtml.bind(GameTracker);
   const api = (method, body) => GameTracker.api(API_URL, method, body);
+
+  function syncNamePendingStyle() {
+    nameInput.classList.toggle(
+      "gt-pending",
+      nameInput.value.length > 0 && nameInput.value !== savedName
+    );
+  }
 
   function setFormStatus(message, isError = false) {
     if (!message) {
@@ -31,22 +39,26 @@
 
   function resetForm() {
     editingId = null;
+    savedName = "";
     gameIdInput.value = "";
     nameInput.value = "";
     nameError.classList.add("hidden");
     formTitle.textContent = "Add game";
     submitBtn.textContent = "Add game";
     cancelEditBtn.classList.add("hidden");
+    syncNamePendingStyle();
   }
 
   function startEdit(game) {
     editingId = game.id;
+    savedName = game.name || "";
     gameIdInput.value = game.id;
     nameInput.value = game.name || "";
     nameError.classList.add("hidden");
     formTitle.textContent = "Edit game";
     submitBtn.textContent = "Save changes";
     cancelEditBtn.classList.remove("hidden");
+    syncNamePendingStyle();
     nameInput.focus();
     setFormStatus("");
   }
@@ -101,6 +113,10 @@
       gameList.innerHTML = "";
     }
   }
+
+  nameInput.addEventListener("input", () => {
+    syncNamePendingStyle();
+  });
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();

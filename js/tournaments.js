@@ -24,15 +24,22 @@
   const emptyState = document.getElementById("empty-state");
   const formSection = document.getElementById("form-section");
   const newTournamentBtn = document.getElementById("new-tournament-btn");
+  const addPlayerLink = document.getElementById("add-player-link");
 
   const FORM_DRAFT_KEY = "gametracker.tournamentFormDraft";
 
   let tournaments = [];
   let players = [];
   let editingId = null;
+  let savedName = "";
   let savedPlayerIds = new Set();
   const escapeHtml = GameTracker.escapeHtml.bind(GameTracker);
   const api = GameTracker.api.bind(GameTracker);
+
+  function syncNamePendingStyle() {
+    const isPending = nameInput.value.length > 0 && nameInput.value !== savedName;
+    nameInput.classList.toggle("gt-pending", isPending);
+  }
 
   function saveFormDraft() {
     const draft = {
@@ -92,11 +99,13 @@
         setSelectedPlayerIds(playerIds);
         updatePlayersLockState();
         syncPlayerCheckboxStyles();
+        syncNamePendingStyle();
         return true;
       }
     }
 
     editingId = null;
+    savedName = "";
     savedPlayerIds = new Set();
     tournamentIdInput.value = "";
     nameInput.value = name;
@@ -116,6 +125,7 @@
     formSection.classList.remove("gt-edit-highlight");
     updatePlayersLockState();
     syncPlayerCheckboxStyles();
+    syncNamePendingStyle();
     formSection.scrollIntoView({ behavior: "smooth", block: "nearest" });
     return true;
   }
@@ -147,11 +157,11 @@
     return tournament?.scoringMode === "points" ? "points" : "gameWins";
   }
 
-  function scoringBadge(tournament) {
+  function scoringLabel(tournament) {
     if (scoringModeOf(tournament) === "points") {
-      return '<span class="gt-badge-active">Points 3-2-1</span>';
+      return "Top 3";
     }
-    return '<span class="gt-badge-ended">Game wins</span>';
+    return "Game wins";
   }
 
   function updateScoringLockState(tournament) {
@@ -183,7 +193,7 @@
 
   function syncPlayerCheckboxStyles() {
     GameTracker.syncPlayerCheckboxStyles(playersContainer, savedPlayerIds, {
-      active: !!editingId,
+      active: true,
       inputSelector: 'input[type="checkbox"][data-player-id]',
       getPlayerId: (input) => input.getAttribute("data-player-id"),
     });
@@ -192,7 +202,13 @@
   function renderPlayerOptions() {
     playersContainer.innerHTML = "";
 
-    if (!players.length) {
+    const hasPlayers = players.length > 0;
+    if (addPlayerLink) {
+      addPlayerLink.classList.toggle("gt-btn-highlight", !hasPlayers);
+      addPlayerLink.classList.toggle("gt-btn-warn", !hasPlayers);
+    }
+
+    if (!hasPlayers) {
       playersEmpty.classList.remove("hidden");
       return;
     }
@@ -222,6 +238,7 @@
 
   function resetForm() {
     editingId = null;
+    savedName = "";
     savedPlayerIds = new Set();
     tournamentIdInput.value = "";
     nameInput.value = "";
@@ -241,10 +258,12 @@
     formSection.classList.remove("gt-edit-highlight");
     updatePlayersLockState();
     syncPlayerCheckboxStyles();
+    syncNamePendingStyle();
   }
 
   function startEdit(tournament) {
     editingId = tournament.id;
+    savedName = tournament.name || "";
     savedPlayerIds = new Set((tournament.playerIds || []).map(String));
     tournamentIdInput.value = tournament.id;
     nameInput.value = tournament.name || "";
@@ -263,6 +282,7 @@
     formSection.classList.add("gt-edit-highlight");
     updatePlayersLockState();
     syncPlayerCheckboxStyles();
+    syncNamePendingStyle();
     formSection.scrollIntoView({ behavior: "smooth", block: "nearest" });
     nameInput.focus();
     setFormStatus("");
@@ -282,13 +302,6 @@
         day: "numeric",
       })
     );
-  }
-
-  function statusBadge(status) {
-    if (status === "ended") {
-      return '<span class="gt-badge-ended">Ended</span>';
-    }
-    return '<span class="gt-badge-active">Active</span>';
   }
 
   function playerLabel(playerId) {
@@ -325,8 +338,9 @@
 
       li.innerHTML = `
         <div>
-          <p class="font-medium text-ink">${escapeHtml(tournament.name)} ${statusBadge(tournament.status)} ${scoringBadge(tournament)}</p>
-          <p class="mt-1 text-sm gt-muted">${formatDate(tournament.date)}</p>
+          <p class="text-lg font-bold text-ink">${escapeHtml(tournament.name)}</p>
+          <p class="mt-1 text-sm gt-muted">Type of scoring: ${escapeHtml(scoringLabel(tournament))}</p>
+          <p class="mt-1 text-sm gt-muted">Date of Tournament - ${formatDate(tournament.date)}</p>
           ${formatPlayers(tournament.playerIds)}
         </div>
         <div class="flex w-full flex-wrap gap-2">
@@ -377,11 +391,25 @@
     updatePlayersLockState();
   });
 
+  nameInput.addEventListener("input", () => {
+    nameError.classList.add("hidden");
+    syncNamePendingStyle();
+  });
+
   playersContainer.addEventListener("change", (event) => {
     const checkbox = event.target.closest('input[type="checkbox"][data-player-id]');
-    if (!checkbox || !editingId) return;
+    if (!checkbox) return;
     syncPlayerCheckboxStyles();
   });
+
+  function isTournamentNameTaken(name, excludeId = null) {
+    const needle = String(name || "").trim().toLowerCase();
+    if (!needle) return false;
+    return tournaments.some((tournament) => {
+      if (excludeId && tournament.id === excludeId) return false;
+      return String(tournament.name || "").trim().toLowerCase() === needle;
+    });
+  }
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -393,6 +421,12 @@
 
     let valid = true;
     if (!name) {
+      nameError.textContent = "Name is required.";
+      nameError.classList.remove("hidden");
+      if (valid) nameInput.focus();
+      valid = false;
+    } else if (isTournamentNameTaken(name, editingId)) {
+      nameError.textContent = "This Name has been taken";
       nameError.classList.remove("hidden");
       if (valid) nameInput.focus();
       valid = false;
@@ -420,8 +454,11 @@
     try {
       if (editingId) {
         await api(API_URL, "PUT", { id: editingId, name, date, status, scoringMode, playerIds });
+        savedName = name;
+        nameInput.value = name;
         savedPlayerIds = new Set(playerIds.map(String));
         syncPlayerCheckboxStyles();
+        syncNamePendingStyle();
         setFormStatus("Tournament updated.");
         await loadTournaments();
         const updated = tournaments.find((t) => t.id === editingId);
@@ -484,7 +521,6 @@
   });
 
   async function init() {
-    const addPlayerLink = document.getElementById("add-player-link");
     if (addPlayerLink) {
       addPlayerLink.href = `players.html?returnTo=${encodeURIComponent(window.location.href)}`;
       addPlayerLink.addEventListener("click", () => {

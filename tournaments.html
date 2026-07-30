@@ -50,12 +50,14 @@
     </header>
 
     <div class="grid gap-6 lg:grid-cols-2 lg:items-start">
-      <section class="gt-panel p-5">
-        <h2 class="mb-4 font-display text-lg font-semibold text-ink">List of Tournaments</h2>
-        <p id="list-status" class="mb-3 text-sm gt-muted">Loading tournaments…</p>
-        <ul id="tournament-list" class="divide-y divide-wood/20"></ul>
-        <p id="empty-state" class="hidden text-sm gt-muted">No active tournaments.</p>
-      </section>
+      <div>
+        <h2 class="mb-4 font-display text-lg font-semibold text-ink">List of Active Tournaments</h2>
+        <section class="gt-panel p-5">
+          <p id="list-status" class="mb-3 text-sm gt-muted">Loading tournaments…</p>
+          <ul id="tournament-list" class="divide-y divide-wood/20"></ul>
+          <p id="empty-state" class="hidden text-sm gt-muted">No active tournaments.</p>
+        </section>
+      </div>
 
       <section id="form-section" class="gt-panel border-2 border-wood/40 p-5">
         <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
@@ -64,16 +66,22 @@
             New Tournament
           </button>
         </div>
-        <form id="tournament-form" class="space-y-4" novalidate>
+        <form id="tournament-form" class="space-y-4" autocomplete="off" novalidate>
           <input type="hidden" id="tournament-id" value="" />
           <div>
             <label for="tournament-name" class="gt-label">Name <span class="text-red-600">*</span></label>
             <input
               id="tournament-name"
-              name="name"
+              name="gtTournamentName"
               type="text"
               required
               autocomplete="off"
+              autocorrect="off"
+              autocapitalize="none"
+              spellcheck="false"
+              data-lpignore="true"
+              data-1p-ignore
+              data-form-type="other"
               class="gt-input"
               placeholder="e.g. Friday Night Cards"
             />
@@ -81,19 +89,26 @@
           </div>
           <div>
             <label for="tournament-date" class="gt-label">Date <span class="text-red-600">*</span></label>
-            <input id="tournament-date" name="date" type="date" required class="gt-input" />
+            <input
+              id="tournament-date"
+              name="gtTournamentDate"
+              type="date"
+              required
+              autocomplete="off"
+              class="gt-input"
+            />
             <p id="date-error" class="mt-1 hidden text-sm text-red-600">Date is required.</p>
           </div>
           <div>
             <label for="tournament-status" class="gt-label">Status</label>
-            <select id="tournament-status" name="status" class="gt-input">
+            <select id="tournament-status" name="gtTournamentStatus" autocomplete="off" class="gt-input">
               <option value="active">Active</option>
               <option value="ended">Ended</option>
             </select>
           </div>
           <div>
             <label for="tournament-scoring" class="gt-label">Select type of Scoring (Wins or Points)</label>
-            <select id="tournament-scoring" name="scoringMode" class="gt-input">
+            <select id="tournament-scoring" name="gtScoringMode" autocomplete="off" class="gt-input">
               <option value="gameWins">Game wins (count each game won)</option>
               <option value="points">Track Top 3 Places with 3/2/1 points</option>
             </select>
@@ -104,7 +119,7 @@
           <div>
             <p class="gt-label mb-2">Players <span class="text-red-600">*</span></p>
             <div id="tournament-players" class="gt-panel-muted space-y-2 p-3"></div>
-            <p id="players-empty" class="mt-2 hidden text-sm gt-muted">No players available. Add players first.</p>
+            <p id="players-empty" class="mt-2 hidden text-sm font-bold text-ink">No players available. Add players first.</p>
             <p id="players-error" class="mt-1 hidden text-sm text-red-600">Select at least one player.</p>
             <p id="players-locked" class="mt-1 hidden text-sm gt-muted">Players cannot be changed after a tournament has ended.</p>
           </div>

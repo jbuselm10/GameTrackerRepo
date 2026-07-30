@@ -16,8 +16,21 @@
 
   let players = [];
   let editingId = null;
+  let savedName = "";
+  let savedNickname = "";
   const escapeHtml = GameTracker.escapeHtml.bind(GameTracker);
   const api = (method, body) => GameTracker.api(API_URL, method, body);
+
+  function syncPendingFieldStyles() {
+    nameInput.classList.toggle(
+      "gt-pending",
+      nameInput.value.length > 0 && nameInput.value !== savedName
+    );
+    nicknameInput.classList.toggle(
+      "gt-pending",
+      nicknameInput.value.length > 0 && nicknameInput.value !== savedNickname
+    );
+  }
 
   function setFormStatus(message, isError = false) {
     if (!message) {
@@ -32,6 +45,8 @@
 
   function resetForm() {
     editingId = null;
+    savedName = "";
+    savedNickname = "";
     playerIdInput.value = "";
     nameInput.value = "";
     nicknameInput.value = "";
@@ -39,10 +54,13 @@
     formTitle.textContent = "Add player";
     submitBtn.textContent = "Add player";
     cancelEditBtn.classList.add("hidden");
+    syncPendingFieldStyles();
   }
 
   function startEdit(player) {
     editingId = player.id;
+    savedName = player.name || "";
+    savedNickname = player.nickname || "";
     playerIdInput.value = player.id;
     nameInput.value = player.name || "";
     nicknameInput.value = player.nickname || "";
@@ -50,6 +68,7 @@
     formTitle.textContent = "Edit player";
     submitBtn.textContent = "Save changes";
     cancelEditBtn.classList.remove("hidden");
+    syncPendingFieldStyles();
     nameInput.focus();
     setFormStatus("");
   }
@@ -108,6 +127,14 @@
       playerList.innerHTML = "";
     }
   }
+
+  nameInput.addEventListener("input", () => {
+    syncPendingFieldStyles();
+  });
+
+  nicknameInput.addEventListener("input", () => {
+    syncPendingFieldStyles();
+  });
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();

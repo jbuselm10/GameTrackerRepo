@@ -113,6 +113,28 @@ function findTournamentIndex(array $tournaments, string $id): int
     return -1;
 }
 
+function tournamentNameTaken(array $tournaments, string $name, string $excludeId = ''): bool
+{
+    $needle = strtolower(trim($name));
+    if ($needle === '') {
+        return false;
+    }
+    foreach ($tournaments as $tournament) {
+        if (!is_array($tournament)) {
+            continue;
+        }
+        $id = isset($tournament['id']) ? (string) $tournament['id'] : '';
+        if ($excludeId !== '' && $id === $excludeId) {
+            continue;
+        }
+        $existing = strtolower(trim((string) ($tournament['name'] ?? '')));
+        if ($existing === $needle) {
+            return true;
+        }
+    }
+    return false;
+}
+
 const MAX_WINNERS_PER_PLAY = 4;
 const MAX_PLACEMENTS_PER_PLAY = 3;
 
@@ -416,6 +438,9 @@ if ($method === 'POST') {
     ];
 
     mutateJsonArray($dataFile, 'Corrupt tournaments.json', static function (array $tournaments) use ($tournament) {
+        if (tournamentNameTaken($tournaments, $tournament['name'])) {
+            respond(400, ['error' => 'This Name has been taken']);
+        }
         $tournaments[] = $tournament;
         return $tournaments;
     });
@@ -532,6 +557,10 @@ if ($method === 'PUT') {
         $playersFile,
         &$updated
     ) {
+        if (tournamentNameTaken($tournaments, $name, $id)) {
+            respond(400, ['error' => 'This Name has been taken']);
+        }
+
         $found = false;
         foreach ($tournaments as $i => $tournament) {
             if (($tournament['id'] ?? '') === $id) {

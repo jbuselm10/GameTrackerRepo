@@ -59,16 +59,22 @@
 
       <section class="gt-panel p-5">
         <h2 id="form-title" class="mb-4 font-display text-lg font-semibold text-ink">Add game</h2>
-        <form id="game-form" class="space-y-4" novalidate>
+        <form id="game-form" class="space-y-4" autocomplete="off" novalidate>
           <input type="hidden" id="game-id" value="" />
           <div>
             <label for="game-name" class="gt-label">Name <span class="text-red-600">*</span></label>
             <input
               id="game-name"
-              name="name"
+              name="gtGameName"
               type="text"
               required
               autocomplete="off"
+              autocorrect="off"
+              autocapitalize="none"
+              spellcheck="false"
+              data-lpignore="true"
+              data-1p-ignore
+              data-form-type="other"
               class="gt-input"
               placeholder="e.g. Spades"
             />

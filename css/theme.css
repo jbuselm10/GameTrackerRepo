@@ -302,6 +302,12 @@ input[type="checkbox"].gt-saved {
   box-shadow: 0 0 0 3px rgba(31, 107, 74, 0.25), 0 8px 24px rgba(0, 0, 0, 0.18) !important;
 }
 
+.gt-btn-highlight {
+  box-shadow: 0 0 0 3px rgba(201, 162, 39, 0.55), 0 0 0 6px rgba(180, 35, 24, 0.2) !important;
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
 .gt-top-winners {
   background: linear-gradient(135deg, var(--gold-soft), #efe6c8);
   border: 1px solid var(--gold);
