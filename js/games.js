@@ -20,10 +20,10 @@
   const api = (method, body) => GameTracker.api(API_URL, method, body);
 
   function syncNamePendingStyle() {
-    nameInput.classList.toggle(
-      "gt-pending",
-      nameInput.value.length > 0 && nameInput.value !== savedName
-    );
+    const isPending = nameInput.value.length > 0 && nameInput.value !== savedName;
+    nameInput.classList.toggle("gt-pending", isPending);
+    submitBtn.classList.toggle("gt-btn-highlight", isPending);
+    submitBtn.classList.toggle("gt-btn-warn", isPending);
   }
 
   function setFormStatus(message, isError = false) {
