@@ -103,8 +103,10 @@ window.GameTracker = {
         : new Set((savedPlayerIds || []).map(String));
 
     container.querySelectorAll(inputSelector).forEach((input) => {
+      const label = input.closest("label");
       if (!active) {
         input.classList.remove("gt-pending", "gt-saved");
+        label?.classList.remove("gt-pending");
         return;
       }
 
@@ -113,9 +115,11 @@ window.GameTracker = {
       if (input.checked === savedChecked) {
         input.classList.toggle("gt-saved", input.checked);
         input.classList.remove("gt-pending");
+        label?.classList.remove("gt-pending");
       } else {
         input.classList.add("gt-pending");
         input.classList.remove("gt-saved");
+        label?.classList.add("gt-pending");
       }
     });
   },

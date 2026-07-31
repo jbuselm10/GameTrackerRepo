@@ -22,14 +22,15 @@
   const api = (method, body) => GameTracker.api(API_URL, method, body);
 
   function syncPendingFieldStyles() {
-    nameInput.classList.toggle(
-      "gt-pending",
-      nameInput.value.length > 0 && nameInput.value !== savedName
-    );
-    nicknameInput.classList.toggle(
-      "gt-pending",
-      nicknameInput.value.length > 0 && nicknameInput.value !== savedNickname
-    );
+    const namePending =
+      nameInput.value.length > 0 && nameInput.value !== savedName;
+    const nicknamePending =
+      nicknameInput.value.length > 0 && nicknameInput.value !== savedNickname;
+    nameInput.classList.toggle("gt-pending", namePending);
+    nicknameInput.classList.toggle("gt-pending", nicknamePending);
+    const isPending = namePending || nicknamePending;
+    submitBtn.classList.toggle("gt-btn-highlight", isPending);
+    submitBtn.classList.toggle("gt-btn-warn", isPending);
   }
 
   function setFormStatus(message, isError = false) {

@@ -226,6 +226,11 @@ input[type="checkbox"].gt-pending {
   accent-color: var(--danger);
 }
 
+label.gt-pending {
+  color: var(--danger);
+  font-weight: 700;
+}
+
 input[type="radio"].gt-pending {
   accent-color: var(--danger);
 }

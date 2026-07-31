@@ -40,12 +40,29 @@
       editingId,
       name: nameInput.value,
       playerIds: getSelectedPlayerIds(),
+      knownPlayerIds: players.map((player) => player.id),
     };
     try {
       sessionStorage.setItem(FORM_DRAFT_KEY, JSON.stringify(draft));
     } catch {
       // Ignore storage failures.
     }
+  }
+
+  function playerIdsWithNewChecked(draftPlayerIds, knownPlayerIds) {
+    const selected = new Set(
+      (Array.isArray(draftPlayerIds) ? draftPlayerIds : []).map(String)
+    );
+    const known = new Set(
+      (Array.isArray(knownPlayerIds) ? knownPlayerIds : []).map(String)
+    );
+    for (const player of players) {
+      const id = String(player.id || "");
+      if (id && !known.has(id)) {
+        selected.add(id);
+      }
+    }
+    return Array.from(selected);
   }
 
   function restoreFormDraft() {
@@ -72,7 +89,7 @@
     if (!draft || typeof draft !== "object") return false;
 
     const name = typeof draft.name === "string" ? draft.name : "";
-    const playerIds = Array.isArray(draft.playerIds) ? draft.playerIds : [];
+    const playerIds = playerIdsWithNewChecked(draft.playerIds, draft.knownPlayerIds);
 
     if (draft.editingId) {
       const team = teams.find((t) => t.id === draft.editingId);
