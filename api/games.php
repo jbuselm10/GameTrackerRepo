@@ -8,6 +8,23 @@ sendCorsHeaders();
 
 $dataFile = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'games.json';
 
+function gameNameExists(array $games, string $name, string $excludeId = ''): bool
+{
+    $needle = strtolower(trim($name));
+    foreach ($games as $game) {
+        if (!is_array($game)) {
+            continue;
+        }
+        if ($excludeId !== '' && (string) ($game['id'] ?? '') === $excludeId) {
+            continue;
+        }
+        if (strtolower(trim((string) ($game['name'] ?? ''))) === $needle) {
+            return true;
+        }
+    }
+    return false;
+}
+
 $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'GET') {
@@ -27,6 +44,9 @@ if ($method === 'POST') {
     ];
 
     mutateJsonArray($dataFile, 'Corrupt games.json', static function (array $games) use ($game) {
+        if (gameNameExists($games, $game['name'])) {
+            respond(400, ['error' => 'Game already exists']);
+        }
         $games[] = $game;
         return $games;
     });
@@ -47,6 +67,9 @@ if ($method === 'PUT') {
 
     $updated = null;
     mutateJsonArray($dataFile, 'Corrupt games.json', static function (array $games) use ($id, $name, &$updated) {
+        if (gameNameExists($games, $name, $id)) {
+            respond(400, ['error' => 'Game already exists']);
+        }
         $found = false;
         foreach ($games as $i => $game) {
             if (($game['id'] ?? '') === $id) {

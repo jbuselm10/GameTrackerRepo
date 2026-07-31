@@ -41,6 +41,7 @@
       <a href="tournaments.html">Tournaments</a>
       <a href="games.html">Games</a>
       <a href="players.html">Players</a>
+      <a href="teams.html">Teams</a>
       <a href="history.html">History</a>
     </nav>
     <header class="mb-8">
@@ -60,11 +61,8 @@
       </div>
 
       <section id="form-section" class="gt-panel border-2 border-wood/40 p-5">
-        <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <div class="mb-4">
           <h2 id="form-title" class="font-display text-lg font-semibold text-ink">Add tournament</h2>
-          <button type="button" id="new-tournament-btn" class="gt-btn-outline text-sm">
-            New Tournament
-          </button>
         </div>
         <form id="tournament-form" class="space-y-4" autocomplete="off" novalidate>
           <input type="hidden" id="tournament-id" value="" />
@@ -106,18 +104,50 @@
               <option value="ended">Ended</option>
             </select>
           </div>
-          <div>
-            <label for="tournament-scoring" class="gt-label">Select type of Scoring (Wins or Points)</label>
-            <select id="tournament-scoring" name="gtScoringMode" autocomplete="off" class="gt-input">
-              <option value="gameWins">Game wins (count each game won)</option>
-              <option value="points">Track Top 3 Places with 3/2/1 points</option>
-            </select>
+          <fieldset>
+            <legend class="gt-label">Select type of Scoring (Wins or Points) <span class="text-red-600">*</span></legend>
+            <div class="gt-panel-muted mt-2 space-y-2 p-3">
+              <label class="flex items-center gap-2 text-sm text-ink">
+                <input type="radio" name="gtScoringMode" value="gameWins" required
+                  class="border-wood/40 text-felt focus:ring-felt/30" />
+                <span>Game wins (count each game won)</span>
+              </label>
+              <label class="flex items-center gap-2 text-sm text-ink">
+                <input type="radio" name="gtScoringMode" value="points"
+                  class="border-wood/40 text-felt focus:ring-felt/30" />
+                <span>Track Top 3 Places with 3/2/1 points</span>
+              </label>
+            </div>
+            <p id="scoring-error" class="mt-1 hidden text-sm text-red-600">
+              Select a scoring type.
+            </p>
             <p id="scoring-locked" class="mt-1 hidden text-sm gt-muted">
               Scoring mode cannot be changed after games are recorded.
             </p>
-          </div>
-          <div>
-            <p class="gt-label mb-2">Players <span class="text-red-600">*</span></p>
+          </fieldset>
+          <fieldset>
+            <legend class="gt-label">Tournament Type <span class="text-red-600">*</span></legend>
+            <div class="gt-panel-muted mt-2 space-y-2 p-3">
+              <label class="flex items-center gap-2 text-sm text-ink">
+                <input type="radio" name="gtCompetitorType" value="player" required
+                  class="border-wood/40 text-felt focus:ring-felt/30" />
+                <span>Players</span>
+              </label>
+              <label class="flex items-center gap-2 text-sm text-ink">
+                <input type="radio" name="gtCompetitorType" value="team"
+                  class="border-wood/40 text-felt focus:ring-felt/30" />
+                <span>Teams</span>
+              </label>
+            </div>
+            <p id="competitor-type-error" class="mt-1 hidden text-sm text-red-600">
+              Select whether this is a Player or Team tournament.
+            </p>
+            <p id="competitor-type-locked" class="mt-1 hidden text-sm gt-muted">
+              Competitor type cannot be changed after games are recorded.
+            </p>
+          </fieldset>
+          <div id="competitor-options-section" class="hidden">
+            <p id="competitors-label" class="gt-label mb-2">Players <span class="text-red-600">*</span></p>
             <div id="tournament-players" class="gt-panel-muted space-y-2 p-3"></div>
             <p id="players-empty" class="mt-2 hidden text-sm font-bold text-ink">No players available. Add players first.</p>
             <p id="players-error" class="mt-1 hidden text-sm text-red-600">Select at least one player.</p>
@@ -125,7 +155,7 @@
           </div>
           <div class="flex flex-wrap items-center gap-2">
             <button type="submit" id="submit-btn" class="gt-btn text-sm">Add tournament</button>
-            <a id="add-player-link" href="players.html" class="gt-btn text-sm">Add Player</a>
+            <a id="add-player-link" href="players.html" class="gt-btn hidden text-sm">Add Player</a>
             <button type="button" id="cancel-edit-btn" class="gt-btn-secondary hidden text-sm">Cancel</button>
           </div>
         </form>
@@ -135,6 +165,7 @@
   </div>
 
   <script src="js/common.js" defer></script>
+  <script src="js/play-winners.js" defer></script>
   <script src="js/tournaments.js" defer></script>
 </body>
 </html>

@@ -13,6 +13,7 @@ window.GameTracker = {
 
     root.querySelectorAll("form").forEach((form) => {
       form.setAttribute("autocomplete", "off");
+      form.setAttribute("data-form-type", "other");
     });
 
     root.querySelectorAll("input, select, textarea").forEach((el) => {
@@ -21,10 +22,17 @@ window.GameTracker = {
         return;
       }
 
-      el.setAttribute("autocomplete", "off");
+      // Mobile Chrome and Safari may ignore autocomplete="off" on text fields.
+      // "new-password" also suppresses their saved-value suggestions while
+      // leaving these non-login fields fully editable.
+      const isTextField =
+        el.tagName === "TEXTAREA"
+        || el.tagName === "INPUT" && (type === "" || type === "text");
+      el.setAttribute("autocomplete", isTextField ? "new-password" : "off");
       el.setAttribute("autocorrect", "off");
       el.setAttribute("autocapitalize", "none");
       el.setAttribute("spellcheck", "false");
+      el.setAttribute("aria-autocomplete", "none");
       el.setAttribute("data-lpignore", "true");
       el.setAttribute("data-1p-ignore", "true");
       el.setAttribute("data-bwignore", "true");

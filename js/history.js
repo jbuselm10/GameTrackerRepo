@@ -1,6 +1,7 @@
 (() => {
   const API_URL = "api/tournaments.php";
   const PLAYERS_API_URL = "api/players.php";
+  const TEAMS_API_URL = "api/teams.php";
 
   const listStatus = document.getElementById("list-status");
   const actionStatus = document.getElementById("action-status");
@@ -8,6 +9,7 @@
   const emptyState = document.getElementById("empty-state");
 
   let players = [];
+  let teams = [];
   let tournaments = [];
   const escapeHtml = GameTracker.escapeHtml.bind(GameTracker);
   const fetchJson = GameTracker.api.bind(GameTracker);
@@ -39,42 +41,68 @@
     actionStatus.classList.add(isError ? "gt-status-err" : "gt-status-ok");
   }
 
-  function playerLabel(playerId) {
-    const player = players.find((p) => p.id === playerId);
-    if (!player) return playerId;
-    return player.nickname ? `${player.name} (${player.nickname})` : player.name;
-  }
-
-  function formatPlayers(playerIds) {
-    const ids = Array.isArray(playerIds) ? playerIds : [];
+  function formatCompetitors(tournament) {
+    const type = getCompetitorType(tournament);
+    const ids = rosterIdsFromTournament(tournament);
+    const heading = type === "team" ? "Teams" : "Players";
     if (!ids.length) {
-      return '<p class="mt-1 text-sm gt-muted">No players</p>';
+      return `<p class="mt-1 text-sm gt-muted">No ${heading.toLowerCase()}</p>`;
     }
-    const names = ids.map((id) => escapeHtml(playerLabel(id))).join(", ");
-    return `<p class="mt-1 text-sm gt-muted">Players: ${names}</p>`;
+    const labeler = buildCompetitorLabeler(tournament, players, teams);
+    const names = ids.map((id) => escapeHtml(labeler(id))).join(", ");
+    return `<p class="mt-1 text-sm gt-muted">${heading}: ${names}</p>`;
   }
 
   function formatWinners(tournament) {
-    const { mode, leaders, topScore } = getTournamentLeaders(tournament);
+    const { mode, leaders, standings, topScore } = getTournamentLeaders(tournament);
+    const labeler = buildCompetitorLabeler(tournament, players, teams);
     const scoringNote =
       mode === "points"
         ? '<p class="mt-1 text-xs gt-muted">Points scoring</p>'
         : "";
+    const typeNote =
+      getCompetitorType(tournament) === "team"
+        ? '<p class="mt-1 text-xs gt-muted">Team tournament</p>'
+        : "";
+
+    if (mode === "points") {
+      const scoredStandings = standings.filter((entry) => entry.score > 0);
+      if (!scoredStandings.length) {
+        return `${scoringNote}${typeNote}<p class="mt-1 text-sm gt-muted">Winner: None</p>`;
+      }
+
+      const scoreGroups = [];
+      for (const entry of scoredStandings) {
+        let group = scoreGroups.find((item) => item.score === entry.score);
+        if (!group) {
+          if (scoreGroups.length >= 3) break;
+          group = { score: entry.score, entries: [] };
+          scoreGroups.push(group);
+        }
+        group.entries.push(entry);
+      }
+
+      const placeLabels = ["Winner", "Second", "Third"];
+      const results = scoreGroups
+        .map((group, index) => {
+          const names = group.entries.map((entry) => escapeHtml(labeler(entry.id)));
+          const tieLabel = group.entries.length > 1 ? " (tie)" : "";
+          const pointLabel = `${group.score} point${group.score === 1 ? "" : "s"}`;
+          const eachLabel = group.entries.length > 1 ? " each" : "";
+          return `<p class="mt-1 text-sm font-bold text-felt-dark">${placeLabels[index]}${tieLabel}: ${names.join(", ")} — ${pointLabel}${eachLabel}</p>`;
+        })
+        .join("");
+
+      return `${scoringNote}${typeNote}${results}`;
+    }
 
     if (!leaders.length || topScore <= 0) {
-      return `${scoringNote}<p class="mt-1 text-sm gt-muted">${
-        mode === "points" ? "Leader: None" : "Winners: None"
-      }</p>`;
+      return `${scoringNote}${typeNote}<p class="mt-1 text-sm gt-muted">Winners: None</p>`;
     }
 
-    const names = leaders.map((entry) => escapeHtml(playerLabel(entry.id)));
-    if (mode === "points") {
-      const pointLabel = `${topScore} point${topScore === 1 ? "" : "s"}`;
-      return `${scoringNote}<p class="mt-1 text-sm font-bold text-felt-dark">Leader: ${names.join(", ")} (${pointLabel})</p>`;
-    }
-
+    const names = leaders.map((entry) => escapeHtml(labeler(entry.id)));
     const winLabel = `${topScore} win${topScore === 1 ? "" : "s"}`;
-    return `${scoringNote}<p class="mt-1 text-sm font-bold text-felt-dark">Winners: ${names.join(", ")} (${winLabel})</p>`;
+    return `${scoringNote}${typeNote}<p class="mt-1 text-sm font-bold text-felt-dark">Winners: ${names.join(", ")} (${winLabel})</p>`;
   }
 
   function tournamentYear(tournament) {
@@ -91,7 +119,7 @@
           <p class="font-medium text-ink">${escapeHtml(tournament.name)}</p>
           ${formatWinners(tournament)}
           <p class="mt-1 text-sm gt-muted">${formatDate(tournament.date)}</p>
-          ${formatPlayers(tournament.playerIds)}
+          ${formatCompetitors(tournament)}
         </div>
         <div class="flex flex-wrap gap-2">
           <a
@@ -180,11 +208,13 @@
     historyList.innerHTML = "";
 
     try {
-      const [tournamentData, playerData] = await Promise.all([
+      const [tournamentData, playerData, teamData] = await Promise.all([
         fetchJson(API_URL),
         fetchJson(PLAYERS_API_URL),
+        fetchJson(TEAMS_API_URL),
       ]);
       players = Array.isArray(playerData) ? playerData : [];
+      teams = Array.isArray(teamData) ? teamData : [];
       tournaments = Array.isArray(tournamentData) ? tournamentData : [];
       renderHistory();
     } catch (err) {

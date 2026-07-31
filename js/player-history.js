@@ -1,6 +1,7 @@
 (() => {
   const API_URL = "api/tournaments.php";
   const PLAYERS_API_URL = "api/players.php";
+  const TEAMS_API_URL = "api/teams.php";
 
   const listStatus = document.getElementById("list-status");
   const standingsHeader = document.getElementById("standings-header");
@@ -20,11 +21,27 @@
     return player.nickname ? `${player.name} (${player.nickname})` : player.name;
   }
 
-  function gameWinsInTournament(tournament) {
+  function teamMemberIds(teamId, teams) {
+    const team = teams.find((t) => t.id === teamId);
+    if (!team || !Array.isArray(team.playerIds)) return [];
+    return team.playerIds.map(String);
+  }
+
+  /**
+   * Expand a competitor ID to the player IDs that should receive credit.
+   * Player tournaments: the competitor id itself.
+   * Team tournaments: every member of that team.
+   */
+  function expandToPlayerIds(competitorId, tournament, teams) {
+    if (getCompetitorType(tournament) === "team") {
+      return teamMemberIds(competitorId, teams);
+    }
+    return [String(competitorId)];
+  }
+
+  function gameWinsByCompetitor(tournament) {
     if (getScoringMode(tournament) === "points") {
-      const rosterIds = Array.isArray(tournament.playerIds)
-        ? tournament.playerIds.map(String)
-        : [];
+      const rosterIds = rosterIdsFromTournament(tournament);
       const plays = Array.isArray(tournament.plays) ? tournament.plays : [];
       const winCounts = {};
       for (const id of rosterIds) {
@@ -50,7 +67,7 @@
     return leaders.map((entry) => entry.id);
   }
 
-  function buildStandings(players, tournaments) {
+  function buildStandings(players, tournaments, teams) {
     const ended = tournaments.filter((t) => t.status === "ended");
     const stats = players.map((player) => ({
       id: player.id,
@@ -64,15 +81,19 @@
     }
 
     for (const tournament of ended) {
-      const winCounts = gameWinsInTournament(tournament);
-      for (const [playerId, wins] of Object.entries(winCounts)) {
-        if (byId[playerId]) {
-          byId[playerId].gameWins += wins;
+      const winCounts = gameWinsByCompetitor(tournament);
+      for (const [competitorId, wins] of Object.entries(winCounts)) {
+        for (const playerId of expandToPlayerIds(competitorId, tournament, teams)) {
+          if (byId[playerId]) {
+            byId[playerId].gameWins += wins;
+          }
         }
       }
       for (const winnerId of topWinnerIds(tournament)) {
-        if (byId[winnerId]) {
-          byId[winnerId].tournamentWins += 1;
+        for (const playerId of expandToPlayerIds(winnerId, tournament, teams)) {
+          if (byId[playerId]) {
+            byId[playerId].tournamentWins += 1;
+          }
         }
       }
     }
@@ -90,7 +111,7 @@
       }
       const otherKey = sortKey === "tournamentWins" ? "gameWins" : "tournamentWins";
       if (a[otherKey] !== b[otherKey]) {
-        return (b[otherKey] - a[otherKey]);
+        return b[otherKey] - a[otherKey];
       }
       return a.label.localeCompare(b.label, undefined, { sensitivity: "base" });
     });
@@ -149,13 +170,15 @@
     playerList.innerHTML = "";
 
     try {
-      const [tournamentData, playerData] = await Promise.all([
+      const [tournamentData, playerData, teamData] = await Promise.all([
         fetchJson(API_URL),
         fetchJson(PLAYERS_API_URL),
+        fetchJson(TEAMS_API_URL),
       ]);
       const players = Array.isArray(playerData) ? playerData : [];
       const tournaments = Array.isArray(tournamentData) ? tournamentData : [];
-      standings = buildStandings(players, tournaments);
+      const teams = Array.isArray(teamData) ? teamData : [];
+      standings = buildStandings(players, tournaments, teams);
       sortKey = "tournamentWins";
       sortDir = "desc";
       sortStandings();

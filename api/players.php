@@ -16,6 +16,23 @@ function normalizeNickname($value): string
     return trim((string) $value);
 }
 
+function playerNameExists(array $players, string $name, string $excludeId = ''): bool
+{
+    $needle = strtolower(trim($name));
+    foreach ($players as $player) {
+        if (!is_array($player)) {
+            continue;
+        }
+        if ($excludeId !== '' && (string) ($player['id'] ?? '') === $excludeId) {
+            continue;
+        }
+        if (strtolower(trim((string) ($player['name'] ?? ''))) === $needle) {
+            return true;
+        }
+    }
+    return false;
+}
+
 $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'GET') {
@@ -36,6 +53,9 @@ if ($method === 'POST') {
     ];
 
     mutateJsonArray($dataFile, 'Corrupt players.json', static function (array $players) use ($player) {
+        if (playerNameExists($players, $player['name'])) {
+            respond(400, ['error' => 'Player already exists']);
+        }
         $players[] = $player;
         return $players;
     });
@@ -56,6 +76,9 @@ if ($method === 'PUT') {
 
     $updated = null;
     mutateJsonArray($dataFile, 'Corrupt players.json', static function (array $players) use ($id, $name, $body, &$updated) {
+        if (playerNameExists($players, $name, $id)) {
+            respond(400, ['error' => 'Player already exists']);
+        }
         $found = false;
         foreach ($players as $i => $player) {
             if (($player['id'] ?? '') === $id) {

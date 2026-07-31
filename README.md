@@ -6,8 +6,9 @@ Website for tracking who won card games among friends and family.
 
 - **Home:** Introduction, instructions, and links
 - **Players:** Add, update, or delete player profiles (name required; nickname optional)
+- **Teams:** Name a team and assign players; use teams as tournament competitors
 - **Games:** Maintain the list of games that can be played
-- **Tournaments:** Create a tournament (name, date, games needed to win), pick players once, then track plays until someone wins
+- **Tournaments:** Create a tournament (name, date, scoring mode, player or team competitors), then track plays until someone wins
 - **History:** Summaries by tournament, game, and player
 
 ## Tech stack
@@ -31,9 +32,10 @@ Website for tracking who won card games among friends and family.
    Copy-Item data/players.json.example data/players.json
    Copy-Item data/games.json.example data/games.json
    Copy-Item data/tournaments.json.example data/tournaments.json
+   Copy-Item data/teams.json.example data/teams.json
    ```
 
-   `data/*.json` is gitignored — your local players/games/tournaments stay on your machine only.
+   `data/*.json` is gitignored — your local players/games/tournaments/teams stay on your machine only.
 
 2. Start PHP’s built-in server from the repo root:
 

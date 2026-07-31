@@ -1,6 +1,7 @@
 (() => {
   const API_URL = "api/tournaments.php";
   const PLAYERS_API_URL = "api/players.php";
+  const TEAMS_API_URL = "api/teams.php";
   const GAMES_API_URL = "api/games.php";
 
   const pageStatus = document.getElementById("page-status");
@@ -23,6 +24,8 @@
   const addPlayersList = document.getElementById("add-players-list");
   const savePlayersBtn = document.getElementById("save-players-btn");
   const playersStatus = document.getElementById("players-status");
+  const rosterPanelTitle = document.getElementById("roster-panel-title");
+  const goToCompetitorsLink = document.getElementById("go-to-players-link");
   const newGameForm = document.getElementById("new-game-form");
   const newGameNameInput = document.getElementById("new-game-name");
   const newGameStatus = document.getElementById("new-game-status");
@@ -33,6 +36,8 @@
 
   let tournament = null;
   let players = [];
+  let teams = [];
+  let competitorLabel = (id) => id;
   const escapeHtml = GameTracker.escapeHtml.bind(GameTracker);
   const api = GameTracker.api.bind(GameTracker);
   let games = [];
@@ -40,6 +45,26 @@
   const addingWinnerPlayIds = new Set();
   const dirtyWinnerSelects = new Set();
   const pendingWinnerValues = {};
+
+  function refreshCompetitorLabeler() {
+    competitorLabel = buildCompetitorLabeler(tournament, players, teams);
+  }
+
+  function isTeamTournament() {
+    return getCompetitorType(tournament) === "team";
+  }
+
+  function competitorNoun(plural = false) {
+    if (isTeamTournament()) {
+      return plural ? "teams" : "team";
+    }
+    return plural ? "players" : "player";
+  }
+
+  function competitorNounCap(plural = false) {
+    const n = competitorNoun(plural);
+    return n.charAt(0).toUpperCase() + n.slice(1);
+  }
 
   function assignWinnerKey(playId) {
     return `assign:${playId}`;
@@ -137,9 +162,7 @@
   }
 
   function playerLabel(playerId) {
-    const player = players.find((p) => p.id === playerId);
-    if (!player) return playerId;
-    return player.nickname ? `${player.name} (${player.nickname})` : player.name;
+    return competitorLabel(playerId);
   }
 
   function gameLabel(gameId) {
@@ -153,7 +176,7 @@
       .filter((id) => !exclude.has(id))
       .map(
         (id) =>
-          `<option value="${escapeHtml(id)}"${id === selectedId ? " selected" : ""}>${escapeHtml(playerLabel(id))}</option>`
+          `<option value="${escapeHtml(id)}"${id === selectedId ? " selected" : ""}>${escapeHtml(competitorLabel(id))}</option>`
       )
       .join("");
   }
@@ -169,7 +192,7 @@
         tournamentId: tournament.id,
         playId,
         gameId: play.gameId,
-        winnerPlayerIds,
+        winnerIds: winnerPlayerIds,
       });
       tournament = await api(`${API_URL}?id=${encodeURIComponent(tournament.id)}`, "GET");
       renderActive();
@@ -188,7 +211,7 @@
         tournamentId: tournament.id,
         playId,
         gameId: play.gameId,
-        placementPlayerIds,
+        placementIds: placementPlayerIds,
       });
       clearWinnerPendingForPlay(playId);
       for (let i = 0; i < MAX_PLACEMENTS_PER_PLAY; i++) {
@@ -298,7 +321,7 @@
   }
 
   function fillSelects() {
-    const rosterIds = Array.isArray(tournament.playerIds) ? tournament.playerIds : [];
+    const rosterIds = rosterIdsFromTournament(tournament);
     const hasGames = games.length > 0;
 
     if (playFormPanel) {
@@ -333,14 +356,14 @@
 
     if (playWinner) {
       if (!rosterIds.length) {
-        playWinner.innerHTML = '<option value="">No players in tournament</option>';
+        playWinner.innerHTML = `<option value="">No ${competitorNoun(true)} in tournament</option>`;
       } else {
         playWinner.innerHTML =
           '<option value="">— No winner —</option>' +
           rosterIds
             .map(
               (id) =>
-                `<option value="${escapeHtml(id)}">${escapeHtml(playerLabel(id))}</option>`
+                `<option value="${escapeHtml(id)}">${escapeHtml(competitorLabel(id))}</option>`
             )
             .join("");
       }
@@ -384,7 +407,7 @@
       return;
     }
 
-    const rosterIds = Array.isArray(tournament.playerIds) ? tournament.playerIds : [];
+    const rosterIds = rosterIdsFromTournament(tournament);
 
     if (scoringMode === "points") {
       playsList.innerHTML = `
@@ -396,7 +419,7 @@
               ? placements
                   .map(
                     (id, index) =>
-                      `${PLACE_LABELS[index]}: <span class="font-bold text-ink">${escapeHtml(playerLabel(id))}</span>`
+                      `${PLACE_LABELS[index]}: <span class="font-bold text-ink">${escapeHtml(competitorLabel(id))}</span>`
                   )
                   .join(", ")
               : "None yet";
@@ -431,7 +454,7 @@
               const winnerIds = getPlayWinnerIds(play);
               const winnerNamesHtml = winnerIds.length
                 ? winnerIds
-                    .map((id) => `<span class="font-bold text-ink">${escapeHtml(playerLabel(id))}</span>`)
+                    .map((id) => `<span class="font-bold text-ink">${escapeHtml(competitorLabel(id))}</span>`)
                     .join(", ")
                 : "None yet";
               const addControls = renderAddWinnerControls(play.id, winnerIds, rosterIds);
@@ -527,19 +550,26 @@
   }
 
   function renderPlayerCheckboxes() {
-    const rosterIds = Array.isArray(tournament.playerIds) ? tournament.playerIds : [];
-    if (!players.length) {
-      addPlayersList.innerHTML = '<p class="text-sm gt-muted">No players available. Add players first.</p>';
+    const rosterIds = rosterIdsFromTournament(tournament);
+    const options = isTeamTournament() ? teams : players;
+    const nounPlural = competitorNoun(true);
+
+    if (!options.length) {
+      addPlayersList.innerHTML = `<p class="text-sm gt-muted">No ${nounPlural} available. Add ${nounPlural} first.</p>`;
       syncSavePlayersBtnHighlight();
       return;
     }
-    addPlayersList.innerHTML = players
-      .map((p) => {
-        const checked = rosterIds.includes(p.id) ? "checked" : "";
-        const label = p.nickname ? `${p.name} (${p.nickname})` : p.name;
+    addPlayersList.innerHTML = options
+      .map((item) => {
+        const checked = rosterIds.includes(item.id) ? "checked" : "";
+        const label = isTeamTournament()
+          ? item.name
+          : item.nickname
+            ? `${item.name} (${item.nickname})`
+            : item.name;
         return `
           <label class="flex items-center gap-2 text-sm text-ink">
-            <input type="checkbox" name="player" value="${escapeHtml(p.id)}" ${checked}
+            <input type="checkbox" name="player" value="${escapeHtml(item.id)}" ${checked}
               class="rounded border-wood/40 text-felt focus:ring-felt/30" />
             ${escapeHtml(label)}
           </label>`;
@@ -550,7 +580,7 @@
 
   function syncPlayerCheckboxStyles() {
     if (!tournament) return;
-    GameTracker.syncPlayerCheckboxStyles(addPlayersList, tournament.playerIds, {
+    GameTracker.syncPlayerCheckboxStyles(addPlayersList, rosterIdsFromTournament(tournament), {
       active: true,
       inputSelector: 'input[name="player"]',
       getPlayerId: (input) => input.value,
@@ -594,8 +624,11 @@
   }
 
   function renderActive() {
-    const rosterIds = Array.isArray(tournament.playerIds) ? tournament.playerIds : [];
+    refreshCompetitorLabeler();
+    const rosterIds = rosterIdsFromTournament(tournament);
     const scoringMode = getScoringMode(tournament);
+    const nounCap = competitorNounCap(true);
+
     tournamentName.innerHTML = `${escapeHtml(tournament.name || "Tournament")} <span class="gt-badge-active">Active</span>`;
     tournamentDate.textContent = formatDate(tournament.date);
     tournamentScoring.textContent =
@@ -603,12 +636,19 @@
         ? "Scoring: Points (3-2-1)"
         : "Scoring: Game wins";
     tournamentPlayers.textContent = rosterIds.length
-      ? `Players: ${rosterIds.map((id) => playerLabel(id)).join(", ")}`
-      : "No players";
+      ? `${nounCap}: ${rosterIds.map((id) => competitorLabel(id)).join(", ")}`
+      : `No ${nounCap.toLowerCase()}`;
 
-    const goToPlayersLink = document.getElementById("go-to-players-link");
-    if (goToPlayersLink) {
-      goToPlayersLink.href = `players.html?returnTo=${encodeURIComponent(window.location.href)}`;
+    if (rosterPanelTitle) {
+      rosterPanelTitle.textContent = `Add ${nounCap} to Tournament`;
+    }
+    if (savePlayersBtn) {
+      savePlayersBtn.textContent = `Update ${nounCap.toLowerCase()}`;
+    }
+    if (goToCompetitorsLink) {
+      const target = isTeamTournament() ? "teams.html" : "players.html";
+      goToCompetitorsLink.href = `${target}?returnTo=${encodeURIComponent(window.location.href)}`;
+      goToCompetitorsLink.textContent = `Click Here if ${competitorNounCap()} Does Not Appear`;
     }
 
     fillSelects();
@@ -648,15 +688,18 @@
     activePanel.classList.add("hidden");
 
     try {
-      const [tournamentData, playerData, gameData] = await Promise.all([
+      const [tournamentData, playerData, teamData, gameData] = await Promise.all([
         api(`${API_URL}?id=${encodeURIComponent(id)}`, "GET"),
         api(PLAYERS_API_URL, "GET"),
+        api(TEAMS_API_URL, "GET"),
         api(GAMES_API_URL, "GET"),
       ]);
 
       tournament = tournamentData;
       players = Array.isArray(playerData) ? playerData : [];
+      teams = Array.isArray(teamData) ? teamData : [];
       games = Array.isArray(gameData) ? gameData : [];
+      refreshCompetitorLabeler();
 
       if (tournament.status === "ended") {
         showMessageState(
@@ -714,11 +757,11 @@
           gameId,
         };
         if (scoringMode === "points") {
-          payload.placementPlayerIds = getPlayPlacementIds(
+          payload.placementIds = getPlayPlacementIds(
             (tournament.plays || []).find((p) => p.id === editingPlayId) || {}
           );
         } else {
-          payload.winnerPlayerIds =
+          payload.winnerIds =
             playWinner && playWinner.value ? [playWinner.value] : getPlayWinnerIds(
               (tournament.plays || []).find((p) => p.id === editingPlayId) || {}
             );
@@ -731,9 +774,9 @@
           gameId,
         };
         if (scoringMode === "points") {
-          payload.placementPlayerIds = [];
+          payload.placementIds = [];
         } else {
-          payload.winnerPlayerIds = [];
+          payload.winnerIds = [];
         }
         await api(API_URL, "POST", payload);
         setFormStatus("Game added to tournament.");
@@ -803,7 +846,7 @@
       const placementPlayerIds = collectPlacementIdsFromUi(playId, saved);
       const unique = new Set(placementPlayerIds);
       if (unique.size !== placementPlayerIds.length) {
-        setFormStatus("Each player can only have one place in a game.", true);
+        setFormStatus(`Each ${competitorNoun()} can only have one place in a game.`, true);
         return;
       }
       await savePlayPlacements(playId, play, placementPlayerIds, button, "Placements updated.");
@@ -826,7 +869,7 @@
         return;
       }
       if (existing.includes(selectedId) && existing[0] !== selectedId) {
-        setFormStatus("That player is already a winner for this game.", true);
+        setFormStatus(`That ${competitorNoun()} is already a winner for this game.`, true);
         return;
       }
       const winnerPlayerIds = [selectedId, ...existing.slice(1)];
@@ -857,7 +900,7 @@
         return;
       }
       if (existing.includes(selectedId) && existing[winnerIndex] !== selectedId) {
-        setFormStatus("That player is already a winner for this game.", true);
+        setFormStatus(`That ${competitorNoun()} is already a winner for this game.`, true);
         return;
       }
       const winnerPlayerIds = [...existing];
@@ -896,7 +939,7 @@
         return;
       }
       if (existing.includes(selectedId)) {
-        setFormStatus("That player is already a winner for this game.", true);
+        setFormStatus(`That ${competitorNoun()} is already a winner for this game.`, true);
         return;
       }
 
@@ -981,7 +1024,7 @@
     const checked = Array.from(addPlayersList.querySelectorAll('input[name="player"]:checked'))
       .map((cb) => cb.value);
     if (!checked.length) {
-      setPlayersStatus("Select at least one player.", true);
+      setPlayersStatus(`Select at least one ${competitorNoun()}.`, true);
       return;
     }
     savePlayersBtn.disabled = true;
@@ -993,13 +1036,14 @@
         date: tournament.date,
         status: tournament.status,
         scoringMode: getScoringMode(tournament),
-        playerIds: checked,
+        competitorType: getCompetitorType(tournament),
+        competitorIds: checked,
       });
       tournament = await api(`${API_URL}?id=${encodeURIComponent(tournament.id)}`, "GET");
       renderActive();
-      setPlayersStatus("Players updated.");
+      setPlayersStatus(`${competitorNounCap(true)} updated.`);
     } catch (err) {
-      setPlayersStatus(err.message || "Failed to update players.", true);
+      setPlayersStatus(err.message || `Failed to update ${competitorNoun(true)}.`, true);
     } finally {
       savePlayersBtn.disabled = false;
     }
@@ -1007,7 +1051,7 @@
 
   endTournamentBtn.addEventListener("click", async () => {
     if (!tournament) return;
-    if (!window.confirm(`End ${tournament.name}?`)) {
+    if (!window.confirm("Are you sure you want to End the Tournament?")) {
       return;
     }
 
@@ -1020,7 +1064,8 @@
         date: tournament.date,
         status: "ended",
         scoringMode: getScoringMode(tournament),
-        playerIds: Array.isArray(tournament.playerIds) ? tournament.playerIds : [],
+        competitorType: getCompetitorType(tournament),
+        competitorIds: rosterIdsFromTournament(tournament),
       });
       window.location.href = `tournament-summary.html?id=${encodeURIComponent(tournament.id)}`;
     } catch (err) {

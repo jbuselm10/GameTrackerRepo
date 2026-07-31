@@ -3,12 +3,22 @@ const MAX_PLACEMENTS_PER_PLAY = 3;
 const POINTS_BY_PLACE = [3, 2, 1];
 const PLACE_LABELS = ["1st", "2nd", "3rd"];
 
+function getCompetitorType(tournament) {
+  const type = String(tournament?.competitorType || "player").trim().toLowerCase();
+  return type === "team" || type === "teams" ? "team" : "player";
+}
+
 function getPlayWinnerIds(play) {
   if (!play) return [];
-  if (Array.isArray(play.winnerPlayerIds)) {
+  const source = Array.isArray(play.winnerIds)
+    ? play.winnerIds
+    : Array.isArray(play.winnerPlayerIds)
+      ? play.winnerPlayerIds
+      : null;
+  if (source) {
     const seen = new Set();
     const ids = [];
-    for (const id of play.winnerPlayerIds) {
+    for (const id of source) {
       const value = String(id || "").trim();
       if (!value || seen.has(value)) continue;
       seen.add(value);
@@ -27,10 +37,16 @@ function getScoringMode(tournament) {
 }
 
 function getPlayPlacementIds(play) {
-  if (!play || !Array.isArray(play.placementPlayerIds)) return [];
+  if (!play) return [];
+  const source = Array.isArray(play.placementIds)
+    ? play.placementIds
+    : Array.isArray(play.placementPlayerIds)
+      ? play.placementPlayerIds
+      : null;
+  if (!source) return [];
   const seen = new Set();
   const ids = [];
-  for (const id of play.placementPlayerIds) {
+  for (const id of source) {
     const value = String(id || "").trim();
     if (!value || seen.has(value)) continue;
     seen.add(value);
@@ -41,7 +57,38 @@ function getPlayPlacementIds(play) {
 }
 
 function rosterIdsFromTournament(tournament) {
-  return Array.isArray(tournament?.playerIds) ? tournament.playerIds.map(String) : [];
+  if (Array.isArray(tournament?.competitorIds)) {
+    return tournament.competitorIds.map(String);
+  }
+  if (Array.isArray(tournament?.playerIds)) {
+    return tournament.playerIds.map(String);
+  }
+  return [];
+}
+
+function playerDisplayLabel(player, fallbackId) {
+  if (!player) return fallbackId || "";
+  return player.nickname ? `${player.name} (${player.nickname})` : player.name;
+}
+
+/**
+ * Returns a function (id) => display label for competitors in a tournament.
+ * For player tournaments, labels come from players; for team tournaments, from teams.
+ */
+function buildCompetitorLabeler(tournament, players, teams) {
+  const type = getCompetitorType(tournament);
+  const playerList = Array.isArray(players) ? players : [];
+  const teamList = Array.isArray(teams) ? teams : [];
+
+  return function competitorLabel(id) {
+    const key = String(id || "");
+    if (type === "team") {
+      const team = teamList.find((t) => t.id === key);
+      return team ? team.name : key;
+    }
+    const player = playerList.find((p) => p.id === key);
+    return playerDisplayLabel(player, key);
+  };
 }
 
 function buildGameWinCounts(tournament) {

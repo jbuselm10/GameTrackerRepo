@@ -7,3 +7,4 @@ api/config.php
 data/players.json
 data/games.json
 data/tournaments.json
+data/teams.json

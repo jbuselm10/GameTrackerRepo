@@ -226,6 +226,10 @@ input[type="checkbox"].gt-pending {
   accent-color: var(--danger);
 }
 
+input[type="radio"].gt-pending {
+  accent-color: var(--danger);
+}
+
 /* accent-color only tints the check; show a red filled box when unchecked pending */
 input[type="checkbox"].gt-pending:not(:checked) {
   appearance: none;

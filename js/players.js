@@ -128,7 +128,16 @@
     }
   }
 
+  function playerNameExists(name, excludeId = null) {
+    const needle = String(name || "").trim().toLowerCase();
+    return players.some((player) => {
+      if (excludeId && player.id === excludeId) return false;
+      return String(player.name || "").trim().toLowerCase() === needle;
+    });
+  }
+
   nameInput.addEventListener("input", () => {
+    nameError.classList.add("hidden");
     syncPendingFieldStyles();
   });
 
@@ -142,6 +151,13 @@
     const nickname = nicknameInput.value.trim();
 
     if (!name) {
+      nameError.textContent = "Name is required.";
+      nameError.classList.remove("hidden");
+      nameInput.focus();
+      return;
+    }
+    if (playerNameExists(name, editingId)) {
+      nameError.textContent = "Player already exists.";
       nameError.classList.remove("hidden");
       nameInput.focus();
       return;

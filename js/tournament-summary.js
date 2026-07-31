@@ -1,6 +1,7 @@
 (() => {
   const API_URL = "api/tournaments.php";
   const PLAYERS_API_URL = "api/players.php";
+  const TEAMS_API_URL = "api/teams.php";
 
   const pageStatus = document.getElementById("page-status");
   const summaryPanel = document.getElementById("summary-panel");
@@ -31,46 +32,36 @@
     );
   }
 
-  function playerLabel(player, playerId) {
-    if (!player) return playerId;
-    return player.nickname ? `${player.name} (${player.nickname})` : player.name;
-  }
-
   function getQueryId() {
     const params = new URLSearchParams(window.location.search);
     return params.get("id") || "";
   }
 
-  function buildStandings(tournament, players) {
+  function buildStandings(tournament, players, teams) {
     const { mode, standings, topScore, leaders } = getTournamentLeaders(tournament);
     const plays = Array.isArray(tournament.plays) ? tournament.plays : [];
+    const labeler = buildCompetitorLabeler(tournament, players, teams);
 
-    const rows = standings.map((row) => {
-      const player = players.find((p) => p.id === row.id);
-      return {
-        id: row.id,
-        label: playerLabel(player, row.id),
-        score: row.score,
-      };
-    });
+    const rows = standings.map((row) => ({
+      id: row.id,
+      label: labeler(row.id),
+      score: row.score,
+    }));
 
     return {
       mode,
       standings: rows,
       totalPlays: plays.length,
       topScore,
-      leaders: leaders.map((row) => {
-        const player = players.find((p) => p.id === row.id);
-        return {
-          id: row.id,
-          label: playerLabel(player, row.id),
-          score: row.score,
-        };
-      }),
+      leaders: leaders.map((row) => ({
+        id: row.id,
+        label: labeler(row.id),
+        score: row.score,
+      })),
     };
   }
 
-  function renderSummary(tournament, players) {
+  function renderSummary(tournament, players, teams) {
     if (tournament.status !== "ended") {
       pageStatus.textContent = "This tournament is still active. End it to view the final summary.";
       pageStatus.classList.remove("hidden");
@@ -79,8 +70,14 @@
       return;
     }
 
-    const { mode, standings, totalPlays, topScore, leaders } = buildStandings(tournament, players);
+    const { mode, standings, totalPlays, topScore, leaders } = buildStandings(
+      tournament,
+      players,
+      teams
+    );
     const isPoints = mode === "points";
+    const competitorType = getCompetitorType(tournament);
+    const competitorLabel = competitorType === "team" ? "Teams" : "Players";
 
     summarySubtitle.textContent = isPoints
       ? "Results ranked by points (3-2-1 per game)."
@@ -89,7 +86,7 @@
     tournamentName.textContent = tournament.name || "Tournament";
     tournamentMeta.textContent = `${formatDate(tournament.date)} · ${
       isPoints ? "Points scoring" : "Game wins"
-    }`;
+    } · ${competitorLabel}`;
     gamesPlayed.textContent = `Games played: ${totalPlays}`;
 
     if (!standings.length) {
@@ -153,12 +150,14 @@
     summaryPanel.classList.add("hidden");
 
     try {
-      const [tournament, playerData] = await Promise.all([
+      const [tournament, playerData, teamData] = await Promise.all([
         fetchJson(`${API_URL}?id=${encodeURIComponent(id)}`),
         fetchJson(PLAYERS_API_URL),
+        fetchJson(TEAMS_API_URL),
       ]);
       const players = Array.isArray(playerData) ? playerData : [];
-      renderSummary(tournament, players);
+      const teams = Array.isArray(teamData) ? teamData : [];
+      renderSummary(tournament, players, teams);
     } catch (err) {
       pageStatus.textContent = err.message || "Failed to load summary.";
       pageStatus.classList.remove("hidden");

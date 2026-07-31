@@ -37,6 +37,13 @@ if not exist "data\tournaments.json" (
   echo data\tournaments.json already exists — skipped
 )
 
+if not exist "data\teams.json" (
+  copy /Y "data\teams.json.example" "data\teams.json" >nul
+  echo Created data\teams.json
+) else (
+  echo data\teams.json already exists — skipped
+)
+
 echo.
 echo Done. Edit the config files to add Sentry DSNs if needed.
 echo On GreenGeeks, create configs and data\*.json from the *.example copies if missing.

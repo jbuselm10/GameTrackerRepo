@@ -114,7 +114,16 @@
     }
   }
 
+  function gameNameExists(name, excludeId = null) {
+    const needle = String(name || "").trim().toLowerCase();
+    return games.some((game) => {
+      if (excludeId && game.id === excludeId) return false;
+      return String(game.name || "").trim().toLowerCase() === needle;
+    });
+  }
+
   nameInput.addEventListener("input", () => {
+    nameError.classList.add("hidden");
     syncNamePendingStyle();
   });
 
@@ -123,6 +132,13 @@
     const name = nameInput.value.trim();
 
     if (!name) {
+      nameError.textContent = "Name is required.";
+      nameError.classList.remove("hidden");
+      nameInput.focus();
+      return;
+    }
+    if (gameNameExists(name, editingId)) {
+      nameError.textContent = "Game already exists.";
       nameError.classList.remove("hidden");
       nameInput.focus();
       return;
