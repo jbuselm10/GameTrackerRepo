@@ -295,6 +295,15 @@
     }
   }
 
+  function hasUnsavedChanges() {
+    const nameChanged = nameInput.value.trim() !== savedName.trim();
+    const selected = new Set(getSelectedPlayerIds().map(String));
+    const playersChanged =
+      selected.size !== savedPlayerIds.size ||
+      Array.from(selected).some((id) => !savedPlayerIds.has(id));
+    return nameChanged || playersChanged;
+  }
+
   function isTeamNameTaken(name, excludeId = null) {
     const needle = String(name || "").trim().toLowerCase();
     if (!needle) return false;
@@ -315,8 +324,7 @@
     syncPlayerCheckboxStyles();
   });
 
-  form.addEventListener("submit", async (event) => {
-    event.preventDefault();
+  async function saveTeam() {
     const name = nameInput.value.trim();
     const playerIds = getSelectedPlayerIds();
 
@@ -340,7 +348,7 @@
     } else {
       playersError.classList.add("hidden");
     }
-    if (!valid) return;
+    if (!valid) return false;
 
     submitBtn.disabled = true;
     setFormStatus("");
@@ -355,11 +363,18 @@
       }
       resetForm();
       await loadTeams();
+      return true;
     } catch (err) {
       setFormStatus(err.message || "Save failed.", true);
+      return false;
     } finally {
       submitBtn.disabled = false;
     }
+  }
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await saveTeam();
   });
 
   cancelEditBtn.addEventListener("click", () => {
@@ -405,7 +420,24 @@
     if (returnTo && returnBtn) {
       returnBtn.classList.remove("hidden");
       returnBtn.addEventListener("click", () => {
-        window.location.href = returnTo;
+        if (!hasUnsavedChanges()) {
+          window.location.href = returnTo;
+          return;
+        }
+        GameTracker.confirmUnsavedChanges({
+          message: "Data has not been saved. Do you want to Save Team or Return without saving?",
+          saveLabel: "Save Team",
+          discardLabel: "Return without saving",
+          onSave: async () => {
+            const saved = await saveTeam();
+            if (saved) {
+              window.location.href = returnTo;
+            }
+          },
+          onDiscard: () => {
+            window.location.href = returnTo;
+          },
+        });
       });
     }
 

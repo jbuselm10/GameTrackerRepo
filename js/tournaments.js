@@ -7,8 +7,6 @@
   const formTitle = document.getElementById("form-title");
   const tournamentIdInput = document.getElementById("tournament-id");
   const nameInput = document.getElementById("tournament-name");
-  const dateInput = document.getElementById("tournament-date");
-  const statusInput = document.getElementById("tournament-status");
   const scoringInputs = Array.from(form.querySelectorAll('input[name="gtScoringMode"]'));
   const scoringError = document.getElementById("scoring-error");
   const scoringLocked = document.getElementById("scoring-locked");
@@ -22,7 +20,6 @@
   const playersError = document.getElementById("players-error");
   const playersLocked = document.getElementById("players-locked");
   const nameError = document.getElementById("name-error");
-  const dateError = document.getElementById("date-error");
   const submitBtn = document.getElementById("submit-btn");
   const cancelEditBtn = document.getElementById("cancel-edit-btn");
   const formStatus = document.getElementById("form-status");
@@ -38,6 +35,8 @@
   let players = [];
   let teams = [];
   let editingId = null;
+  let currentStatus = "active";
+  let currentDate = "";
   let savedName = "";
   let savedScoringMode = "";
   let savedCompetitorType = "";
@@ -139,8 +138,8 @@
     const draft = {
       editingId,
       name: nameInput.value,
-      date: dateInput.value,
-      status: statusInput.value,
+      date: currentDate,
+      status: currentStatus,
       scoringMode: currentScoringMode(),
       competitorType: currentCompetitorType(),
       competitorIds: getSelectedCompetitorIds(),
@@ -176,7 +175,6 @@
     if (!draft || typeof draft !== "object") return false;
 
     const name = typeof draft.name === "string" ? draft.name : "";
-    const date = typeof draft.date === "string" ? draft.date : todayIsoDate();
     const status = draft.status === "ended" ? "ended" : "active";
     const scoringMode =
       draft.scoringMode === "points"
@@ -201,8 +199,7 @@
       if (tournament) {
         startEdit(tournament);
         nameInput.value = name;
-        dateInput.value = date;
-        statusInput.value = status;
+        currentStatus = status;
         if (!scoringInputs.some((input) => input.disabled)) {
           setRadioValue(scoringInputs, scoringMode);
         }
@@ -228,8 +225,8 @@
     savedCompetitorIds = new Set();
     tournamentIdInput.value = "";
     nameInput.value = name;
-    dateInput.value = date || todayIsoDate();
-    statusInput.value = status;
+    currentDate = todayIsoDate();
+    currentStatus = status;
     setRadioValue(scoringInputs, scoringMode);
     setRadioDisabled(scoringInputs, false);
     scoringError.classList.add("hidden");
@@ -242,9 +239,8 @@
     renderCompetitorOptions();
     setSelectedCompetitorIds(competitorIds);
     nameError.classList.add("hidden");
-    dateError.classList.add("hidden");
     playersError.classList.add("hidden");
-    formTitle.textContent = "Add tournament";
+    formTitle.textContent = "Add a new active Tournament";
     submitBtn.textContent = "Add tournament";
     cancelEditBtn.classList.add("hidden");
     formSection.classList.remove("gt-edit-highlight");
@@ -277,7 +273,7 @@
   }
 
   function playersEditable() {
-    return statusInput.value !== "ended";
+    return currentStatus !== "ended";
   }
 
   function scoringModeOf(tournament) {
@@ -391,8 +387,8 @@
     savedCompetitorIds = new Set();
     tournamentIdInput.value = "";
     nameInput.value = "";
-    dateInput.value = todayIsoDate();
-    statusInput.value = "active";
+    currentDate = todayIsoDate();
+    currentStatus = "active";
     setRadioValue(scoringInputs, "");
     setRadioDisabled(scoringInputs, false);
     scoringError.classList.add("hidden");
@@ -405,9 +401,8 @@
     renderCompetitorOptions();
     setSelectedCompetitorIds([]);
     nameError.classList.add("hidden");
-    dateError.classList.add("hidden");
     playersError.classList.add("hidden");
-    formTitle.textContent = "Add tournament";
+    formTitle.textContent = "Add a new active Tournament";
     submitBtn.textContent = "Add tournament";
     cancelEditBtn.classList.add("hidden");
     formSection.classList.remove("gt-edit-highlight");
@@ -427,8 +422,8 @@
     savedCompetitorIds = new Set(roster.map(String));
     tournamentIdInput.value = tournament.id;
     nameInput.value = tournament.name || "";
-    dateInput.value = tournament.date || "";
-    statusInput.value = tournament.status === "ended" ? "ended" : "active";
+    currentDate = tournament.date || todayIsoDate();
+    currentStatus = tournament.status === "ended" ? "ended" : "active";
     setRadioValue(scoringInputs, scoringModeOf(tournament));
     setRadioValue(competitorTypeInputs, getCompetitorType(tournament));
     scoringError.classList.add("hidden");
@@ -438,7 +433,6 @@
     renderCompetitorOptions();
     setSelectedCompetitorIds(roster);
     nameError.classList.add("hidden");
-    dateError.classList.add("hidden");
     playersError.classList.add("hidden");
     formTitle.innerHTML = `Edit tournament — <strong>${escapeHtml(tournament.name)}</strong>`;
     submitBtn.textContent = "Save changes";
@@ -577,10 +571,6 @@
     }
   }
 
-  statusInput.addEventListener("change", () => {
-    updatePlayersLockState();
-  });
-
   scoringInputs.forEach((input) => {
     input.addEventListener("change", () => {
       scoringError.classList.add("hidden");
@@ -628,8 +618,8 @@
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     const name = nameInput.value.trim();
-    const date = dateInput.value.trim();
-    const status = statusInput.value === "ended" ? "ended" : "active";
+    const date = currentDate || todayIsoDate();
+    const status = currentStatus === "ended" ? "ended" : "active";
     const scoringMode = currentScoringMode();
     const competitorType = currentCompetitorType();
     const competitorIds = getSelectedCompetitorIds();
@@ -651,13 +641,6 @@
       valid = false;
     } else {
       nameError.classList.add("hidden");
-    }
-    if (!date) {
-      dateError.classList.remove("hidden");
-      if (valid) dateInput.focus();
-      valid = false;
-    } else {
-      dateError.classList.add("hidden");
     }
     if (!scoringMode) {
       scoringError.classList.remove("hidden");

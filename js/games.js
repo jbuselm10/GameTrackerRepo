@@ -122,26 +122,29 @@
     });
   }
 
+  function hasUnsavedChanges() {
+    return nameInput.value.trim() !== savedName.trim();
+  }
+
   nameInput.addEventListener("input", () => {
     nameError.classList.add("hidden");
     syncNamePendingStyle();
   });
 
-  form.addEventListener("submit", async (event) => {
-    event.preventDefault();
+  async function saveGame() {
     const name = nameInput.value.trim();
 
     if (!name) {
       nameError.textContent = "Name is required.";
       nameError.classList.remove("hidden");
       nameInput.focus();
-      return;
+      return false;
     }
     if (gameNameExists(name, editingId)) {
       nameError.textContent = "Game already exists.";
       nameError.classList.remove("hidden");
       nameInput.focus();
-      return;
+      return false;
     }
     nameError.classList.add("hidden");
     submitBtn.disabled = true;
@@ -157,11 +160,18 @@
       }
       resetForm();
       await loadGames();
+      return true;
     } catch (err) {
       setFormStatus(err.message || "Save failed.", true);
+      return false;
     } finally {
       submitBtn.disabled = false;
     }
+  }
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await saveGame();
   });
 
   cancelEditBtn.addEventListener("click", () => {
@@ -199,6 +209,33 @@
       }
     }
   });
+
+  const returnBtn = document.getElementById("return-btn");
+  const params = new URLSearchParams(window.location.search);
+  const returnTo = params.get("returnTo");
+  if (returnTo && returnBtn) {
+    returnBtn.classList.remove("hidden");
+    returnBtn.addEventListener("click", () => {
+      if (!hasUnsavedChanges()) {
+        window.location.href = returnTo;
+        return;
+      }
+      GameTracker.confirmUnsavedChanges({
+        message: "Data has not been saved. Do you want to Save Game or Return without saving?",
+        saveLabel: "Save Game",
+        discardLabel: "Return without saving",
+        onSave: async () => {
+          const saved = await saveGame();
+          if (saved) {
+            window.location.href = returnTo;
+          }
+        },
+        onDiscard: () => {
+          window.location.href = returnTo;
+        },
+      });
+    });
+  }
 
   loadGames();
 })();

@@ -62,7 +62,7 @@
 
       <section id="form-section" class="gt-panel border-2 border-wood/40 p-5">
         <div class="mb-4">
-          <h2 id="form-title" class="font-display text-lg font-semibold text-ink">Add tournament</h2>
+          <h2 id="form-title" class="font-display text-lg font-semibold text-ink">Add a new active Tournament</h2>
         </div>
         <form id="tournament-form" class="space-y-4" autocomplete="off" novalidate>
           <input type="hidden" id="tournament-id" value="" />
@@ -84,25 +84,6 @@
               placeholder="e.g. Friday Night Cards"
             />
             <p id="name-error" class="mt-1 hidden text-sm text-red-600">Name is required.</p>
-          </div>
-          <div>
-            <label for="tournament-date" class="gt-label">Date <span class="text-red-600">*</span></label>
-            <input
-              id="tournament-date"
-              name="gtTournamentDate"
-              type="date"
-              required
-              autocomplete="off"
-              class="gt-input"
-            />
-            <p id="date-error" class="mt-1 hidden text-sm text-red-600">Date is required.</p>
-          </div>
-          <div>
-            <label for="tournament-status" class="gt-label">Status</label>
-            <select id="tournament-status" name="gtTournamentStatus" autocomplete="off" class="gt-input">
-              <option value="active">Active</option>
-              <option value="ended">Ended</option>
-            </select>
           </div>
           <fieldset>
             <legend class="gt-label">Select type of Scoring (Wins or Points) <span class="text-red-600">*</span></legend>

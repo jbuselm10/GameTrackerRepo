@@ -88,6 +88,62 @@ window.GameTracker = {
     return data;
   },
 
+  confirmUnsavedChanges({ message, saveLabel = "Save", discardLabel = "Discard", onSave, onDiscard } = {}) {
+    const overlay = document.createElement("div");
+    overlay.className = "gt-modal-overlay";
+
+    const modal = document.createElement("div");
+    modal.className = "gt-panel gt-modal";
+    modal.setAttribute("role", "alertdialog");
+    modal.setAttribute("aria-modal", "true");
+
+    const messageEl = document.createElement("p");
+    messageEl.className = "gt-modal-message";
+    messageEl.textContent = message;
+
+    const actions = document.createElement("div");
+    actions.className = "gt-modal-actions";
+
+    const saveBtn = document.createElement("button");
+    saveBtn.type = "button";
+    saveBtn.className = "gt-btn text-sm";
+    saveBtn.textContent = saveLabel;
+
+    const discardBtn = document.createElement("button");
+    discardBtn.type = "button";
+    discardBtn.className = "gt-btn-secondary text-sm";
+    discardBtn.textContent = discardLabel;
+
+    actions.append(saveBtn, discardBtn);
+    modal.append(messageEl, actions);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    function cleanup() {
+      overlay.remove();
+      document.removeEventListener("keydown", onKeydown);
+    }
+
+    function onKeydown(event) {
+      if (event.key === "Escape") cleanup();
+    }
+
+    document.addEventListener("keydown", onKeydown);
+    overlay.addEventListener("click", (event) => {
+      if (event.target === overlay) cleanup();
+    });
+    saveBtn.addEventListener("click", () => {
+      cleanup();
+      onSave?.();
+    });
+    discardBtn.addEventListener("click", () => {
+      cleanup();
+      onDiscard?.();
+    });
+
+    saveBtn.focus();
+  },
+
   syncPlayerCheckboxStyles(container, savedPlayerIds, options = {}) {
     const {
       active = true,

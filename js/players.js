@@ -129,6 +129,13 @@
     }
   }
 
+  function hasUnsavedChanges() {
+    return (
+      nameInput.value.trim() !== savedName.trim() ||
+      nicknameInput.value.trim() !== savedNickname.trim()
+    );
+  }
+
   function playerNameExists(name, excludeId = null) {
     const needle = String(name || "").trim().toLowerCase();
     return players.some((player) => {
@@ -146,8 +153,7 @@
     syncPendingFieldStyles();
   });
 
-  form.addEventListener("submit", async (event) => {
-    event.preventDefault();
+  async function savePlayer() {
     const name = nameInput.value.trim();
     const nickname = nicknameInput.value.trim();
 
@@ -155,13 +161,13 @@
       nameError.textContent = "Name is required.";
       nameError.classList.remove("hidden");
       nameInput.focus();
-      return;
+      return false;
     }
     if (playerNameExists(name, editingId)) {
       nameError.textContent = "Player already exists.";
       nameError.classList.remove("hidden");
       nameInput.focus();
-      return;
+      return false;
     }
     nameError.classList.add("hidden");
     submitBtn.disabled = true;
@@ -177,11 +183,18 @@
       }
       resetForm();
       await loadPlayers();
+      return true;
     } catch (err) {
       setFormStatus(err.message || "Save failed.", true);
+      return false;
     } finally {
       submitBtn.disabled = false;
     }
+  }
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await savePlayer();
   });
 
   cancelEditBtn.addEventListener("click", () => {
@@ -229,7 +242,24 @@
   if (returnTo && returnBtn) {
     returnBtn.classList.remove("hidden");
     returnBtn.addEventListener("click", () => {
-      window.location.href = returnTo;
+      if (!hasUnsavedChanges()) {
+        window.location.href = returnTo;
+        return;
+      }
+      GameTracker.confirmUnsavedChanges({
+        message: "Data has not been saved. Do you want to Save Player or Return without saving?",
+        saveLabel: "Save Player",
+        discardLabel: "Return without saving",
+        onSave: async () => {
+          const saved = await savePlayer();
+          if (saved) {
+            window.location.href = returnTo;
+          }
+        },
+        onDiscard: () => {
+          window.location.href = returnTo;
+        },
+      });
     });
   }
 

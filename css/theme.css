@@ -324,6 +324,37 @@ input[type="checkbox"].gt-saved {
   color: var(--wood-deep);
 }
 
+.gt-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 15, 8, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 50;
+}
+
+.gt-modal {
+  width: 100%;
+  max-width: 26rem;
+  padding: 1.5rem;
+}
+
+.gt-modal-message {
+  margin: 0 0 1.25rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.gt-modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
 .gt-status-ok {
   color: var(--felt-dark);
 }
