@@ -118,7 +118,7 @@
   }
 
   function updateSortLabels() {
-    const arrow = sortDir === "desc" ? " ↓" : " ↑";
+    const arrow = sortDir === "desc" ? "\u00a0↓" : "\u00a0↑";
     sortTournamentBtn.textContent =
       "Tournament wins" + (sortKey === "tournamentWins" ? arrow : "");
     sortGameBtn.textContent = "Game wins" + (sortKey === "gameWins" ? arrow : "");
@@ -141,11 +141,11 @@
     for (const row of standings) {
       const li = document.createElement("li");
       li.className =
-        "grid grid-cols-[minmax(0,1fr)_11rem_8.5rem] items-center gap-3 py-3";
+        "grid grid-cols-[minmax(0,1fr)_5.5rem_5rem] items-center gap-2 py-3 sm:grid-cols-[minmax(0,1fr)_11rem_8.5rem] sm:gap-3";
       li.innerHTML = `
-        <span class="text-lg font-medium text-ink">${escapeHtml(row.label)}</span>
-        <span class="text-right text-lg font-bold text-felt-dark">${row.tournamentWins}</span>
-        <span class="text-right text-lg font-semibold text-ink">${row.gameWins}</span>
+        <span class="min-w-0 break-words text-base font-medium text-ink sm:text-lg">${escapeHtml(row.label)}</span>
+        <span class="text-right text-base font-bold text-felt-dark sm:text-lg">${row.tournamentWins}</span>
+        <span class="text-right text-base font-semibold text-ink sm:text-lg">${row.gameWins}</span>
       `;
       playerList.appendChild(li);
     }

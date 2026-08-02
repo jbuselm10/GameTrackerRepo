@@ -58,12 +58,12 @@
     <section class="gt-panel p-5">
       <h2 class="mb-4 font-display text-2xl font-semibold text-ink">Player standings</h2>
       <p id="list-status" class="mb-3 text-sm gt-muted">Loading player history…</p>
-      <div id="standings-header" class="mb-2 hidden grid grid-cols-[minmax(0,1fr)_11rem_8.5rem] items-center gap-3 border-b border-wood/25 pb-2 text-lg font-bold uppercase tracking-wide text-ink">
-        <span>Player</span>
-        <button type="button" id="sort-tournament-wins" data-sort="tournamentWins" class="whitespace-nowrap text-right text-felt-dark underline hover:text-felt">
+      <div id="standings-header" class="mb-2 hidden grid grid-cols-[minmax(0,1fr)_5.5rem_5rem] items-center gap-2 border-b border-wood/25 pb-2 text-xs font-bold uppercase tracking-wide text-ink sm:grid-cols-[minmax(0,1fr)_11rem_8.5rem] sm:gap-3 sm:text-lg">
+        <span class="min-w-0 break-words">Player</span>
+        <button type="button" id="sort-tournament-wins" data-sort="tournamentWins" class="min-w-0 break-words whitespace-normal leading-tight text-right text-felt-dark underline hover:text-felt sm:whitespace-nowrap">
           Tournament wins
         </button>
-        <button type="button" id="sort-game-wins" data-sort="gameWins" class="whitespace-nowrap text-right text-felt-dark underline hover:text-felt">
+        <button type="button" id="sort-game-wins" data-sort="gameWins" class="min-w-0 break-words whitespace-normal leading-tight text-right text-felt-dark underline hover:text-felt sm:whitespace-nowrap">
           Game wins
         </button>
       </div>
