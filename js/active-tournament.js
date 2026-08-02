@@ -338,6 +338,7 @@
     }
     syncNewGameBtnHighlight();
 
+    const prevGameId = playGame.value;
     if (!hasGames) {
       playGame.innerHTML = '<option value="">Add a game to the tournament</option>';
     } else {
@@ -352,7 +353,9 @@
               `<option value="${escapeHtml(game.id)}">${escapeHtml(game.name)}</option>`
           )
           .join("");
+      if (prevGameId) playGame.value = prevGameId;
     }
+    playGame.classList.toggle("gt-pending", !editingPlayId && !!playGame.value);
 
     if (playWinner) {
       if (!rosterIds.length) {
@@ -399,7 +402,10 @@
 
   function renderPlays() {
     const plays = Array.isArray(tournament.plays) ? tournament.plays : [];
-    playsTitle.textContent = "Games in the Tournament";
+    playsTitle.textContent =
+      plays.length > 1
+        ? `Games in the Tournament (${plays.length})`
+        : "Games in the Tournament";
     const scoringMode = getScoringMode(tournament);
 
     if (!plays.length) {
@@ -1008,6 +1014,17 @@
       games = await api(GAMES_API_URL, "GET");
       if (!Array.isArray(games)) games = [];
       fillSelects();
+      const addedGame = games.find(
+        (game) => String(game.name || "").trim().toLowerCase() === name.toLowerCase()
+      );
+      if (addedGame && !editingPlayId) {
+        playGame.value = String(addedGame.id);
+        playGame.classList.add("gt-pending");
+        syncSavePlayBtnHighlight();
+        setNewGameStatus(
+          `Game "${name}" added. Click "Add game to tournament" to add it to this tournament.`
+        );
+      }
     } catch (err) {
       setNewGameStatus(err.message || "Failed to add game.", true);
     }
