@@ -270,9 +270,9 @@
             const exclude = currentSelections.filter((id, i) => id && i !== index);
             return `
           <div class="flex flex-wrap items-center gap-2">
-            <span class="w-24 text-xs font-bold text-ink">${label} (+${points[index]})</span>
+            <span class="w-24 text-sm font-bold text-ink">${label} (+${points[index]})</span>
             <select data-placement data-play-id="${escapeHtml(play.id)}" data-place-index="${index}"
-              class="gt-input text-xs${winnerSelectPendingClass(key, pendingId)}">
+              class="gt-input${winnerSelectPendingClass(key, pendingId)}">
               <option value="">— None —</option>
               ${buildRosterOptions(rosterIds, pendingId, exclude)}
             </select>
@@ -280,7 +280,7 @@
           })
           .join("")}
         <button type="button" data-action="save-placements" data-play-id="${escapeHtml(play.id)}"
-          class="gt-btn text-xs">
+          class="gt-btn text-sm">
           Update placements
         </button>
       </div>`;
@@ -299,7 +299,7 @@
     if (!inAddMode) {
       return `
               <button type="button" data-action="show-add-winner" data-play-id="${escapeHtml(playId)}"
-                class="gt-btn text-xs">
+                class="gt-btn text-sm">
                 Add an Additional Winner
               </button>`;
     }
@@ -309,12 +309,12 @@
     const buttonPendingClass = winnerButtonPendingClass(addWinnerKey(playId), pendingId);
     return `
             <div class="flex flex-wrap items-center gap-2">
-              <select data-add-winner data-play-id="${escapeHtml(playId)}" class="gt-input text-xs${pendingClass}">
+              <select data-add-winner data-play-id="${escapeHtml(playId)}" class="gt-input${pendingClass}">
                 <option value="">Select winner</option>
                 ${buildRosterOptions(availableToAdd, pendingId)}
               </select>
               <button type="button" data-action="confirm-add-winner" data-play-id="${escapeHtml(playId)}"
-                class="gt-btn text-xs${buttonPendingClass}">
+                class="gt-btn text-sm${buttonPendingClass}">
                 Update Winner
               </button>
             </div>`;
@@ -435,7 +435,7 @@
               <span class="text-lg font-bold text-ink">${escapeHtml(gameLabel(play.gameId))}</span>
               <div class="flex gap-2">
                 <button type="button" data-action="delete-play" data-play-id="${escapeHtml(play.id)}"
-                  class="gt-btn-danger text-xs">
+                  class="gt-btn-danger text-sm">
                   Remove
                 </button>
               </div>
@@ -472,12 +472,12 @@
                 winnerControls = `
             <div class="flex flex-wrap items-center gap-2">
               <select data-assign-winner data-play-id="${escapeHtml(play.id)}"
-                class="gt-input text-xs${winnerSelectPendingClass(assignKey, pendingAssignId)}">
+                class="gt-input${winnerSelectPendingClass(assignKey, pendingAssignId)}">
                 <option value="">Select winner</option>
                 ${buildRosterOptions(rosterIds, pendingAssignId)}
               </select>
               <button type="button" data-action="assign-winner" data-play-id="${escapeHtml(play.id)}"
-                class="gt-btn text-xs${winnerButtonPendingClass(assignKey, pendingAssignId)}">
+                class="gt-btn text-sm${winnerButtonPendingClass(assignKey, pendingAssignId)}">
                 Update Winner
               </button>
             </div>`;
@@ -494,12 +494,12 @@
                   winnerControls = `
             <div class="flex flex-wrap items-center gap-2">
               <select data-assign-winner data-play-id="${escapeHtml(play.id)}"
-                class="gt-input text-xs${winnerSelectPendingClass(assignKey, pendingAssignId)}">
+                class="gt-input${winnerSelectPendingClass(assignKey, pendingAssignId)}">
                 <option value="">Select winner</option>
                 ${buildRosterOptions(rosterIds, pendingAssignId)}
               </select>
               <button type="button" data-action="assign-winner" data-play-id="${escapeHtml(play.id)}"
-                class="gt-btn text-xs${winnerButtonPendingClass(assignKey, pendingAssignId)}">
+                class="gt-btn text-sm${winnerButtonPendingClass(assignKey, pendingAssignId)}">
                 Update Winner
               </button>
               ${addControls}
@@ -518,11 +518,11 @@
                   return `
               <div class="flex flex-wrap items-center gap-2">
                 <select data-update-winner data-play-id="${escapeHtml(play.id)}" data-winner-index="${index}"
-                  class="gt-input text-xs${winnerSelectPendingClass(updateKey, pendingUpdateId)}">
+                  class="gt-input${winnerSelectPendingClass(updateKey, pendingUpdateId)}">
                   ${buildRosterOptions(rosterIds, pendingUpdateId, winnerIds)}
                 </select>
                 <button type="button" data-action="update-winner" data-play-id="${escapeHtml(play.id)}"
-                  data-winner-index="${index}" class="gt-btn text-xs${winnerButtonPendingClass(updateKey, pendingUpdateId)}">
+                  data-winner-index="${index}" class="gt-btn text-sm${winnerButtonPendingClass(updateKey, pendingUpdateId)}">
                   Update Winner
                 </button>
               </div>`;
@@ -538,7 +538,7 @@
               <span class="text-lg font-bold text-ink">${escapeHtml(gameLabel(play.gameId))}</span>
               <div class="flex gap-2">
                 <button type="button" data-action="delete-play" data-play-id="${escapeHtml(play.id)}"
-                  class="gt-btn-danger text-xs">
+                  class="gt-btn-danger text-sm">
                   Remove
                 </button>
               </div>

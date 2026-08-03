@@ -526,16 +526,16 @@
         <div class="flex w-full flex-wrap gap-2">
           <a
             href="active-tournament.html?id=${encodeURIComponent(tournament.id)}"
-            class="gt-btn text-xs"
+            class="gt-btn text-sm"
           >
             Update Tournament Details
           </a>
           <button type="button" data-action="edit" data-id="${escapeHtml(tournament.id)}"
-            class="gt-btn-secondary text-xs">
+            class="gt-btn-secondary text-sm">
             Edit Name and ${typeLabel}
           </button>
           <button type="button" data-action="delete" data-id="${escapeHtml(tournament.id)}"
-            class="gt-btn-danger text-xs">
+            class="gt-btn-danger text-sm">
             Delete
           </button>
         </div>

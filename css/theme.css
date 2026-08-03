@@ -26,6 +26,15 @@ body.gt-body {
     radial-gradient(ellipse 90% 60% at 50% 100%, rgba(21, 79, 54, 0.9), transparent 60%),
     linear-gradient(165deg, #246b4d 0%, #1a4d38 40%, #143d2c 100%);
   background-attachment: fixed;
+  padding-left: env(safe-area-inset-left, 0);
+  padding-right: env(safe-area-inset-right, 0);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+@media (max-width: 639px) {
+  body.gt-body {
+    background-attachment: scroll;
+  }
 }
 
 .gt-wood-strip {
@@ -95,7 +104,8 @@ body.gt-body {
   font-family: inherit;
   font-weight: 700;
   border: 1px solid var(--felt-dark);
-  padding: 0.5rem 1rem;
+  padding: 0.65rem 1.1rem;
+  min-height: 2.75rem;
   text-decoration: none;
   cursor: pointer;
   transition: background 0.15s ease, transform 0.1s ease;
@@ -115,7 +125,8 @@ body.gt-body {
   font-family: inherit;
   font-weight: 600;
   border: 1px solid rgba(92, 69, 16, 0.4);
-  padding: 0.5rem 1rem;
+  padding: 0.65rem 1.1rem;
+  min-height: 2.75rem;
   text-decoration: none;
   cursor: pointer;
   transition: background 0.15s ease;
@@ -134,7 +145,8 @@ body.gt-body {
   color: var(--felt-dark);
   font-weight: 700;
   border: 2px solid var(--felt-dark);
-  padding: 0.4rem 0.85rem;
+  padding: 0.65rem 1.1rem;
+  min-height: 2.75rem;
   text-decoration: none;
   transition: background 0.15s ease;
 }
@@ -152,7 +164,9 @@ body.gt-body {
   color: var(--danger);
   font-weight: 600;
   border: 1px solid rgba(180, 35, 24, 0.35);
-  padding: 0.4rem 0.85rem;
+  padding: 0.65rem 1.1rem;
+  min-height: 2.75rem;
+  cursor: pointer;
   transition: background 0.15s ease;
 }
 
@@ -169,7 +183,9 @@ body.gt-body {
   color: var(--wood-deep);
   font-weight: 600;
   border: 1px solid var(--gold);
-  padding: 0.4rem 0.85rem;
+  padding: 0.65rem 1.1rem;
+  min-height: 2.75rem;
+  cursor: pointer;
   transition: background 0.15s ease;
 }
 
@@ -207,8 +223,9 @@ body.gt-body {
   border: 1px solid rgba(92, 69, 16, 0.35);
   background: #fffdf8;
   color: var(--ink);
-  padding: 0.5rem 0.75rem;
-  font-size: 0.875rem;
+  padding: 0.65rem 0.75rem;
+  font-size: 1rem;
+  min-height: 2.75rem;
   outline: none;
 }
 

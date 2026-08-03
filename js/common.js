@@ -30,7 +30,7 @@ window.GameTracker = {
         || el.tagName === "INPUT" && (type === "" || type === "text");
       el.setAttribute("autocomplete", isTextField ? "new-password" : "off");
       el.setAttribute("autocorrect", "off");
-      el.setAttribute("autocapitalize", "none");
+      el.setAttribute("autocapitalize", isTextField ? "words" : "none");
       el.setAttribute("spellcheck", "false");
       el.setAttribute("aria-autocomplete", "none");
       el.setAttribute("data-lpignore", "true");
