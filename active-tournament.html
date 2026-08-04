@@ -28,10 +28,10 @@
       },
     };
   </script>
-  <link rel="stylesheet" href="css/theme.css?v=20260804" />
-  <script src="js/config.js?v=20260804"></script>
+  <link rel="stylesheet" href="css/theme.css?v=20260804b" />
+  <script src="js/config.js?v=20260804b"></script>
   <script src="https://browser.sentry-cdn.com/8.55.0/bundle.replay.min.js" crossorigin="anonymous"></script>
-  <script src="js/sentry-init.js?v=20260804"></script>
+  <script src="js/sentry-init.js?v=20260804b"></script>
 </head>
 <body class="gt-body font-body">
   <div class="gt-wood-strip"></div>
@@ -85,13 +85,14 @@
               </div>
               <div class="flex flex-wrap items-center gap-2">
                 <button type="submit" id="save-play-btn" class="gt-btn text-sm">Add game to tournament</button>
+                <button type="button" id="show-new-game-btn" class="gt-btn text-sm">Add new game to list</button>
                 <button type="button" id="cancel-play-edit-btn" class="gt-btn-secondary hidden text-sm">Cancel</button>
               </div>
             </form>
           </div>
 
-          <div id="new-game-panel" class="gt-panel p-5">
-            <h3 id="new-game-heading" class="mb-3 text-sm font-bold text-ink">If game is not in the list above, add it here.</h3>
+          <div id="new-game-panel" class="gt-panel hidden p-5">
+            <h3 id="new-game-heading" class="mb-3 text-sm font-bold text-ink">New Game Name</h3>
             <form id="new-game-form" class="flex flex-wrap items-end gap-2" autocomplete="off">
               <div>
                 <label class="mb-1 block text-xs font-bold text-ink">New Game Name</label>
@@ -132,8 +133,8 @@
     </section>
   </div>
 
-  <script src="js/common.js?v=20260804" defer></script>
-  <script src="js/play-winners.js?v=20260804" defer></script>
-  <script src="js/active-tournament.js?v=20260804" defer></script>
+  <script src="js/common.js?v=20260804b" defer></script>
+  <script src="js/play-winners.js?v=20260804b" defer></script>
+  <script src="js/active-tournament.js?v=20260804b" defer></script>
 </body>
 </html>

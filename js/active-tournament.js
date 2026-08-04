@@ -32,6 +32,7 @@
   const newGamePanel = document.getElementById("new-game-panel");
   const newGameHeading = document.getElementById("new-game-heading");
   const newGameBtn = document.getElementById("new-game-btn");
+  const showNewGameBtn = document.getElementById("show-new-game-btn");
   const playFormPanel = document.getElementById("play-form-panel");
 
   let tournament = null;
@@ -42,6 +43,7 @@
   const api = GameTracker.api.bind(GameTracker);
   let games = [];
   let editingPlayId = null;
+  let showNewGameForm = false;
   const addingWinnerPlayIds = new Set();
   const dirtyWinnerSelects = new Set();
   const pendingWinnerValues = {};
@@ -323,17 +325,24 @@
   function fillSelects() {
     const rosterIds = rosterIdsFromTournament(tournament);
     const hasGames = games.length > 0;
+    // When games exist, only show the new-game form after the user asks for it.
+    // When the catalog is empty, the form must stay open so they can add the first game.
+    const showNewGame = !hasGames || showNewGameForm;
 
     if (playFormPanel) {
       playFormPanel.classList.toggle("hidden", !hasGames);
     }
+    if (showNewGameBtn) {
+      showNewGameBtn.classList.toggle("hidden", !hasGames || showNewGameForm);
+    }
     if (newGamePanel) {
+      newGamePanel.classList.toggle("hidden", !showNewGame);
       newGamePanel.classList.toggle("gt-edit-highlight", !hasGames);
     }
     if (newGameHeading) {
       newGameHeading.classList.toggle("text-base", !hasGames);
       newGameHeading.textContent = hasGames
-        ? "If game is not in the list above, add it here."
+        ? "New Game Name"
         : "No games available. Add a game to the tournament.";
     }
     syncNewGameBtnHighlight();
@@ -999,6 +1008,18 @@
     syncNewGameNamePendingStyle();
   });
 
+  if (showNewGameBtn) {
+    showNewGameBtn.addEventListener("click", () => {
+      showNewGameForm = true;
+      fillSelects();
+      setNewGameStatus("");
+      newGameNameInput.focus();
+      if (newGamePanel) {
+        newGamePanel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+    });
+  }
+
   newGameForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const name = newGameNameInput.value.trim();
@@ -1013,6 +1034,7 @@
       setNewGameStatus(`Game "${name}" added.`);
       games = await api(GAMES_API_URL, "GET");
       if (!Array.isArray(games)) games = [];
+      showNewGameForm = false;
       fillSelects();
       const addedGame = games.find(
         (game) => String(game.name || "").trim().toLowerCase() === name.toLowerCase()
@@ -1021,8 +1043,8 @@
         playGame.value = String(addedGame.id);
         playGame.classList.add("gt-pending");
         syncSavePlayBtnHighlight();
-        setNewGameStatus(
-          `Game "${name}" added. Click "Add game to tournament" to add it to this tournament.`
+        setFormStatus(
+          `Game "${name}" added to the list. Click "Add game to tournament" to add it to this tournament.`
         );
       }
     } catch (err) {
