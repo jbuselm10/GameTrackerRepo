@@ -170,11 +170,7 @@
 
   if (returnBtn) {
     returnBtn.addEventListener("click", () => {
-      if (window.history.length > 1) {
-        window.history.back();
-        return;
-      }
-      window.location.href = "history.html";
+      window.location.href = "tournaments.html";
     });
   }
 })();

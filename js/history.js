@@ -132,7 +132,7 @@
             type="button"
             data-action="reactivate"
             data-id="${escapeHtml(tournament.id)}"
-            class="gt-btn text-sm"
+            class="gt-btn-secondary text-sm"
           >
             Re-activate
           </button>
