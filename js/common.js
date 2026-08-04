@@ -1,4 +1,8 @@
 window.GameTracker = {
+  // Without a cap, a stalled mobile connection leaves requests pending forever
+  // and pages sit on "Loading…" with nothing to act on.
+  apiTimeoutMs: 15000,
+
   escapeHtml(value) {
     return String(value)
       .replaceAll("&", "&amp;")
@@ -50,18 +54,44 @@ window.GameTracker = {
       options.body = JSON.stringify(body);
     }
 
+    if (navigator.onLine === false) {
+      throw new Error("You appear to be offline. Reconnect and try again.");
+    }
+
+    const controller =
+      typeof AbortController === "undefined" ? null : new AbortController();
+    if (controller) {
+      options.signal = controller.signal;
+    }
+    const timeoutMs = window.GameTracker.apiTimeoutMs;
+    const timer = controller
+      ? setTimeout(() => controller.abort(), timeoutMs)
+      : null;
+
     let response;
+    let text;
     try {
       response = await fetch(url, options);
+      // Read the body inside the timeout too: a half-open connection can
+      // deliver headers and then stall forever on the body.
+      text = await response.text();
     } catch (err) {
       if (window.Sentry?.captureException) {
-        Sentry.captureException(err, { extra: { url, method } });
+        Sentry.captureException(err, {
+          extra: { url, method, timedOut: err && err.name === "AbortError" },
+        });
       }
-      throw err;
+      if (err && err.name === "AbortError") {
+        throw new Error(
+          `The server did not respond within ${Math.round(timeoutMs / 1000)} seconds. Check your connection and try again.`
+        );
+      }
+      throw new Error("Could not reach the server. Check your connection and try again.");
+    } finally {
+      if (timer) clearTimeout(timer);
     }
 
     let data = null;
-    const text = await response.text();
     if (text) {
       try {
         data = JSON.parse(text);
@@ -183,4 +213,25 @@ window.GameTracker = {
 
 document.addEventListener("DOMContentLoaded", () => {
   GameTracker.disableAutofill();
+});
+
+// A script error used to leave pages sitting on their initial "Loading…" text
+// with no clue what went wrong, which is impossible to diagnose on a phone.
+function reportFatalError(detail) {
+  const statuses = document.querySelectorAll("#list-status, #page-status");
+  statuses.forEach((el) => {
+    if (!/^\s*Loading/i.test(el.textContent || "")) return;
+    el.textContent = `Something went wrong loading this page: ${detail}. Pull down to refresh, or reopen the page.`;
+    el.classList.remove("hidden");
+    el.classList.add("gt-status-err");
+  });
+}
+
+window.addEventListener("error", (event) => {
+  reportFatalError(event.message || "script error");
+});
+
+window.addEventListener("unhandledrejection", (event) => {
+  const reason = event.reason;
+  reportFatalError((reason && reason.message) || "unexpected error");
 });
