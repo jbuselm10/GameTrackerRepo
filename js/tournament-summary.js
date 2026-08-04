@@ -13,6 +13,7 @@
   const topWinnersText = document.getElementById("top-winners-text");
   const standingsList = document.getElementById("standings-list");
   const standingsEmpty = document.getElementById("standings-empty");
+  const returnBtn = document.getElementById("return-btn");
   const escapeHtml = GameTracker.escapeHtml.bind(GameTracker);
   const fetchJson = GameTracker.api.bind(GameTracker);
 
@@ -166,4 +167,14 @@
   }
 
   loadSummary();
+
+  if (returnBtn) {
+    returnBtn.addEventListener("click", () => {
+      if (window.history.length > 1) {
+        window.history.back();
+        return;
+      }
+      window.location.href = "history.html";
+    });
+  }
 })();

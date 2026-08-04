@@ -130,6 +130,14 @@
           </a>
           <button
             type="button"
+            data-action="reactivate"
+            data-id="${escapeHtml(tournament.id)}"
+            class="gt-btn text-sm"
+          >
+            Re-activate
+          </button>
+          <button
+            type="button"
             data-action="delete"
             data-id="${escapeHtml(tournament.id)}"
             class="gt-btn-danger text-sm"
@@ -243,6 +251,39 @@
       if (willOpen) {
         selectedList.classList.remove("hidden");
         yearToggle.setAttribute("aria-expanded", "true");
+      }
+      return;
+    }
+
+    const reactivateBtn = event.target.closest('button[data-action="reactivate"]');
+    if (reactivateBtn) {
+      const id = reactivateBtn.getAttribute("data-id");
+      const tournament = tournaments.find((t) => t.id === id);
+      if (!tournament) return;
+
+      if (
+        !window.confirm(
+          `Re-activate ${tournament.name}? It will move back to active tournaments so you can record more games.`
+        )
+      ) {
+        return;
+      }
+
+      reactivateBtn.disabled = true;
+      try {
+        await fetchJson(API_URL, "PUT", {
+          id: tournament.id,
+          name: tournament.name,
+          date: tournament.date,
+          status: "active",
+          scoringMode: getScoringMode(tournament),
+          competitorType: getCompetitorType(tournament),
+          competitorIds: rosterIdsFromTournament(tournament),
+        });
+        window.location.href = `active-tournament.html?id=${encodeURIComponent(tournament.id)}`;
+      } catch (err) {
+        reactivateBtn.disabled = false;
+        setActionStatus(err.message || "Failed to re-activate tournament.", true);
       }
       return;
     }
