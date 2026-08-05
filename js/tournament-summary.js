@@ -14,8 +14,10 @@
   const standingsList = document.getElementById("standings-list");
   const standingsEmpty = document.getElementById("standings-empty");
   const returnBtn = document.getElementById("return-btn");
+  const reactivateBtn = document.getElementById("reactivate-btn");
   const escapeHtml = GameTracker.escapeHtml.bind(GameTracker);
   const fetchJson = GameTracker.api.bind(GameTracker);
+  let currentTournament = null;
 
   function formatDate(value) {
     if (!value) return "";
@@ -63,12 +65,21 @@
   }
 
   function renderSummary(tournament, players, teams) {
+    currentTournament = tournament;
+    if (reactivateBtn) {
+      reactivateBtn.classList.add("hidden");
+    }
+
     if (tournament.status !== "ended") {
       pageStatus.textContent = "This tournament is still active. End it to view the final summary.";
       pageStatus.classList.remove("hidden");
       summaryPanel.classList.add("hidden");
       summarySubtitle.textContent = "Summary is available after a tournament ends.";
       return;
+    }
+
+    if (reactivateBtn) {
+      reactivateBtn.classList.remove("hidden");
     }
 
     const { mode, standings, totalPlays, topScore, leaders } = buildStandings(
@@ -171,6 +182,39 @@
   if (returnBtn) {
     returnBtn.addEventListener("click", () => {
       window.location.href = "tournaments.html";
+    });
+  }
+
+  if (reactivateBtn) {
+    reactivateBtn.addEventListener("click", async () => {
+      if (!currentTournament || currentTournament.status !== "ended") return;
+
+      if (
+        !window.confirm(
+          `Re-activate ${currentTournament.name}? It will move back to active tournaments so you can record more games.`
+        )
+      ) {
+        return;
+      }
+
+      reactivateBtn.disabled = true;
+      try {
+        await fetchJson(API_URL, "PUT", {
+          id: currentTournament.id,
+          name: currentTournament.name,
+          date: currentTournament.date,
+          status: "active",
+          scoringMode: getScoringMode(currentTournament),
+          competitorType: getCompetitorType(currentTournament),
+          competitorIds: rosterIdsFromTournament(currentTournament),
+        });
+        window.location.href = `active-tournament.html?id=${encodeURIComponent(currentTournament.id)}`;
+      } catch (err) {
+        reactivateBtn.disabled = false;
+        pageStatus.textContent = err.message || "Failed to re-activate tournament.";
+        pageStatus.classList.remove("hidden");
+        pageStatus.classList.add("gt-status-err");
+      }
     });
   }
 })();
