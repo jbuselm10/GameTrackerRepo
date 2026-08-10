@@ -51,7 +51,10 @@
     formTitle.textContent = "Add game";
     submitBtn.textContent = "Add game";
     cancelEditBtn.classList.add("hidden");
-    if (editRulesBtn) editRulesBtn.classList.add("hidden");
+    if (editRulesBtn) {
+      editRulesBtn.classList.add("hidden");
+      editRulesBtn.className = "gt-btn-secondary hidden text-sm";
+    }
     syncNamePendingStyle();
   }
 
@@ -64,7 +67,12 @@
     formTitle.textContent = "Edit game";
     submitBtn.textContent = "Save changes";
     cancelEditBtn.classList.remove("hidden");
-    if (editRulesBtn) editRulesBtn.classList.remove("hidden");
+    if (editRulesBtn) {
+      editRulesBtn.classList.remove("hidden");
+      editRulesBtn.className = gameHasRules(game)
+        ? "gt-btn text-sm"
+        : "gt-btn-secondary text-sm";
+    }
     syncNamePendingStyle();
     nameInput.focus();
     setFormStatus("");
@@ -93,6 +101,9 @@
       const rulesClass = hasRules
         ? "gt-btn-secondary text-sm"
         : "gt-btn-secondary text-sm opacity-50 cursor-not-allowed";
+      const deleteClass = hasRules
+        ? "gt-btn-danger-solid text-sm"
+        : "gt-btn-danger text-sm";
 
       li.innerHTML = `
         <div>
@@ -108,7 +119,7 @@
             Edit
           </button>
           <button type="button" data-action="delete" data-id="${escapeHtml(game.id)}"
-            class="gt-btn-danger text-sm">
+            class="${deleteClass}">
             Delete
           </button>
         </div>
