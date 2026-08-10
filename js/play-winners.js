@@ -1,6 +1,6 @@
 const MAX_WINNERS_PER_PLAY = 4;
 const MAX_PLACEMENTS_PER_PLAY = 3;
-const POINTS_BY_PLACE = [3, 2, 1];
+const POINTS_BY_PLACE = [5, 3, 1];
 const PLACE_LABELS = ["1st", "2nd", "3rd"];
 
 function getCompetitorType(tournament) {

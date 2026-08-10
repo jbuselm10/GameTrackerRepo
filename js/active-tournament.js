@@ -21,6 +21,7 @@
   const savePlayBtn = document.getElementById("save-play-btn");
   const cancelPlayEditBtn = document.getElementById("cancel-play-edit-btn");
   const endTournamentBtn = document.getElementById("end-tournament-btn");
+  const currentStandingsLink = document.getElementById("current-standings-link");
   const addPlayersList = document.getElementById("add-players-list");
   const savePlayersBtn = document.getElementById("save-players-btn");
   const playersStatus = document.getElementById("players-status");
@@ -422,12 +423,25 @@
       return;
     }
 
+    const sortedPlays = [...plays].sort((a, b) => {
+      const aDone =
+        scoringMode === "points"
+          ? getPlayPlacementIds(a).length > 0
+          : getPlayWinnerIds(a).length > 0;
+      const bDone =
+        scoringMode === "points"
+          ? getPlayPlacementIds(b).length > 0
+          : getPlayWinnerIds(b).length > 0;
+      if (aDone !== bDone) return aDone ? 1 : -1;
+      return 0;
+    });
+
     const rosterIds = rosterIdsFromTournament(tournament);
 
     if (scoringMode === "points") {
       playsList.innerHTML = `
       <ul class="divide-y divide-wood/20">
-        ${plays
+        ${sortedPlays
           .map((play) => {
             const placements = getPlayPlacementIds(play);
             const placementSummary = placements.length
@@ -463,7 +477,7 @@
 
     playsList.innerHTML = `
       <ul class="divide-y divide-wood/20">
-        ${plays
+        ${sortedPlays
           .map(
             (play) => {
               const winnerIds = getPlayWinnerIds(play);
@@ -648,11 +662,15 @@
     tournamentDate.textContent = formatDate(tournament.date);
     tournamentScoring.textContent =
       scoringMode === "points"
-        ? "Scoring: Points (3-2-1)"
+        ? "Scoring: Points (5-3-1)"
         : "Scoring: Game wins";
     tournamentPlayers.textContent = rosterIds.length
       ? `${nounCap}: ${rosterIds.map((id) => competitorLabel(id)).join(", ")}`
       : `No ${nounCap.toLowerCase()}`;
+
+    if (currentStandingsLink && tournament.id) {
+      currentStandingsLink.href = `current-standings.html?id=${encodeURIComponent(tournament.id)}`;
+    }
 
     if (rosterPanelTitle) {
       rosterPanelTitle.textContent = `Add ${nounCap} to Tournament`;

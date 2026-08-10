@@ -4,8 +4,8 @@
   const TEAMS_API_URL = "api/teams.php";
 
   const pageStatus = document.getElementById("page-status");
-  const summaryPanel = document.getElementById("summary-panel");
-  const summarySubtitle = document.getElementById("summary-subtitle");
+  const standingsPanel = document.getElementById("standings-panel");
+  const standingsSubtitle = document.getElementById("standings-subtitle");
   const tournamentName = document.getElementById("tournament-name");
   const tournamentMeta = document.getElementById("tournament-meta");
   const gamesPlayed = document.getElementById("games-played");
@@ -14,10 +14,9 @@
   const standingsList = document.getElementById("standings-list");
   const standingsEmpty = document.getElementById("standings-empty");
   const returnBtn = document.getElementById("return-btn");
-  const reactivateBtn = document.getElementById("reactivate-btn");
   const escapeHtml = GameTracker.escapeHtml.bind(GameTracker);
   const fetchJson = GameTracker.api.bind(GameTracker);
-  let currentTournament = null;
+  let currentTournamentId = "";
 
   function formatDate(value) {
     if (!value) return "";
@@ -64,23 +63,8 @@
     };
   }
 
-  function renderSummary(tournament, players, teams) {
-    currentTournament = tournament;
-    if (reactivateBtn) {
-      reactivateBtn.classList.add("hidden");
-    }
-
-    if (tournament.status !== "ended") {
-      pageStatus.textContent = "This tournament is still active. End it to view the final summary.";
-      pageStatus.classList.remove("hidden");
-      summaryPanel.classList.add("hidden");
-      summarySubtitle.textContent = "Summary is available after a tournament ends.";
-      return;
-    }
-
-    if (reactivateBtn) {
-      reactivateBtn.classList.remove("hidden");
-    }
+  function renderStandings(tournament, players, teams) {
+    currentTournamentId = tournament.id || "";
 
     const { mode, standings, totalPlays, topScore, leaders } = buildStandings(
       tournament,
@@ -91,9 +75,9 @@
     const competitorType = getCompetitorType(tournament);
     const competitorLabel = competitorType === "team" ? "Teams" : "Players";
 
-    summarySubtitle.textContent = isPoints
-      ? "Results ranked by points (5-3-1 per game)."
-      : "Results ranked by wins.";
+    standingsSubtitle.textContent = isPoints
+      ? "Current rankings by points (5-3-1 per game)."
+      : "Current rankings by wins.";
 
     tournamentName.textContent = tournament.name || "Tournament";
     tournamentMeta.textContent = `${formatDate(tournament.date)} · ${
@@ -147,19 +131,20 @@
     }
 
     pageStatus.classList.add("hidden");
-    summaryPanel.classList.remove("hidden");
+    standingsPanel.classList.remove("hidden");
   }
 
-  async function loadSummary() {
+  async function loadStandings() {
     const id = getQueryId();
     if (!id) {
       pageStatus.textContent = "Missing tournament id.";
       return;
     }
 
-    pageStatus.textContent = "Loading summary…";
+    currentTournamentId = id;
+    pageStatus.textContent = "Loading standings…";
     pageStatus.classList.remove("hidden");
-    summaryPanel.classList.add("hidden");
+    standingsPanel.classList.add("hidden");
 
     try {
       const [tournament, playerData, teamData] = await Promise.all([
@@ -169,51 +154,23 @@
       ]);
       const players = Array.isArray(playerData) ? playerData : [];
       const teams = Array.isArray(teamData) ? teamData : [];
-      renderSummary(tournament, players, teams);
+      renderStandings(tournament, players, teams);
     } catch (err) {
-      pageStatus.textContent = err.message || "Failed to load summary.";
+      pageStatus.textContent = err.message || "Failed to load standings.";
       pageStatus.classList.remove("hidden");
-      summaryPanel.classList.add("hidden");
+      standingsPanel.classList.add("hidden");
     }
   }
 
-  loadSummary();
+  loadStandings();
 
   if (returnBtn) {
     returnBtn.addEventListener("click", () => {
-      window.location.href = "tournaments.html";
-    });
-  }
-
-  if (reactivateBtn) {
-    reactivateBtn.addEventListener("click", async () => {
-      if (!currentTournament || currentTournament.status !== "ended") return;
-
-      if (
-        !window.confirm(
-          `Re-activate ${currentTournament.name}? It will move back to active tournaments so you can record more games.`
-        )
-      ) {
-        return;
-      }
-
-      reactivateBtn.disabled = true;
-      try {
-        await fetchJson(API_URL, "PUT", {
-          id: currentTournament.id,
-          name: currentTournament.name,
-          date: currentTournament.date,
-          status: "active",
-          scoringMode: getScoringMode(currentTournament),
-          competitorType: getCompetitorType(currentTournament),
-          competitorIds: rosterIdsFromTournament(currentTournament),
-        });
-        window.location.href = `active-tournament.html?id=${encodeURIComponent(currentTournament.id)}`;
-      } catch (err) {
-        reactivateBtn.disabled = false;
-        pageStatus.textContent = err.message || "Failed to re-activate tournament.";
-        pageStatus.classList.remove("hidden");
-        pageStatus.classList.add("gt-status-err");
+      const id = currentTournamentId || getQueryId();
+      if (id) {
+        window.location.href = `active-tournament.html?id=${encodeURIComponent(id)}`;
+      } else {
+        window.location.href = "tournaments.html";
       }
     });
   }
