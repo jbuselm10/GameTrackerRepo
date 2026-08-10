@@ -38,9 +38,12 @@ if ($method === 'POST') {
         respond(400, ['error' => 'Name is required']);
     }
 
+    $rules = isset($body['rules']) ? trim((string) $body['rules']) : '';
+
     $game = [
         'id' => newId('game_'),
         'name' => $name,
+        'rules' => $rules,
     ];
 
     mutateJsonArray($dataFile, 'Corrupt games.json', static function (array $games) use ($game) {
@@ -65,8 +68,11 @@ if ($method === 'PUT') {
         respond(400, ['error' => 'Name is required']);
     }
 
+    $hasRules = array_key_exists('rules', $body);
+    $rules = $hasRules ? trim((string) $body['rules']) : null;
+
     $updated = null;
-    mutateJsonArray($dataFile, 'Corrupt games.json', static function (array $games) use ($id, $name, &$updated) {
+    mutateJsonArray($dataFile, 'Corrupt games.json', static function (array $games) use ($id, $name, $hasRules, $rules, &$updated) {
         if (gameNameExists($games, $name, $id)) {
             respond(400, ['error' => 'Game already exists']);
         }
@@ -74,6 +80,11 @@ if ($method === 'PUT') {
         foreach ($games as $i => $game) {
             if (($game['id'] ?? '') === $id) {
                 $games[$i]['name'] = $name;
+                if ($hasRules) {
+                    $games[$i]['rules'] = $rules;
+                } elseif (!array_key_exists('rules', $games[$i])) {
+                    $games[$i]['rules'] = '';
+                }
                 $found = true;
                 $updated = $games[$i];
                 break;

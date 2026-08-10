@@ -346,16 +346,21 @@
 
     playersEmpty.classList.add("hidden");
 
-    for (const option of options) {
+    for (const option of GameTracker.sortByName(options)) {
       const label = document.createElement("label");
       label.className = "flex items-center gap-2 text-sm text-ink";
       let display;
       if (type === "team") {
-        const memberNames = (Array.isArray(option.playerIds) ? option.playerIds : [])
-          .map((playerId) => {
+        const memberNames = GameTracker.sortByName(
+          Array.isArray(option.playerIds) ? option.playerIds : [],
+          (playerId) => {
             const player = players.find((item) => item.id === playerId);
-            return escapeHtml(playerDisplayLabel(player, playerId));
-          });
+            return playerDisplayLabel(player, playerId);
+          }
+        ).map((playerId) => {
+          const player = players.find((item) => item.id === playerId);
+          return escapeHtml(playerDisplayLabel(player, playerId));
+        });
         const members = memberNames.length
           ? ` <span class="gt-muted">(${memberNames.join(", ")})</span>`
           : "";
@@ -472,7 +477,14 @@
       return `<p class="mt-1 text-sm gt-muted">No ${heading.toLowerCase()}</p>`;
     }
     const labeler = buildCompetitorLabeler(tournament, players, teams);
-    const names = ids
+    const names = GameTracker.sortByName(ids, (id) => {
+      if (type !== "team") {
+        return labeler(id);
+      }
+
+      const team = teams.find((item) => item.id === id);
+      return team?.name || labeler(id);
+    })
       .map((id) => {
         if (type !== "team") {
           return labeler(id);
@@ -483,11 +495,16 @@
           return labeler(id);
         }
 
-        const memberNames = (Array.isArray(team.playerIds) ? team.playerIds : [])
-          .map((playerId) => {
+        const memberNames = GameTracker.sortByName(
+          Array.isArray(team.playerIds) ? team.playerIds : [],
+          (playerId) => {
             const player = players.find((item) => item.id === playerId);
             return playerDisplayLabel(player, playerId);
-          });
+          }
+        ).map((playerId) => {
+          const player = players.find((item) => item.id === playerId);
+          return playerDisplayLabel(player, playerId);
+        });
         return memberNames.length
           ? `${team.name} (${memberNames.join(", ")})`
           : team.name;

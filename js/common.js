@@ -209,6 +209,20 @@ window.GameTracker = {
       }
     });
   },
+
+  /**
+   * Display-only alphabetical sort. Does not mutate the input array.
+   * @param {Array} items
+   * @param {(item: any) => string} [getName]
+   */
+  sortByName(items, getName = (item) => item?.name ?? "") {
+    const list = Array.isArray(items) ? items : [];
+    return [...list].sort((a, b) =>
+      String(getName(a) ?? "").localeCompare(String(getName(b) ?? ""), undefined, {
+        sensitivity: "base",
+      })
+    );
+  },
 };
 
 document.addEventListener("DOMContentLoaded", () => {

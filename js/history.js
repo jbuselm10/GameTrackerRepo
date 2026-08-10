@@ -49,7 +49,9 @@
       return `<p class="mt-1 text-sm gt-muted">No ${heading.toLowerCase()}</p>`;
     }
     const labeler = buildCompetitorLabeler(tournament, players, teams);
-    const names = ids.map((id) => escapeHtml(labeler(id))).join(", ");
+    const names = GameTracker.sortByName(ids, (id) => labeler(id))
+      .map((id) => escapeHtml(labeler(id)))
+      .join(", ");
     return `<p class="mt-1 text-sm gt-muted">${heading}: ${names}</p>`;
   }
 
@@ -85,7 +87,9 @@
       const placeLabels = ["Winner", "Second", "Third"];
       const results = scoreGroups
         .map((group, index) => {
-          const names = group.entries.map((entry) => escapeHtml(labeler(entry.id)));
+          const names = GameTracker.sortByName(group.entries, (entry) => labeler(entry.id)).map(
+            (entry) => escapeHtml(labeler(entry.id))
+          );
           const tieLabel = group.entries.length > 1 ? " (tie)" : "";
           const pointLabel = `${group.score} point${group.score === 1 ? "" : "s"}`;
           const eachLabel = group.entries.length > 1 ? " each" : "";
@@ -100,7 +104,9 @@
       return `${scoringNote}${typeNote}<p class="mt-1 text-sm gt-muted">Winners: None</p>`;
     }
 
-    const names = leaders.map((entry) => escapeHtml(labeler(entry.id)));
+    const names = GameTracker.sortByName(leaders, (entry) => labeler(entry.id)).map((entry) =>
+      escapeHtml(labeler(entry.id))
+    );
     const winLabel = `${topScore} win${topScore === 1 ? "" : "s"}`;
     return `${scoringNote}${typeNote}<p class="mt-1 text-sm font-bold text-felt-dark">Winners: ${names.join(", ")} (${winLabel})</p>`;
   }

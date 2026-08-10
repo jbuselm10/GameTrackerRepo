@@ -172,7 +172,7 @@
 
     playersEmpty.classList.add("hidden");
 
-    for (const player of players) {
+    for (const player of GameTracker.sortByName(players)) {
       const label = document.createElement("label");
       label.className = "flex items-center gap-2 text-sm text-ink";
       label.innerHTML = `
@@ -228,7 +228,10 @@
     if (!ids.length) {
       return '<p class="mt-1 text-sm gt-muted">No players</p>';
     }
-    const names = ids
+    const names = GameTracker.sortByName(ids, (id) => {
+      const player = players.find((p) => p.id === id);
+      return player ? playerLabel(player) : String(id);
+    })
       .map((id) => {
         const player = players.find((p) => p.id === id);
         return escapeHtml(player ? playerLabel(player) : id);
@@ -248,7 +251,7 @@
 
     emptyState.classList.add("hidden");
 
-    for (const team of teams) {
+    for (const team of GameTracker.sortByName(teams)) {
       const li = document.createElement("li");
       li.className = "flex flex-wrap items-center justify-between gap-3 py-3";
 

@@ -2,6 +2,7 @@
   const API_URL = "api/tournaments.php";
   const PLAYERS_API_URL = "api/players.php";
   const TEAMS_API_URL = "api/teams.php";
+  const GAMES_API_URL = "api/games.php";
 
   const pageStatus = document.getElementById("page-status");
   const standingsPanel = document.getElementById("standings-panel");
@@ -17,6 +18,7 @@
   const escapeHtml = GameTracker.escapeHtml.bind(GameTracker);
   const fetchJson = GameTracker.api.bind(GameTracker);
   let currentTournamentId = "";
+  let games = [];
 
   function formatDate(value) {
     if (!value) return "";
@@ -37,6 +39,21 @@
   function getQueryId() {
     const params = new URLSearchParams(window.location.search);
     return params.get("id") || "";
+  }
+
+  function gameLabel(gameId) {
+    const game = games.find((g) => g.id === gameId);
+    return game ? game.name : gameId;
+  }
+
+  function formatGamesPlayedLine(tournament) {
+    const plays = Array.isArray(tournament.plays) ? tournament.plays : [];
+    const totalPlays = plays.length;
+    if (!totalPlays) {
+      return "Games played: 0";
+    }
+    const names = plays.map((play) => gameLabel(play.gameId)).join(", ");
+    return `Games played: ${totalPlays} - ${names}`;
   }
 
   function buildStandings(tournament, players, teams) {
@@ -66,7 +83,7 @@
   function renderStandings(tournament, players, teams) {
     currentTournamentId = tournament.id || "";
 
-    const { mode, standings, totalPlays, topScore, leaders } = buildStandings(
+    const { mode, standings, topScore, leaders } = buildStandings(
       tournament,
       players,
       teams
@@ -83,7 +100,7 @@
     tournamentMeta.textContent = `${formatDate(tournament.date)} · ${
       isPoints ? "Points scoring" : "Game wins"
     } · ${competitorLabel}`;
-    gamesPlayed.textContent = `Games played: ${totalPlays}`;
+    gamesPlayed.textContent = formatGamesPlayedLine(tournament);
 
     if (!standings.length) {
       standingsList.innerHTML = "";
@@ -147,13 +164,15 @@
     standingsPanel.classList.add("hidden");
 
     try {
-      const [tournament, playerData, teamData] = await Promise.all([
+      const [tournament, playerData, teamData, gameData] = await Promise.all([
         fetchJson(`${API_URL}?id=${encodeURIComponent(id)}`),
         fetchJson(PLAYERS_API_URL),
         fetchJson(TEAMS_API_URL),
+        fetchJson(GAMES_API_URL),
       ]);
       const players = Array.isArray(playerData) ? playerData : [];
       const teams = Array.isArray(teamData) ? teamData : [];
+      games = Array.isArray(gameData) ? gameData : [];
       renderStandings(tournament, players, teams);
     } catch (err) {
       pageStatus.textContent = err.message || "Failed to load standings.";

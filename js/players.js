@@ -85,7 +85,7 @@
 
     emptyState.classList.add("hidden");
 
-    for (const player of players) {
+    for (const player of GameTracker.sortByName(players)) {
       const li = document.createElement("li");
       li.className = "flex flex-wrap items-center justify-between gap-3 py-3";
 

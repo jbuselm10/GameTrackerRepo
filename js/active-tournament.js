@@ -175,8 +175,10 @@
 
   function buildRosterOptions(rosterIds, selectedId = "", excludeIds = []) {
     const exclude = new Set(excludeIds.filter((id) => id !== selectedId));
-    return rosterIds
-      .filter((id) => !exclude.has(id))
+    return GameTracker.sortByName(
+      rosterIds.filter((id) => !exclude.has(id)),
+      (id) => competitorLabel(id)
+    )
       .map(
         (id) =>
           `<option value="${escapeHtml(id)}"${id === selectedId ? " selected" : ""}>${escapeHtml(competitorLabel(id))}</option>`
@@ -352,9 +354,7 @@
     if (!hasGames) {
       playGame.innerHTML = '<option value="">Add a game to the tournament</option>';
     } else {
-      const sorted = [...games].sort((a, b) =>
-        a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
-      );
+      const sorted = GameTracker.sortByName(games);
       playGame.innerHTML =
         '<option value="">Select game</option>' +
         sorted
@@ -373,7 +373,7 @@
       } else {
         playWinner.innerHTML =
           '<option value="">— No winner —</option>' +
-          rosterIds
+          GameTracker.sortByName(rosterIds, (id) => competitorLabel(id))
             .map(
               (id) =>
                 `<option value="${escapeHtml(id)}">${escapeHtml(competitorLabel(id))}</option>`
@@ -423,18 +423,20 @@
       return;
     }
 
-    const sortedPlays = [...plays].sort((a, b) => {
-      const aDone =
+    const incompletePlays = [];
+    const completedPlays = [];
+    for (const play of plays) {
+      const done =
         scoringMode === "points"
-          ? getPlayPlacementIds(a).length > 0
-          : getPlayWinnerIds(a).length > 0;
-      const bDone =
-        scoringMode === "points"
-          ? getPlayPlacementIds(b).length > 0
-          : getPlayWinnerIds(b).length > 0;
-      if (aDone !== bDone) return aDone ? 1 : -1;
-      return 0;
-    });
+          ? getPlayPlacementIds(play).length > 0
+          : getPlayWinnerIds(play).length > 0;
+      if (done) {
+        completedPlays.push(play);
+      } else {
+        incompletePlays.push(play);
+      }
+    }
+    const sortedPlays = incompletePlays.concat(completedPlays);
 
     const rosterIds = rosterIdsFromTournament(tournament);
 
@@ -588,7 +590,7 @@
       syncSavePlayersBtnHighlight();
       return;
     }
-    addPlayersList.innerHTML = options
+    addPlayersList.innerHTML = GameTracker.sortByName(options)
       .map((item) => {
         const checked = rosterIds.includes(item.id) ? "checked" : "";
         const label = isTeamTournament()
@@ -665,7 +667,9 @@
         ? "Scoring: Points (5-3-1)"
         : "Scoring: Game wins";
     tournamentPlayers.textContent = rosterIds.length
-      ? `${nounCap}: ${rosterIds.map((id) => competitorLabel(id)).join(", ")}`
+      ? `${nounCap}: ${GameTracker.sortByName(rosterIds, (id) => competitorLabel(id))
+          .map((id) => competitorLabel(id))
+          .join(", ")}`
       : `No ${nounCap.toLowerCase()}`;
 
     if (currentStandingsLink && tournament.id) {
