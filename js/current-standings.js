@@ -185,6 +185,12 @@
 
   if (returnBtn) {
     returnBtn.addEventListener("click", () => {
+      const params = new URLSearchParams(window.location.search);
+      const returnTo = params.get("returnTo");
+      if (returnTo) {
+        window.location.href = returnTo;
+        return;
+      }
       const id = currentTournamentId || getQueryId();
       if (id) {
         window.location.href = `active-tournament.html?id=${encodeURIComponent(id)}`;

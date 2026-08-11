@@ -673,7 +673,7 @@
       : `No ${nounCap.toLowerCase()}`;
 
     if (currentStandingsLink && tournament.id) {
-      currentStandingsLink.href = `current-standings.html?id=${encodeURIComponent(tournament.id)}`;
+      currentStandingsLink.href = `current-standings.html?id=${encodeURIComponent(tournament.id)}&returnTo=${encodeURIComponent(window.location.href)}`;
     }
 
     if (rosterPanelTitle) {

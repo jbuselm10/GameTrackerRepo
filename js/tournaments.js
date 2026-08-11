@@ -547,12 +547,18 @@
           >
             Update Tournament Details
           </a>
+          <a
+            href="current-standings.html?id=${encodeURIComponent(tournament.id)}&returnTo=${encodeURIComponent("tournaments.html")}"
+            class="gt-btn text-sm"
+          >
+            Current Standings
+          </a>
           <button type="button" data-action="edit" data-id="${escapeHtml(tournament.id)}"
-            class="gt-btn-secondary text-sm">
+            class="gt-btn text-sm">
             Edit Name and ${typeLabel}
           </button>
           <button type="button" data-action="delete" data-id="${escapeHtml(tournament.id)}"
-            class="gt-btn-danger text-sm">
+            class="gt-btn-danger-solid text-sm">
             Delete
           </button>
         </div>

@@ -101,9 +101,6 @@
       const rulesClass = hasRules
         ? "gt-btn-secondary text-sm"
         : "gt-btn-secondary text-sm opacity-50 cursor-not-allowed";
-      const deleteClass = hasRules
-        ? "gt-btn-danger-solid text-sm"
-        : "gt-btn-danger text-sm";
 
       li.innerHTML = `
         <div>
@@ -119,7 +116,7 @@
             Edit
           </button>
           <button type="button" data-action="delete" data-id="${escapeHtml(game.id)}"
-            class="${deleteClass}">
+            class="gt-btn-danger text-sm">
             Delete
           </button>
         </div>

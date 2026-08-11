@@ -186,6 +186,7 @@ body.gt-body {
   border: 1px solid #8f1a12;
   padding: 0.65rem 1.1rem;
   min-height: 2.75rem;
+  text-decoration: none;
   cursor: pointer;
   transition: background 0.15s ease;
 }
