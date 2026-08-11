@@ -85,6 +85,8 @@ if ($method === 'PUT') {
                 } elseif (!array_key_exists('rules', $games[$i])) {
                     $games[$i]['rules'] = '';
                 }
+                // Drop unused playersPerPlace if present from earlier builds
+                unset($games[$i]['playersPerPlace']);
                 $found = true;
                 $updated = $games[$i];
                 break;

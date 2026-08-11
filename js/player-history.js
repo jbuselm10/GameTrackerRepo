@@ -48,13 +48,13 @@
         winCounts[id] = 0;
       }
       for (const play of plays) {
-        const placements = getPlayPlacementIds(play);
-        const firstPlace = placements[0];
-        if (!firstPlace) continue;
-        if (!(firstPlace in winCounts)) {
-          winCounts[firstPlace] = 0;
+        const groups = getPlayPlacementGroups(play);
+        for (const firstPlace of groups[0] || []) {
+          if (!(firstPlace in winCounts)) {
+            winCounts[firstPlace] = 0;
+          }
+          winCounts[firstPlace] += 1;
         }
-        winCounts[firstPlace] += 1;
       }
       return winCounts;
     }

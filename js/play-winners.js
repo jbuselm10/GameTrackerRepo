@@ -1,11 +1,25 @@
 const MAX_WINNERS_PER_PLAY = 4;
-const MAX_PLACEMENTS_PER_PLAY = 3;
+const MAX_PLACES_PER_PLAY = 3;
+const MAX_PLAYERS_PER_PLACE = 4;
+/** @deprecated use MAX_PLACES_PER_PLAY — kept for older call sites */
+const MAX_PLACEMENTS_PER_PLAY = MAX_PLACES_PER_PLAY;
 const POINTS_BY_PLACE = [5, 3, 1];
 const PLACE_LABELS = ["1st", "2nd", "3rd"];
 
 function getCompetitorType(tournament) {
   const type = String(tournament?.competitorType || "player").trim().toLowerCase();
   return type === "team" || type === "teams" ? "team" : "player";
+}
+
+function getPlayersPerPlace(game) {
+  const name = String(game?.name || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+  if (name === "corn hole" || name === "cornhole") {
+    return 2;
+  }
+  return 1;
 }
 
 function getPlayWinnerIds(play) {
@@ -36,24 +50,58 @@ function getScoringMode(tournament) {
   return mode === "points" ? "points" : "gameWins";
 }
 
-function getPlayPlacementIds(play) {
-  if (!play) return [];
+/**
+ * Returns placement groups: [ [1st ids], [2nd ids], [3rd ids] ].
+ * Accepts nested placementIds or legacy flat [1st, 2nd, 3rd].
+ */
+function getPlayPlacementGroups(play) {
+  const empty = () =>
+    Array.from({ length: MAX_PLACES_PER_PLAY }, () => []);
+
+  if (!play) return empty();
+
   const source = Array.isArray(play.placementIds)
     ? play.placementIds
     : Array.isArray(play.placementPlayerIds)
       ? play.placementPlayerIds
       : null;
-  if (!source) return [];
+  if (!source || !source.length) return empty();
+
   const seen = new Set();
-  const ids = [];
-  for (const id of source) {
-    const value = String(id || "").trim();
+  const groups = empty();
+
+  const isNested = source.some((entry) => Array.isArray(entry));
+  if (isNested) {
+    for (let place = 0; place < MAX_PLACES_PER_PLAY; place++) {
+      const group = Array.isArray(source[place]) ? source[place] : [];
+      for (const id of group) {
+        const value = String(id || "").trim();
+        if (!value || seen.has(value)) continue;
+        seen.add(value);
+        groups[place].push(value);
+        if (groups[place].length >= MAX_PLAYERS_PER_PLACE) break;
+      }
+    }
+    return groups;
+  }
+
+  // Legacy flat: index = place, one id per place
+  for (let place = 0; place < MAX_PLACES_PER_PLAY && place < source.length; place++) {
+    const value = String(source[place] || "").trim();
     if (!value || seen.has(value)) continue;
     seen.add(value);
-    ids.push(value);
-    if (ids.length >= MAX_PLACEMENTS_PER_PLAY) break;
+    groups[place].push(value);
   }
-  return ids;
+  return groups;
+}
+
+/** Flat list of all placed competitor IDs (unique). */
+function getPlayPlacementIds(play) {
+  return getPlayPlacementGroups(play).flat();
+}
+
+function playHasPlacements(play) {
+  return getPlayPlacementIds(play).length > 0;
 }
 
 function rosterIdsFromTournament(tournament) {
@@ -119,13 +167,15 @@ function buildPointTotals(tournament) {
     pointTotals[id] = 0;
   }
   for (const play of plays) {
-    const placements = getPlayPlacementIds(play);
-    placements.forEach((playerId, index) => {
-      const points = POINTS_BY_PLACE[index] || 0;
-      if (!(playerId in pointTotals)) {
-        pointTotals[playerId] = 0;
+    const groups = getPlayPlacementGroups(play);
+    groups.forEach((ids, placeIndex) => {
+      const points = POINTS_BY_PLACE[placeIndex] || 0;
+      for (const playerId of ids) {
+        if (!(playerId in pointTotals)) {
+          pointTotals[playerId] = 0;
+        }
+        pointTotals[playerId] += points;
       }
-      pointTotals[playerId] += points;
     });
   }
   return pointTotals;

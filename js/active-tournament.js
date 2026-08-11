@@ -186,8 +186,18 @@
       .join("");
   }
 
-  function placementKey(playId, index) {
-    return `place:${playId}:${index}`;
+  function placementKey(playId, placeIndex, slotIndex = 0) {
+    return `place:${playId}:${placeIndex}:${slotIndex}`;
+  }
+
+  function clearPlacementPending(playId) {
+    for (let place = 0; place < MAX_PLACES_PER_PLAY; place++) {
+      for (let slot = 0; slot < MAX_PLAYERS_PER_PLACE; slot++) {
+        const key = placementKey(playId, place, slot);
+        dirtyWinnerSelects.delete(key);
+        delete pendingWinnerValues[key];
+      }
+    }
   }
 
   async function savePlayWinners(playId, play, winnerPlayerIds, button, successMessage) {
@@ -209,20 +219,17 @@
     }
   }
 
-  async function savePlayPlacements(playId, play, placementPlayerIds, button, successMessage) {
+  async function savePlayPlacements(playId, play, placementGroups, button, successMessage) {
     if (button) button.disabled = true;
     try {
       await api(API_URL, "PUT", {
         tournamentId: tournament.id,
         playId,
         gameId: play.gameId,
-        placementIds: placementPlayerIds,
+        placementIds: placementGroups,
       });
       clearWinnerPendingForPlay(playId);
-      for (let i = 0; i < MAX_PLACEMENTS_PER_PLAY; i++) {
-        dirtyWinnerSelects.delete(placementKey(playId, i));
-        delete pendingWinnerValues[placementKey(playId, i)];
-      }
+      clearPlacementPending(playId);
       tournament = await api(`${API_URL}?id=${encodeURIComponent(tournament.id)}`, "GET");
       renderActive();
       setFormStatus(successMessage);
@@ -233,54 +240,81 @@
     }
   }
 
-  function collectPlacementIdsFromUi(playId, savedPlacements) {
-    const ids = [];
-    for (let index = 0; index < MAX_PLACEMENTS_PER_PLAY; index++) {
-      const key = placementKey(playId, index);
-      const select = playsList.querySelector(
-        `select[data-placement][data-play-id="${playId}"][data-place-index="${index}"]`
-      );
-      let value = "";
-      if (dirtyWinnerSelects.has(key)) {
-        value = pendingWinnerValues[key] || "";
-      } else if (select) {
-        value = select.value || "";
-      } else {
-        value = savedPlacements[index] || "";
+  function collectPlacementGroupsFromUi(playId, savedGroups, slotsPerPlace) {
+    const groups = [];
+    for (let place = 0; place < MAX_PLACES_PER_PLAY; place++) {
+      const ids = [];
+      for (let slot = 0; slot < slotsPerPlace; slot++) {
+        const key = placementKey(playId, place, slot);
+        const select = playsList.querySelector(
+          `select[data-placement][data-play-id="${playId}"][data-place-index="${place}"][data-slot-index="${slot}"]`
+        );
+        let value = "";
+        if (dirtyWinnerSelects.has(key)) {
+          value = pendingWinnerValues[key] || "";
+        } else if (select) {
+          value = select.value || "";
+        } else {
+          value = (savedGroups[place] && savedGroups[place][slot]) || "";
+        }
+        if (value) ids.push(value);
       }
-      if (value) ids.push(value);
+      groups.push(ids);
     }
-    return ids;
+    return groups;
   }
 
   function renderPlacementControls(play, rosterIds) {
-    const saved = getPlayPlacementIds(play);
+    const game = games.find((g) => g.id === play.gameId);
+    const slotsPerPlace = getPlayersPerPlace(game);
+    const savedGroups = getPlayPlacementGroups(play);
     const labels = PLACE_LABELS;
     const points = POINTS_BY_PLACE;
 
+    const allCurrent = [];
+    for (let place = 0; place < MAX_PLACES_PER_PLAY; place++) {
+      for (let slot = 0; slot < slotsPerPlace; slot++) {
+        const key = placementKey(play.id, place, slot);
+        let value = "";
+        if (dirtyWinnerSelects.has(key)) {
+          value = pendingWinnerValues[key] || "";
+        } else {
+          value = (savedGroups[place] && savedGroups[place][slot]) || "";
+        }
+        allCurrent.push({ place, slot, value });
+      }
+    }
+
     return `
-      <div class="space-y-2">
+      <div class="space-y-3">
         ${labels
-          .map((label, index) => {
-            const key = placementKey(play.id, index);
-            const savedId = saved[index] || "";
-            const pendingId = dirtyWinnerSelects.has(key)
-              ? (pendingWinnerValues[key] ?? savedId)
-              : savedId;
-            const currentSelections = labels.map((_, i) => {
-              const k = placementKey(play.id, i);
-              if (dirtyWinnerSelects.has(k)) return pendingWinnerValues[k] || "";
-              return saved[i] || "";
-            });
-            const exclude = currentSelections.filter((id, i) => id && i !== index);
-            return `
-          <div class="flex flex-wrap items-center gap-2">
-            <span class="w-24 text-sm font-bold text-ink">${label} (+${points[index]})</span>
-            <select data-placement data-play-id="${escapeHtml(play.id)}" data-place-index="${index}"
+          .map((label, place) => {
+            const slotSelects = Array.from({ length: slotsPerPlace }, (_, slot) => {
+              const key = placementKey(play.id, place, slot);
+              const savedId = (savedGroups[place] && savedGroups[place][slot]) || "";
+              const pendingId = dirtyWinnerSelects.has(key)
+                ? (pendingWinnerValues[key] ?? savedId)
+                : savedId;
+              const exclude = allCurrent
+                .filter((entry) => entry.value && !(entry.place === place && entry.slot === slot))
+                .map((entry) => entry.value);
+              return `
+            <select data-placement data-play-id="${escapeHtml(play.id)}" data-place-index="${place}"
+              data-slot-index="${slot}"
               class="gt-input${winnerSelectPendingClass(key, pendingId)}">
               <option value="">— None —</option>
               ${buildRosterOptions(rosterIds, pendingId, exclude)}
-            </select>
+            </select>`;
+            }).join("");
+
+            return `
+          <div class="space-y-2">
+            <span class="text-sm font-bold text-ink">${label} (+${points[place]})${
+              slotsPerPlace > 1 ? ` — pick up to ${slotsPerPlace}` : ""
+            }</span>
+            <div class="flex flex-wrap items-center gap-2">
+              ${slotSelects}
+            </div>
           </div>`;
           })
           .join("")}
@@ -428,7 +462,7 @@
     for (const play of plays) {
       const done =
         scoringMode === "points"
-          ? getPlayPlacementIds(play).length > 0
+          ? playHasPlacements(play)
           : getPlayWinnerIds(play).length > 0;
       if (done) {
         completedPlays.push(play);
@@ -445,14 +479,21 @@
       <ul class="divide-y divide-wood/20">
         ${sortedPlays
           .map((play) => {
-            const placements = getPlayPlacementIds(play);
-            const placementSummary = placements.length
-              ? placements
-                  .map(
-                    (id, index) =>
-                      `${PLACE_LABELS[index]}: <span class="font-bold text-ink">${escapeHtml(competitorLabel(id))}</span>`
-                  )
-                  .join(", ")
+            const groups = getPlayPlacementGroups(play);
+            const placementSummary = playHasPlacements(play)
+              ? groups
+                  .map((ids, index) => {
+                    if (!ids.length) return null;
+                    const names = ids
+                      .map(
+                        (id) =>
+                          `<span class="font-bold text-ink">${escapeHtml(competitorLabel(id))}</span>`
+                      )
+                      .join(", ");
+                    return `${PLACE_LABELS[index]}: ${names}`;
+                  })
+                  .filter(Boolean)
+                  .join("; ")
               : "None yet";
             return `
           <li class="space-y-2 py-2">
@@ -794,7 +835,7 @@
           gameId,
         };
         if (scoringMode === "points") {
-          payload.placementIds = getPlayPlacementIds(
+          payload.placementIds = getPlayPlacementGroups(
             (tournament.plays || []).find((p) => p.id === editingPlayId) || {}
           );
         } else {
@@ -849,7 +890,11 @@
     } else if (select.matches("select[data-add-winner]")) {
       pendingKey = addWinnerKey(playId);
     } else if (select.matches("select[data-placement]")) {
-      pendingKey = placementKey(playId, select.getAttribute("data-place-index"));
+      pendingKey = placementKey(
+        playId,
+        select.getAttribute("data-place-index"),
+        select.getAttribute("data-slot-index") || 0
+      );
     }
 
     if (select.value) {
@@ -879,14 +924,17 @@
     if (!play) return;
 
     if (action === "save-placements") {
-      const saved = getPlayPlacementIds(play);
-      const placementPlayerIds = collectPlacementIdsFromUi(playId, saved);
-      const unique = new Set(placementPlayerIds);
-      if (unique.size !== placementPlayerIds.length) {
+      const game = games.find((g) => g.id === play.gameId);
+      const slotsPerPlace = getPlayersPerPlace(game);
+      const savedGroups = getPlayPlacementGroups(play);
+      const placementGroups = collectPlacementGroupsFromUi(playId, savedGroups, slotsPerPlace);
+      const flatIds = placementGroups.flat();
+      const unique = new Set(flatIds);
+      if (unique.size !== flatIds.length) {
         setFormStatus(`Each ${competitorNoun()} can only have one place in a game.`, true);
         return;
       }
-      await savePlayPlacements(playId, play, placementPlayerIds, button, "Placements updated.");
+      await savePlayPlacements(playId, play, placementGroups, button, "Placements updated.");
       return;
     }
 

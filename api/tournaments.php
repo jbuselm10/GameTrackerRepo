@@ -180,7 +180,9 @@ function tournamentNameConflict(array $tournaments, string $name, string $exclud
 }
 
 const MAX_WINNERS_PER_PLAY = 4;
-const MAX_PLACEMENTS_PER_PLAY = 3;
+const MAX_PLACES_PER_PLAY = 3;
+const MAX_PLAYERS_PER_PLACE = 4;
+const MAX_PLACEMENTS_PER_PLAY = MAX_PLACES_PER_PLAY;
 
 function normalizeScoringMode($value): string
 {
@@ -231,20 +233,152 @@ function normalizePlayPlacements(array $play): array
         return [];
     }
 
-    $ids = [];
+    if (!count($source)) {
+        return [];
+    }
+
     $seen = [];
-    foreach ($source as $id) {
-        $id = trim((string) $id);
-        if ($id === '' || isset($seen[$id])) {
-            continue;
-        }
-        $seen[$id] = true;
-        $ids[] = $id;
-        if (count($ids) >= MAX_PLACEMENTS_PER_PLAY) {
+    $groups = [];
+    for ($place = 0; $place < MAX_PLACES_PER_PLAY; $place++) {
+        $groups[$place] = [];
+    }
+
+    $isNested = false;
+    foreach ($source as $entry) {
+        if (is_array($entry)) {
+            $isNested = true;
             break;
         }
     }
+
+    if ($isNested) {
+        for ($place = 0; $place < MAX_PLACES_PER_PLAY; $place++) {
+            $group = isset($source[$place]) && is_array($source[$place]) ? $source[$place] : [];
+            foreach ($group as $id) {
+                $id = trim((string) $id);
+                if ($id === '' || isset($seen[$id])) {
+                    continue;
+                }
+                $seen[$id] = true;
+                $groups[$place][] = $id;
+                if (count($groups[$place]) >= MAX_PLAYERS_PER_PLACE) {
+                    break;
+                }
+            }
+        }
+    } else {
+        for ($place = 0; $place < MAX_PLACES_PER_PLAY && $place < count($source); $place++) {
+            $id = trim((string) $source[$place]);
+            if ($id === '' || isset($seen[$id])) {
+                continue;
+            }
+            $seen[$id] = true;
+            $groups[$place][] = $id;
+        }
+    }
+
+    $hasAny = false;
+    foreach ($groups as $group) {
+        if (count($group) > 0) {
+            $hasAny = true;
+            break;
+        }
+    }
+    return $hasAny ? array_values($groups) : [];
+}
+
+function flattenPlacementGroups(array $groups): array
+{
+    $ids = [];
+    foreach ($groups as $group) {
+        if (!is_array($group)) {
+            continue;
+        }
+        foreach ($group as $id) {
+            $ids[] = $id;
+        }
+    }
     return $ids;
+}
+
+function parsePlacementIdsFromBody(array $body): array
+{
+    $source = null;
+    if (isset($body['placementIds'])) {
+        if (!is_array($body['placementIds'])) {
+            respond(400, ['error' => 'placementIds must be an array']);
+        }
+        $source = $body['placementIds'];
+    } elseif (isset($body['placementPlayerIds'])) {
+        if (!is_array($body['placementPlayerIds'])) {
+            respond(400, ['error' => 'placementPlayerIds must be an array']);
+        }
+        $source = $body['placementPlayerIds'];
+    } else {
+        return [];
+    }
+
+    if (!count($source)) {
+        return [];
+    }
+
+    $seen = [];
+    $groups = [];
+    for ($place = 0; $place < MAX_PLACES_PER_PLAY; $place++) {
+        $groups[$place] = [];
+    }
+
+    $isNested = false;
+    foreach ($source as $entry) {
+        if (is_array($entry)) {
+            $isNested = true;
+            break;
+        }
+    }
+
+    if ($isNested) {
+        for ($place = 0; $place < MAX_PLACES_PER_PLAY; $place++) {
+            $group = isset($source[$place]) && is_array($source[$place]) ? $source[$place] : [];
+            foreach ($group as $id) {
+                $id = trim((string) $id);
+                if ($id === '') {
+                    continue;
+                }
+                if (isset($seen[$id])) {
+                    respond(400, ['error' => 'Duplicate placement is not allowed']);
+                }
+                $seen[$id] = true;
+                $groups[$place][] = $id;
+                if (count($groups[$place]) > MAX_PLAYERS_PER_PLACE) {
+                    respond(400, ['error' => 'A place can have at most ' . MAX_PLAYERS_PER_PLACE . ' competitors']);
+                }
+            }
+        }
+    } else {
+        for ($place = 0; $place < count($source); $place++) {
+            $id = trim((string) $source[$place]);
+            if ($id === '') {
+                continue;
+            }
+            if (isset($seen[$id])) {
+                respond(400, ['error' => 'Duplicate placement is not allowed']);
+            }
+            $seen[$id] = true;
+            if ($place >= MAX_PLACES_PER_PLAY) {
+                respond(400, ['error' => 'A game can have at most ' . MAX_PLACES_PER_PLAY . ' places']);
+            }
+            $groups[$place][] = $id;
+        }
+    }
+
+    $hasAny = false;
+    foreach ($groups as $group) {
+        if (count($group) > 0) {
+            $hasAny = true;
+            break;
+        }
+    }
+    return $hasAny ? array_values($groups) : [];
 }
 
 function parseWinnerIdsFromBody(array $body): array
@@ -276,42 +410,6 @@ function parseWinnerIdsFromBody(array $body): array
         }
         $seen[$id] = true;
         $ids[] = $id;
-    }
-    return $ids;
-}
-
-function parsePlacementIdsFromBody(array $body): array
-{
-    $source = null;
-    if (isset($body['placementIds'])) {
-        if (!is_array($body['placementIds'])) {
-            respond(400, ['error' => 'placementIds must be an array']);
-        }
-        $source = $body['placementIds'];
-    } elseif (isset($body['placementPlayerIds'])) {
-        if (!is_array($body['placementPlayerIds'])) {
-            respond(400, ['error' => 'placementPlayerIds must be an array']);
-        }
-        $source = $body['placementPlayerIds'];
-    } else {
-        return [];
-    }
-
-    $ids = [];
-    $seen = [];
-    foreach ($source as $id) {
-        $id = trim((string) $id);
-        if ($id === '') {
-            continue;
-        }
-        if (isset($seen[$id])) {
-            respond(400, ['error' => 'Duplicate placement is not allowed']);
-        }
-        $seen[$id] = true;
-        $ids[] = $id;
-    }
-    if (count($ids) > MAX_PLACEMENTS_PER_PLAY) {
-        respond(400, ['error' => 'A game can have at most ' . MAX_PLACEMENTS_PER_PLAY . ' placements']);
     }
     return $ids;
 }
@@ -350,19 +448,50 @@ function validateWinnerIds(array $winnerIds, array $roster, string $competitorTy
 
 function validatePlacementIds(array $placementIds, array $roster, string $competitorType): void
 {
-    if (count($placementIds) > MAX_PLACEMENTS_PER_PLAY) {
-        respond(400, ['error' => 'A game can have at most ' . MAX_PLACEMENTS_PER_PLAY . ' placements']);
+    $groups = $placementIds;
+    $looksNested = false;
+    foreach ($placementIds as $entry) {
+        if (is_array($entry)) {
+            $looksNested = true;
+            break;
+        }
+    }
+    if (!$looksNested && count($placementIds) > 0) {
+        // Legacy flat list — treat as one id per place
+        $groups = [];
+        for ($place = 0; $place < MAX_PLACES_PER_PLAY; $place++) {
+            $groups[$place] = [];
+        }
+        foreach ($placementIds as $place => $id) {
+            if ($place >= MAX_PLACES_PER_PLAY) {
+                respond(400, ['error' => 'A game can have at most ' . MAX_PLACES_PER_PLAY . ' places']);
+            }
+            $groups[$place][] = $id;
+        }
+        $groups = array_values($groups);
+    }
+
+    if (count($groups) > MAX_PLACES_PER_PLAY) {
+        respond(400, ['error' => 'A game can have at most ' . MAX_PLACES_PER_PLAY . ' places']);
     }
 
     $label = $competitorType === 'team' ? 'team' : 'player';
     $seen = [];
-    foreach ($placementIds as $id) {
-        if (isset($seen[$id])) {
-            respond(400, ['error' => 'Duplicate placement is not allowed']);
+    foreach ($groups as $group) {
+        if (!is_array($group)) {
+            respond(400, ['error' => 'placementIds must be an array of place groups']);
         }
-        $seen[$id] = true;
-        if (!in_array($id, $roster, true)) {
-            respond(400, ['error' => 'Placement must be a ' . $label . ' in the tournament']);
+        if (count($group) > MAX_PLAYERS_PER_PLACE) {
+            respond(400, ['error' => 'A place can have at most ' . MAX_PLAYERS_PER_PLACE . ' competitors']);
+        }
+        foreach ($group as $id) {
+            if (isset($seen[$id])) {
+                respond(400, ['error' => 'Duplicate placement is not allowed']);
+            }
+            $seen[$id] = true;
+            if (!in_array($id, $roster, true)) {
+                respond(400, ['error' => 'Placement must be a ' . $label . ' in the tournament']);
+            }
         }
     }
 }
