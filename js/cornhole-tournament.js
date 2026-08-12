@@ -564,6 +564,7 @@
     const placeholder = document.createElement("option");
     placeholder.value = "";
     placeholder.textContent = "Select player…";
+    placeholder.className = "gt-option-placeholder";
     select.appendChild(placeholder);
 
     players.forEach((player) => {
@@ -585,6 +586,7 @@
       selectedId &&
       [...select.options].some((o) => o.value === selectedId && !o.disabled);
     select.value = validSelection ? selectedId : "";
+    select.classList.toggle("gt-select-empty", !select.value);
   }
 
   function readAssignmentsFromDom() {

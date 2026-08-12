@@ -374,7 +374,18 @@
         const heading = document.createElement("h4");
         heading.className = "gt-bracket-round-title";
         const byeTeamId = roundMatches.find((m) => m.roundByeTeamId)?.roundByeTeamId;
-        if (byeTeamId) {
+        const seFinal =
+          tournament?.type === TYPES.SINGLE_ELIMINATION &&
+          roundMatches.some(
+            (m) =>
+              m.bracket === SIDES.WINNERS &&
+              !m.nextMatchId &&
+              m.status === STATUSES.COMPLETED &&
+              m.winnerId
+          );
+        if (seFinal) {
+          heading.textContent = "Championship";
+        } else if (byeTeamId) {
           heading.textContent = `Round ${round} (${teamLabel(byeTeamId)} bye to next round)`;
         } else {
           heading.textContent = `Round ${round}`;
@@ -431,9 +442,12 @@
                 <li><strong>3rd</strong> — ${thirdText}</li>
               </ol>
             </div>
-            <button type="button" id="change-results-btn" class="gt-btn-secondary text-sm whitespace-nowrap">
-              ${editingResults ? "Done" : "Change results"}
-            </button>
+            <div class="flex flex-wrap items-center gap-2">
+              <button type="button" id="change-results-btn" class="gt-btn-secondary text-sm whitespace-nowrap">
+                ${editingResults ? "Done" : "Change results"}
+              </button>
+              <a href="index.html" class="gt-btn text-sm whitespace-nowrap">Home</a>
+            </div>
           </div>
         `;
         document.getElementById("change-results-btn")?.addEventListener("click", () => {

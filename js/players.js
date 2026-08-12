@@ -87,7 +87,8 @@
 
     for (const player of GameTracker.sortByName(players)) {
       const li = document.createElement("li");
-      li.className = "flex flex-wrap items-center justify-between gap-3 py-3";
+      li.className =
+        "flex flex-wrap items-center justify-between gap-2 rounded-lg border border-wood/20 bg-parchment-deep/40 px-3 py-2";
 
       const nickname = player.nickname
         ? `<span class="gt-muted"> (${escapeHtml(player.nickname)})</span>`
