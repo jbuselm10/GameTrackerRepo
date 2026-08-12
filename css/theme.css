@@ -453,6 +453,10 @@ input[type="checkbox"].gt-saved {
   padding-bottom: 0;
 }
 
+.gt-bracket-section-note {
+  color: var(--gold-soft);
+}
+
 .gt-bracket-round {
   min-width: 15rem;
   max-width: 18rem;

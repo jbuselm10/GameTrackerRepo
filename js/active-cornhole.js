@@ -323,16 +323,16 @@
     const title = document.createElement("div");
     title.className = "gt-bracket-match-title";
     let sideLabel = "Match";
-    if (match.bracket === SIDES.GRAND_FINAL) sideLabel = "Grand final";
-    if (match.bracket === SIDES.GRAND_FINAL_RESET) sideLabel = "Grand final";
+    if (match.bracket === SIDES.GRAND_FINAL) sideLabel = "Championship";
+    if (match.bracket === SIDES.GRAND_FINAL_RESET) sideLabel = "Championship";
     if (match.bracket === SIDES.THIRD_PLACE) sideLabel = "Third place";
     title.textContent =
       match.bracket === SIDES.THIRD_PLACE
         ? "Third place match"
         : match.bracket === SIDES.GRAND_FINAL
-          ? "Grand final — Game 1"
+          ? "Championship — Game 1"
           : match.bracket === SIDES.GRAND_FINAL_RESET
-            ? "Game 2 (Losers bracket must win twice)"
+            ? "Game 2"
             : match.byeToNextRound
               ? `${sideLabel} ${match.matchNumber} · Round ${match.round} — Winner gets bye next round`
               : `${sideLabel} ${match.matchNumber} · Round ${match.round}`;
