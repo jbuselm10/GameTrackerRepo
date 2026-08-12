@@ -260,6 +260,38 @@ body.gt-body {
   font-weight: 700;
 }
 
+/* Compact selects for Cornhole team assignment */
+select.gt-input.gt-input-compact {
+  padding: 0.35rem 0.5rem;
+  font-size: 0.875rem;
+  min-height: 2.1rem;
+  line-height: 1.25;
+}
+
+select.gt-input option:disabled,
+select.gt-input option.gt-option-taken {
+  color: #b0a89a;
+  background-color: #f3efe6;
+  font-style: italic;
+}
+
+.gt-cornhole-team {
+  padding: 0.5rem 0.65rem;
+}
+
+.gt-cornhole-team-title {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0 0 0.35rem;
+}
+
+.gt-cornhole-team .gt-label {
+  margin-bottom: 0.15rem;
+  font-size: 0.75rem;
+}
+
 input[type="checkbox"].gt-pending {
   accent-color: var(--danger);
 }

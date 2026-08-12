@@ -239,11 +239,23 @@
   const returnBtn = document.getElementById("return-btn");
   const params = new URLSearchParams(window.location.search);
   const returnTo = params.get("returnTo");
-  if (returnTo && returnBtn) {
-    returnBtn.classList.remove("hidden");
+
+  function goBack() {
+    if (returnTo) {
+      window.location.href = returnTo;
+      return;
+    }
+    if (window.history.length > 1) {
+      window.history.back();
+      return;
+    }
+    window.location.href = "index.html";
+  }
+
+  if (returnBtn) {
     returnBtn.addEventListener("click", () => {
       if (!hasUnsavedChanges()) {
-        window.location.href = returnTo;
+        goBack();
         return;
       }
       GameTracker.confirmUnsavedChanges({
@@ -253,11 +265,11 @@
         onSave: async () => {
           const saved = await savePlayer();
           if (saved) {
-            window.location.href = returnTo;
+            goBack();
           }
         },
         onDiscard: () => {
-          window.location.href = returnTo;
+          goBack();
         },
       });
     });
