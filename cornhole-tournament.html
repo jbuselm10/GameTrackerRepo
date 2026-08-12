@@ -28,10 +28,10 @@
       },
     };
   </script>
-  <link rel="stylesheet" href="css/theme.css?v=20260812d" />
-  <script src="js/config.js?v=20260812d"></script>
+  <link rel="stylesheet" href="css/theme.css?v=20260812h" />
+  <script src="js/config.js?v=20260812h"></script>
   <script src="https://browser.sentry-cdn.com/8.55.0/bundle.replay.min.js" crossorigin="anonymous"></script>
-  <script src="js/sentry-init.js?v=20260812d"></script>
+  <script src="js/sentry-init.js?v=20260812h"></script>
 </head>
 <body class="gt-body font-body">
   <div class="gt-wood-strip"></div>
@@ -55,16 +55,24 @@
       <h2 class="mb-4 font-display text-lg font-semibold text-ink">Tournament setup</h2>
       <div class="mb-4">
         <label for="tournament-name" class="gt-label">Tournament name <span class="text-red-600">*</span></label>
-        <input
-          id="tournament-name"
-          name="gtCornholeName"
-          type="text"
-          required
-          autocomplete="off"
-          class="gt-input max-w-md"
-          placeholder="e.g. Saturday Cornhole"
-          value="Cornhole Tournament"
-        />
+        <div class="mt-1 flex max-w-3xl flex-wrap items-center gap-2">
+          <input
+            id="tournament-name"
+            name="gtCornholeName"
+            type="text"
+            required
+            autocomplete="off"
+            class="gt-input min-w-[12rem] flex-1"
+            placeholder="e.g. Saturday Cornhole"
+            value="Cornhole Tournament"
+          />
+          <button type="button" id="clear-all-fields-btn" class="gt-btn-secondary text-sm hidden whitespace-nowrap">
+            Clear All fields
+          </button>
+          <button type="button" id="last-results-btn" class="gt-btn-secondary text-sm hidden whitespace-nowrap">
+            Results of last tournament
+          </button>
+        </div>
         <p id="name-error" class="mt-1 hidden text-sm text-red-600">Name is required.</p>
       </div>
       <div class="grid gap-4 sm:grid-cols-2 sm:items-start">
@@ -113,9 +121,11 @@
       </div>
       <div class="mt-4 flex flex-wrap items-center gap-2">
         <button type="button" id="save-tournament-btn" class="gt-btn text-sm">Update Cornhole Tournament</button>
+        <button type="button" id="start-tournament-btn" class="gt-btn-warn text-sm">Start Tournament</button>
         <p id="setup-status" class="hidden text-sm gt-muted"></p>
       </div>
       <p id="save-status" class="mt-2 hidden text-sm" role="status"></p>
+      <p id="start-error" class="mt-2 hidden text-sm text-red-600" role="alert"></p>
     </section>
 
     <section class="gt-panel p-4">
@@ -130,10 +140,11 @@
     </section>
   </div>
 
-  <script src="js/common.js?v=20260812f" defer></script>
-  <script src="js/cornhole-types.js?v=20260812f" defer></script>
-  <script src="js/cornhole-players.js?v=20260812f" defer></script>
-  <script src="js/cornhole-api.js?v=20260812f" defer></script>
-  <script src="js/cornhole-tournament.js?v=20260812f" defer></script>
+  <script src="js/common.js?v=20260812ae" defer></script>
+  <script src="js/cornhole-types.js?v=20260812ae" defer></script>
+  <script src="js/cornhole-players.js?v=20260812ae" defer></script>
+  <script src="js/cornhole-api.js?v=20260812ae" defer></script>
+  <script src="js/cornhole-bracket.js?v=20260812ae" defer></script>
+  <script src="js/cornhole-tournament.js?v=20260812ae" defer></script>
 </body>
 </html>

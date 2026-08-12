@@ -9,14 +9,20 @@
   const teamCountError = document.getElementById("team-count-error");
   const nameInput = document.getElementById("tournament-name");
   const nameError = document.getElementById("name-error");
+  const clearAllBtn = document.getElementById("clear-all-fields-btn");
+  const lastResultsBtn = document.getElementById("last-results-btn");
   const setupStatus = document.getElementById("setup-status");
   const saveStatus = document.getElementById("save-status");
   const saveBtn = document.getElementById("save-tournament-btn");
+  const startBtn = document.getElementById("start-tournament-btn");
+  const startError = document.getElementById("start-error");
   const addPlayerLink = document.getElementById("add-player-link");
 
   const MIN_TEAMS = GameTracker.Cornhole.MIN_TEAMS;
   const MAX_TEAMS = GameTracker.Cornhole.MAX_TEAMS;
   const UNSAVED_MESSAGE = "Changes have NOT been saved.";
+  const FORM_DRAFT_KEY = "gametracker.cornholeFormDraft";
+  const LAST_RESULTS_KEY = "gametracker.cornholeLastResults";
 
   /** @type {CornholePlayer[]} */
   let players = [];
@@ -26,6 +32,8 @@
   let teamCount = null;
   /** @type {{ id?: string, player1Id: string, player2Id: string }[]} */
   let teamAssignments = [];
+  /** @type {CornholeTeam[]} */
+  let savedTeams = [];
   /** @type {string | null} */
   let editingId = null;
   /** @type {CornholeMatch[]} */
@@ -35,6 +43,10 @@
   /** @type {{ name: string, type: string, teamCount: number | null, teams: { player1Id: string, player2Id: string }[] } | null} */
   let baseline = null;
   let suppressDirty = false;
+  /** Name copied from a completed tournament; cannot be reused until changed. */
+  let reservedName = null;
+  /** True when the form was filled from a completed tournament. */
+  let fromPrepopulated = false;
 
   function setStatus(message, isError = false) {
     if (!pageStatus) return;
@@ -58,6 +70,121 @@
     } else if (message) {
       saveStatus.classList.add("gt-status-ok");
     }
+  }
+
+  function setStartError(message) {
+    if (!startError) return;
+    startError.textContent = message || "";
+    startError.classList.toggle("hidden", !message);
+  }
+
+  function allTeamsFullyAssigned() {
+    if (teamCount === null || teamCount < MIN_TEAMS) return false;
+    readAssignmentsFromDom();
+    resizeAssignments(teamCount);
+    return teamAssignments.every((t) => t.player1Id && t.player2Id);
+  }
+
+  function canStartTournament() {
+    if (!editingId) {
+      return { ok: false, message: "Save the tournament with Update Cornhole Tournament before starting." };
+    }
+    if (isDirty()) {
+      return { ok: false, message: "Save your changes before starting the tournament." };
+    }
+    if (!currentName()) {
+      return { ok: false, message: "Tournament name is required." };
+    }
+    if (!currentType()) {
+      return { ok: false, message: "Select single or double elimination." };
+    }
+    if (teamCount === null) {
+      return { ok: false, message: "Enter a valid number of teams (2–20)." };
+    }
+    if (!allTeamsFullyAssigned()) {
+      return { ok: false, message: "Assign two players to every team before starting." };
+    }
+    return { ok: true, message: "" };
+  }
+
+  async function startTournament() {
+    setStartError("");
+    const check = canStartTournament();
+    if (!check.ok) {
+      setStartError(check.message);
+      return;
+    }
+
+    const firstRoundMatchCount = teamCount !== null ? Math.floor(teamCount / 2) : 0;
+    const oddFirstRoundMatches =
+      currentType() === GameTracker.Cornhole.TOURNAMENT_TYPES.SINGLE_ELIMINATION &&
+      firstRoundMatchCount % 2 === 1;
+
+    const lockMessage =
+      "Once the tournament is started, no changes to the tournament setup can be made.";
+
+    function switchToDoubleElimination() {
+      typeInputs.forEach((input) => {
+        input.checked =
+          input.value === GameTracker.Cornhole.TOURNAMENT_TYPES.DOUBLE_ELIMINATION;
+      });
+      selectedType = GameTracker.Cornhole.TOURNAMENT_TYPES.DOUBLE_ELIMINATION;
+      syncSetup();
+    }
+
+    function confirmAndStart() {
+      GameTracker.confirmModal({
+        message: lockMessage,
+        confirmLabel: "Start Tournament",
+        cancelLabel: "Cancel",
+        onConfirm: async () => {
+          if (startBtn) startBtn.disabled = true;
+          setStartError("");
+          setSaveStatus("Starting tournament…");
+          try {
+            const type =
+              currentType() || GameTracker.Cornhole.TOURNAMENT_TYPES.DOUBLE_ELIMINATION;
+            const teams = buildTeamsPayload().map((team, index) => ({
+              ...team,
+              id: team.id || savedTeams[index]?.id,
+              name: team.name || `Team ${index + 1}`,
+            }));
+            teams.forEach((team, index) => {
+              if (!team.id) team.id = `cteam_${Date.now()}_${index}`;
+            });
+            const matches = GameTracker.Cornhole.generateBracket(type, teams);
+            const saved = await GameTracker.Cornhole.saveTournament({
+              id: editingId,
+              name: currentName(),
+              type,
+              teams,
+              matches,
+              status: GameTracker.Cornhole.TOURNAMENT_STATUSES.ACTIVE,
+            });
+            window.location.href = `active-cornhole.html?id=${encodeURIComponent(saved.id)}`;
+          } catch (err) {
+            setSaveStatus("");
+            setStartError(err.message || "Could not start tournament.");
+            if (startBtn) startBtn.disabled = false;
+          }
+        },
+      });
+    }
+
+    if (oddFirstRoundMatches) {
+      GameTracker.alertModal({
+        message:
+          "The tournament has been switched to double elimination due to odd number of matches in the first round.",
+        okLabel: "OK",
+        onOk: () => {
+          switchToDoubleElimination();
+          confirmAndStart();
+        },
+      });
+      return;
+    }
+
+    confirmAndStart();
   }
 
   /**
@@ -86,6 +213,77 @@
 
   function currentName() {
     return nameInput ? String(nameInput.value || "").trim() : "";
+  }
+
+  function isReservedName(name) {
+    if (!reservedName) return false;
+    return String(name || "").trim().toLowerCase() === String(reservedName).trim().toLowerCase();
+  }
+
+  function syncNameError() {
+    if (!nameError) return;
+    const name = currentName();
+    if (!name) {
+      nameError.textContent = "Name is required.";
+      nameError.classList.remove("hidden");
+      return;
+    }
+    if (isReservedName(name)) {
+      nameError.textContent =
+        "Choose a different name. The previous tournament already used this name.";
+      nameError.classList.remove("hidden");
+      return;
+    }
+    nameError.classList.add("hidden");
+  }
+
+  function syncPrepopulatedButtons() {
+    clearAllBtn?.classList.toggle("hidden", !fromPrepopulated);
+    lastResultsBtn?.classList.toggle("hidden", !fromPrepopulated);
+  }
+
+  function storeLastResults(tournament) {
+    if (!tournament) return;
+    try {
+      sessionStorage.setItem(LAST_RESULTS_KEY, JSON.stringify(tournament));
+    } catch {
+      // Ignore storage failures.
+    }
+  }
+
+  function clearAllFields() {
+    suppressDirty = true;
+    fromPrepopulated = false;
+    reservedName = null;
+    editingId = null;
+    savedMatches = [];
+    savedStatus = GameTracker.Cornhole.TOURNAMENT_STATUSES.SETUP;
+    savedTeams = [];
+    teamAssignments = [];
+    selectedType = "";
+    teamCount = null;
+
+    if (nameInput) nameInput.value = "";
+    typeInputs.forEach((input) => {
+      input.checked = false;
+    });
+    if (teamCountInput) teamCountInput.value = "";
+
+    renderTeams();
+    syncSetupStatus();
+    suppressDirty = false;
+    markBaseline();
+    clearFormDraft();
+    clearSetupUrlId();
+    syncNameError();
+    setSaveStatus("");
+    setStartError("");
+    syncPrepopulatedButtons();
+  }
+
+  function openLastResults() {
+    saveFormDraft();
+    window.location.href = "active-cornhole.html?lastResults=1";
   }
 
   /**
@@ -208,6 +406,147 @@
         saveBtn.classList.add("gt-btn");
       }
     }
+  }
+
+  function saveFormDraft() {
+    readAssignmentsFromDom();
+    if (teamCount !== null) {
+      resizeAssignments(teamCount);
+    }
+    const draft = {
+      editingId,
+      name: nameInput ? nameInput.value : "",
+      type: currentType(),
+      teamCountValue: teamCountInput ? teamCountInput.value : "",
+      teams: teamAssignments.map((team) => ({
+        id: team.id || "",
+        player1Id: team.player1Id || "",
+        player2Id: team.player2Id || "",
+      })),
+      baseline,
+      reservedName,
+      fromPrepopulated,
+      knownPlayerIds: players.map((player) => String(player.id || "")),
+    };
+    try {
+      sessionStorage.setItem(FORM_DRAFT_KEY, JSON.stringify(draft));
+    } catch {
+      // Ignore storage failures; navigation still works.
+    }
+  }
+
+  function readFormDraft() {
+    let raw;
+    try {
+      raw = sessionStorage.getItem(FORM_DRAFT_KEY);
+    } catch {
+      return null;
+    }
+    if (!raw) return null;
+    try {
+      const draft = JSON.parse(raw);
+      return draft && typeof draft === "object" ? draft : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function clearFormDraft() {
+    try {
+      sessionStorage.removeItem(FORM_DRAFT_KEY);
+    } catch {
+      // Ignore.
+    }
+  }
+
+  /**
+   * @param {object} draft
+   * @returns {boolean}
+   */
+  function restoreFormDraft(draft) {
+    if (!draft || typeof draft !== "object") return false;
+    clearFormDraft();
+
+    suppressDirty = true;
+
+    if (nameInput && typeof draft.name === "string") {
+      nameInput.value = draft.name;
+    }
+
+    const draftType = draft.type;
+    if (
+      draftType === GameTracker.Cornhole.TOURNAMENT_TYPES.SINGLE_ELIMINATION ||
+      draftType === GameTracker.Cornhole.TOURNAMENT_TYPES.DOUBLE_ELIMINATION
+    ) {
+      typeInputs.forEach((input) => {
+        input.checked = input.value === draftType;
+      });
+    }
+
+    if (teamCountInput && draft.teamCountValue != null) {
+      teamCountInput.value = String(draft.teamCountValue);
+    }
+
+    selectedType = currentType();
+    teamCount = parseTeamCount();
+
+    const draftTeams = Array.isArray(draft.teams) ? draft.teams : [];
+    if (teamCount !== null) {
+      teamAssignments = [];
+      for (let i = 0; i < teamCount; i += 1) {
+        const row = draftTeams[i] || {};
+        teamAssignments.push({
+          id: row.id || undefined,
+          player1Id: row.player1Id || "",
+          player2Id: row.player2Id || "",
+        });
+      }
+    } else {
+      teamAssignments = draftTeams.map((row) => ({
+        id: row.id || undefined,
+        player1Id: row.player1Id || "",
+        player2Id: row.player2Id || "",
+      }));
+    }
+
+    if (draft.baseline && typeof draft.baseline === "object") {
+      baseline = {
+        name: typeof draft.baseline.name === "string" ? draft.baseline.name : "",
+        type: draft.baseline.type || "",
+        teamCount:
+          draft.baseline.teamCount === null || Number.isInteger(draft.baseline.teamCount)
+            ? draft.baseline.teamCount
+            : null,
+        teams: Array.isArray(draft.baseline.teams)
+          ? draft.baseline.teams.map((team) => ({
+              player1Id: team?.player1Id || "",
+              player2Id: team?.player2Id || "",
+            }))
+          : [],
+      };
+    }
+
+    reservedName =
+      typeof draft.reservedName === "string" && draft.reservedName.trim()
+        ? draft.reservedName.trim()
+        : null;
+    fromPrepopulated = !!draft.fromPrepopulated;
+
+    renderTeams();
+    syncSetupStatus();
+    suppressDirty = false;
+    syncDirtyUI();
+    syncNameError();
+    syncPrepopulatedButtons();
+    if (isDirty()) {
+      setSaveStatus(UNSAVED_MESSAGE, true);
+    }
+    return true;
+  }
+
+  function updateAddPlayerLink() {
+    if (!addPlayerLink) return;
+    addPlayerLink.href = `players.html?returnTo=${encodeURIComponent(window.location.href)}`;
   }
 
   function markBaseline() {
@@ -394,7 +733,7 @@
     }
 
     if (nameError) {
-      nameError.classList.toggle("hidden", currentName() !== "");
+      syncNameError();
     }
 
     if (previousCount !== teamCount) {
@@ -410,6 +749,8 @@
    */
   function applyTournament(tournament) {
     suppressDirty = true;
+    reservedName = null;
+    fromPrepopulated = false;
     editingId = tournament.id || null;
     savedMatches = Array.isArray(tournament.matches) ? tournament.matches : [];
     savedStatus = tournament.status || GameTracker.Cornhole.TOURNAMENT_STATUSES.SETUP;
@@ -432,6 +773,7 @@
       player1Id: team.player1Id || "",
       player2Id: team.player2Id || "",
     }));
+    savedTeams = teams.map((team) => ({ ...team }));
 
     selectedType = currentType();
     teamCount = parseTeamCount();
@@ -439,6 +781,71 @@
     syncSetupStatus();
     suppressDirty = false;
     markBaseline();
+    syncNameError();
+    syncPrepopulatedButtons();
+  }
+
+  /**
+   * Copy setup from a finished tournament into a new unsaved draft.
+   * @param {CornholeTournament} tournament
+   */
+  function applyPrepopulatedFrom(tournament) {
+    suppressDirty = true;
+    editingId = null;
+    savedMatches = [];
+    savedStatus = GameTracker.Cornhole.TOURNAMENT_STATUSES.SETUP;
+    savedTeams = [];
+    fromPrepopulated = true;
+    reservedName = String(tournament.name || "").trim() || null;
+    storeLastResults(tournament);
+
+    if (nameInput) {
+      nameInput.value = tournament.name || "Cornhole Tournament";
+    }
+
+    typeInputs.forEach((input) => {
+      input.checked = input.value === tournament.type;
+    });
+
+    const teams = Array.isArray(tournament.teams) ? tournament.teams : [];
+    if (teamCountInput) {
+      teamCountInput.value = String(Math.max(teams.length, MIN_TEAMS));
+    }
+
+    teamAssignments = teams.map((team) => ({
+      player1Id: team.player1Id || "",
+      player2Id: team.player2Id || "",
+    }));
+
+    selectedType = currentType();
+    teamCount = parseTeamCount();
+    renderTeams();
+    syncSetupStatus();
+    suppressDirty = false;
+
+    // Empty baseline so every pre-filled field counts as unsaved.
+    baseline = {
+      name: "",
+      type: "",
+      teamCount: null,
+      teams: teamAssignments.map(() => ({ player1Id: "", player2Id: "" })),
+    };
+    syncDirtyUI();
+    syncNameError();
+    syncPrepopulatedButtons();
+    setSaveStatus(UNSAVED_MESSAGE, true);
+  }
+
+  function clearSetupUrlId() {
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has("id")) return;
+    params.delete("id");
+    const query = params.toString();
+    window.history.replaceState(
+      {},
+      "",
+      query ? `${window.location.pathname}?${query}` : window.location.pathname
+    );
   }
 
   function buildTeamsPayload() {
@@ -460,11 +867,9 @@
     teamCount = parseTeamCount();
 
     let ok = true;
-    if (!name) {
-      nameError?.classList.remove("hidden");
+    syncNameError();
+    if (!name || isReservedName(name)) {
       ok = false;
-    } else {
-      nameError?.classList.add("hidden");
     }
     if (!selectedType) {
       typeError?.classList.remove("hidden");
@@ -483,7 +888,11 @@
 
   async function saveTournament() {
     if (!validateForSave()) {
-      setSaveStatus("Fix the highlighted setup fields, then try again.", true);
+      if (isReservedName(currentName())) {
+        setSaveStatus("Change the tournament name before saving.", true);
+      } else {
+        setSaveStatus("Fix the highlighted setup fields, then try again.", true);
+      }
       return;
     }
 
@@ -504,6 +913,8 @@
     try {
       const saved = await GameTracker.Cornhole.saveTournament(payload);
       suppressDirty = true;
+      reservedName = null;
+      fromPrepopulated = false;
       editingId = saved.id;
       savedMatches = Array.isArray(saved.matches) ? saved.matches : [];
       savedStatus = saved.status || GameTracker.Cornhole.TOURNAMENT_STATUSES.SETUP;
@@ -513,6 +924,7 @@
           player1Id: team.player1Id || "",
           player2Id: team.player2Id || "",
         }));
+        savedTeams = saved.teams.map((team) => ({ ...team }));
         renderTeams();
       }
       const params = new URLSearchParams(window.location.search);
@@ -520,11 +932,14 @@
       const nextUrl = `${window.location.pathname}?${params.toString()}`;
       window.history.replaceState({}, "", nextUrl);
       if (addPlayerLink) {
-        addPlayerLink.href = `players.html?returnTo=${encodeURIComponent(window.location.href)}`;
+        updateAddPlayerLink();
       }
       syncSetupStatus();
       suppressDirty = false;
       markBaseline();
+      clearFormDraft();
+      syncNameError();
+      syncPrepopulatedButtons();
       setSaveStatus("Cornhole tournament saved. You can leave and update it later.");
     } catch (err) {
       setSaveStatus(err.message || "Could not save tournament.", true);
@@ -546,6 +961,21 @@
     return drafts[0];
   }
 
+  /**
+   * @param {CornholeTournament[]} tournaments
+   * @returns {CornholeTournament | null}
+   */
+  function pickLatestCompleted(tournaments) {
+    const completed = tournaments.filter(
+      (t) => t && t.status === GameTracker.Cornhole.TOURNAMENT_STATUSES.COMPLETED
+    );
+    if (completed.length === 0) return null;
+    completed.sort((a, b) =>
+      String(b.updatedAt || "").localeCompare(String(a.updatedAt || ""))
+    );
+    return completed[0];
+  }
+
   typeInputs.forEach((input) => {
     input.addEventListener("change", syncSetup);
   });
@@ -556,9 +986,24 @@
   if (nameInput) {
     nameInput.addEventListener("input", syncSetup);
   }
+  if (clearAllBtn) {
+    clearAllBtn.addEventListener("click", () => {
+      clearAllFields();
+    });
+  }
+  if (lastResultsBtn) {
+    lastResultsBtn.addEventListener("click", () => {
+      openLastResults();
+    });
+  }
   if (saveBtn) {
     saveBtn.addEventListener("click", () => {
       saveTournament();
+    });
+  }
+  if (startBtn) {
+    startBtn.addEventListener("click", () => {
+      startTournament();
     });
   }
 
@@ -579,12 +1024,48 @@
 
       const params = new URLSearchParams(window.location.search);
       const id = params.get("id");
-      if (id) {
-        const tournament = await GameTracker.Cornhole.fetchTournament(id);
-        applyTournament(tournament);
-        setSaveStatus("Loaded saved Cornhole tournament.");
-      } else {
-        const tournaments = await GameTracker.Cornhole.fetchTournaments();
+      const formDraft = readFormDraft();
+      const tournaments = await GameTracker.Cornhole.fetchTournaments();
+      const active = tournaments.find(
+        (t) => t && t.status === GameTracker.Cornhole.TOURNAMENT_STATUSES.ACTIVE
+      );
+      if (active) {
+        clearFormDraft();
+        window.location.href = `active-cornhole.html?id=${encodeURIComponent(active.id)}`;
+        return;
+      }
+
+      const loadId = id || (formDraft && formDraft.editingId) || "";
+      if (loadId) {
+        const tournament = await GameTracker.Cornhole.fetchTournament(loadId);
+        if (tournament.status === GameTracker.Cornhole.TOURNAMENT_STATUSES.ACTIVE) {
+          clearFormDraft();
+          window.location.href = `active-cornhole.html?id=${encodeURIComponent(tournament.id)}`;
+          return;
+        }
+        if (tournament.status === GameTracker.Cornhole.TOURNAMENT_STATUSES.SETUP) {
+          applyTournament(tournament);
+          if (!params.get("id")) {
+            params.set("id", tournament.id);
+            window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
+          }
+          if (!formDraft) {
+            setSaveStatus("Loaded saved Cornhole tournament.");
+          }
+        } else if (
+          tournament.status === GameTracker.Cornhole.TOURNAMENT_STATUSES.COMPLETED &&
+          !formDraft
+        ) {
+          applyPrepopulatedFrom(tournament);
+          clearSetupUrlId();
+        } else if (!formDraft) {
+          suppressDirty = true;
+          renderTeams();
+          syncSetupStatus();
+          suppressDirty = false;
+          markBaseline();
+        }
+      } else if (!formDraft) {
         const draft = pickDraftTournament(tournaments);
         if (draft) {
           applyTournament(draft);
@@ -592,13 +1073,29 @@
           window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
           setSaveStatus("Loaded your in-progress Cornhole tournament.");
         } else {
-          suppressDirty = true;
-          renderTeams();
-          syncSetupStatus();
-          suppressDirty = false;
-          markBaseline();
+          const previous = pickLatestCompleted(tournaments);
+          if (previous) {
+            applyPrepopulatedFrom(previous);
+          } else {
+            suppressDirty = true;
+            renderTeams();
+            syncSetupStatus();
+            suppressDirty = false;
+            markBaseline();
+          }
         }
+      } else {
+        suppressDirty = true;
+        renderTeams();
+        syncSetupStatus();
+        suppressDirty = false;
+        markBaseline();
       }
+
+      if (formDraft) {
+        restoreFormDraft(formDraft);
+      }
+      updateAddPlayerLink();
     } catch (err) {
       setStatus(err.message || "Could not load Cornhole data.", true);
       playersEmpty?.classList.add("hidden");
@@ -609,7 +1106,10 @@
 
   syncSetup();
   if (addPlayerLink) {
-    addPlayerLink.href = `players.html?returnTo=${encodeURIComponent(window.location.href)}`;
+    updateAddPlayerLink();
+    addPlayerLink.addEventListener("click", () => {
+      saveFormDraft();
+    });
   }
   load();
 })();

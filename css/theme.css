@@ -432,3 +432,147 @@ input[type="checkbox"].gt-saved {
 .gt-status-err {
   color: var(--danger);
 }
+
+.gt-bracket-rounds {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  align-items: flex-start;
+}
+
+.gt-grand-final-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.gt-grand-final-row > .gt-bracket-rounds {
+  overflow-x: visible;
+  padding-bottom: 0;
+}
+
+.gt-bracket-round {
+  min-width: 15rem;
+  max-width: 18rem;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.gt-bracket-round-title {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--gold-soft);
+}
+
+.gt-bracket-match {
+  background: var(--parchment);
+  border: 1px solid rgba(92, 69, 16, 0.28);
+  border-radius: 0.65rem;
+  padding: 0.65rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.gt-bracket-match-title {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--ink-muted);
+  margin-bottom: 0.45rem;
+}
+
+.gt-bracket-team {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  background: #fffdf8;
+  border: 1px solid rgba(92, 69, 16, 0.2);
+  border-radius: 0.45rem;
+  padding: 0.4rem 0.5rem;
+  margin-bottom: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--ink);
+}
+
+.gt-bracket-team-label {
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.gt-bracket-team-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.gt-bracket-team-winner {
+  border-color: var(--felt);
+  background: rgba(31, 107, 74, 0.12);
+}
+
+.gt-bracket-team-out {
+  opacity: 0.72;
+  color: var(--ink-muted);
+}
+
+.gt-bracket-team-waiting {
+  font-style: italic;
+  color: var(--ink-muted);
+  font-weight: 600;
+}
+
+.gt-bracket-badge {
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--felt-dark);
+  text-transform: uppercase;
+}
+
+.gt-bracket-badge-out {
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--danger);
+  text-transform: uppercase;
+}
+
+.gt-champion-banner {
+  background: linear-gradient(135deg, var(--gold-soft), #efe6c8);
+  border: 1px solid var(--gold);
+  border-radius: 0.75rem;
+  color: var(--wood-deep);
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+}
+
+.gt-standings-banner {
+  background: linear-gradient(180deg, #f7f1e4, #efe4cf);
+  border: 1px solid var(--wood-muted, #a8893a);
+  border-radius: 0.75rem;
+  color: var(--ink);
+  padding: 0.85rem 1rem;
+  font-size: 0.95rem;
+}
+
+.gt-standings-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+}
+
+.gt-standings-banner ol {
+  margin: 0.35rem 0 0;
+  padding-left: 1.25rem;
+}
+
+.gt-standings-banner li {
+  margin: 0.2rem 0;
+}

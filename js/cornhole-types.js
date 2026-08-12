@@ -4,6 +4,7 @@
  * @typedef {'SINGLE_ELIMINATION' | 'DOUBLE_ELIMINATION'} CornholeTournamentType
  * @typedef {'PENDING' | 'IN_PROGRESS' | 'COMPLETED'} CornholeMatchStatus
  * @typedef {'SETUP' | 'ACTIVE' | 'COMPLETED'} CornholeTournamentStatus
+ * @typedef {'WINNERS' | 'LOSERS' | 'GRAND_FINAL' | 'GRAND_FINAL_RESET' | 'THIRD_PLACE'} CornholeBracketSide
  *
  * @typedef {Object} CornholePlayer
  * @property {string} id
@@ -22,13 +23,20 @@
  * @property {string} id
  * @property {number} round
  * @property {number} matchNumber
+ * @property {CornholeBracketSide} bracket
  * @property {string|null} team1Id
  * @property {string|null} team2Id
  * @property {string|null} winnerId
  * @property {string|null} loserId
  * @property {string|null} nextMatchId
  * @property {string|null} loserNextMatchId
+ * @property {string|null} [thirdPlaceMatchId]
+ * @property {string|null} [thirdPlaceSlot]
+ * @property {boolean} [losersBye]
+ * @property {boolean} [byeToNextRound]
+ * @property {string|null} [roundByeTeamId]
  * @property {CornholeMatchStatus} status
+ * @property {boolean} [active]
  *
  * @typedef {Object} CornholeTournament
  * @property {string} id
@@ -57,6 +65,14 @@ GameTracker.Cornhole.TOURNAMENT_STATUSES = Object.freeze({
   SETUP: "SETUP",
   ACTIVE: "ACTIVE",
   COMPLETED: "COMPLETED",
+});
+
+GameTracker.Cornhole.BRACKET_SIDES = Object.freeze({
+  WINNERS: "WINNERS",
+  LOSERS: "LOSERS",
+  GRAND_FINAL: "GRAND_FINAL",
+  GRAND_FINAL_RESET: "GRAND_FINAL_RESET",
+  THIRD_PLACE: "THIRD_PLACE",
 });
 
 /** Maximum teams allowed in a Cornhole tournament. */

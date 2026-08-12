@@ -150,6 +150,15 @@ function normalizeCornholeTeams($value, string $playersPath): array
     return $teams;
 }
 
+function nullableString($value): ?string
+{
+    if ($value === null) {
+        return null;
+    }
+    $text = trim((string) $value);
+    return $text === '' ? null : $text;
+}
+
 function normalizeCornholeMatches($value): array
 {
     if ($value === null) {
@@ -158,7 +167,106 @@ function normalizeCornholeMatches($value): array
     if (!is_array($value)) {
         respond(400, ['error' => 'matches must be an array']);
     }
-    return array_values($value);
+
+    $validStatuses = ['PENDING' => true, 'IN_PROGRESS' => true, 'COMPLETED' => true];
+    $validBrackets = [
+        'WINNERS' => true,
+        'LOSERS' => true,
+        'GRAND_FINAL' => true,
+        'GRAND_FINAL_RESET' => true,
+        'THIRD_PLACE' => true,
+    ];
+    $validSlots = ['team1Id' => true, 'team2Id' => true];
+    $matches = [];
+
+    foreach ($value as $row) {
+        if (!is_array($row)) {
+            respond(400, ['error' => 'Each match must be an object']);
+        }
+
+        $id = trim((string) ($row['id'] ?? ''));
+        if ($id === '') {
+            respond(400, ['error' => 'Each match requires an id']);
+        }
+
+        $bracket = strtoupper(trim((string) ($row['bracket'] ?? 'WINNERS')));
+        if (!isset($validBrackets[$bracket])) {
+            respond(400, ['error' => 'Invalid match bracket: ' . $bracket]);
+        }
+
+        $status = strtoupper(trim((string) ($row['status'] ?? 'PENDING')));
+        if (!isset($validStatuses[$status])) {
+            respond(400, ['error' => 'Invalid match status: ' . $status]);
+        }
+
+        $nextSlot = nullableString($row['nextSlot'] ?? null);
+        if ($nextSlot !== null) {
+            $nextSlot = strtolower($nextSlot) === 'team2id' ? 'team2Id' : (strtolower($nextSlot) === 'team1id' ? 'team1Id' : $nextSlot);
+            if (!isset($validSlots[$nextSlot])) {
+                $nextSlot = null;
+            }
+        }
+        $loserNextSlot = nullableString($row['loserNextSlot'] ?? null);
+        if ($loserNextSlot !== null) {
+            $loserNextSlot = strtolower($loserNextSlot) === 'team2id' ? 'team2Id' : (strtolower($loserNextSlot) === 'team1id' ? 'team1Id' : $loserNextSlot);
+            if (!isset($validSlots[$loserNextSlot])) {
+                $loserNextSlot = null;
+            }
+        }
+        $thirdPlaceSlot = nullableString($row['thirdPlaceSlot'] ?? null);
+        if ($thirdPlaceSlot !== null) {
+            $thirdPlaceSlot = strtolower($thirdPlaceSlot) === 'team2id' ? 'team2Id' : (strtolower($thirdPlaceSlot) === 'team1id' ? 'team1Id' : $thirdPlaceSlot);
+            if (!isset($validSlots[$thirdPlaceSlot])) {
+                $thirdPlaceSlot = null;
+            }
+        }
+
+        $active = array_key_exists('active', $row) ? (bool) $row['active'] : true;
+        if ($bracket === 'GRAND_FINAL_RESET' && !array_key_exists('active', $row)) {
+            $active = false;
+        }
+
+        $matches[] = [
+            'id' => $id,
+            'round' => (int) ($row['round'] ?? 1),
+            'matchNumber' => (int) ($row['matchNumber'] ?? 1),
+            'bracket' => $bracket,
+            'team1Id' => nullableString($row['team1Id'] ?? null),
+            'team2Id' => nullableString($row['team2Id'] ?? null),
+            'winnerId' => nullableString($row['winnerId'] ?? null),
+            'loserId' => nullableString($row['loserId'] ?? null),
+            'nextMatchId' => nullableString($row['nextMatchId'] ?? null),
+            'loserNextMatchId' => nullableString($row['loserNextMatchId'] ?? null),
+            'thirdPlaceMatchId' => nullableString($row['thirdPlaceMatchId'] ?? null),
+            'status' => $status,
+            'active' => $active,
+            'nextSlot' => $nextSlot,
+            'loserNextSlot' => $loserNextSlot,
+            'thirdPlaceSlot' => $thirdPlaceSlot,
+            'losersBye' => !empty($row['losersBye']),
+            'byeToNextRound' => !empty($row['byeToNextRound']),
+            'roundByeTeamId' => nullableString($row['roundByeTeamId'] ?? null),
+        ];
+    }
+
+    return $matches;
+}
+
+function teamsFingerprint(array $teams): string
+{
+    $normalized = [];
+    foreach ($teams as $team) {
+        if (!is_array($team)) {
+            continue;
+        }
+        $normalized[] = [
+            'id' => (string) ($team['id'] ?? ''),
+            'name' => (string) ($team['name'] ?? ''),
+            'player1Id' => (string) ($team['player1Id'] ?? ''),
+            'player2Id' => (string) ($team['player2Id'] ?? ''),
+        ];
+    }
+    return json_encode($normalized);
 }
 
 function buildCornholeTournament(array $body, ?array $existing = null): array
@@ -203,6 +311,54 @@ function buildCornholeTournament(array $body, ?array $existing = null): array
 
 $method = $_SERVER['REQUEST_METHOD'];
 
+/**
+ * Keep the current tournament plus at most one previous COMPLETED tournament.
+ * Never accumulates unbounded history.
+ *
+ * @param array $current
+ * @param array $existingRows
+ * @param string $currentId
+ * @return array
+ */
+function cornholeRowsForPersist(array $current, array $existingRows, string $currentId): array
+{
+    $status = strtoupper(trim((string) ($current['status'] ?? 'SETUP')));
+    $rows = [$current];
+
+    // When the current tournament is completed, it is the only file record.
+    // Previous results for UI prepopulate are kept in the browser session.
+    if ($status === 'COMPLETED') {
+        return $rows;
+    }
+
+    $previous = null;
+    foreach ($existingRows as $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+        $otherId = (string) ($row['id'] ?? '');
+        if ($otherId === '' || $otherId === $currentId) {
+            continue;
+        }
+        $otherStatus = strtoupper(trim((string) ($row['status'] ?? '')));
+        if ($otherStatus !== 'COMPLETED') {
+            continue;
+        }
+        if (
+            $previous === null ||
+            strcmp((string) ($row['updatedAt'] ?? ''), (string) ($previous['updatedAt'] ?? '')) > 0
+        ) {
+            $previous = $row;
+        }
+    }
+
+    if (is_array($previous)) {
+        $rows[] = $previous;
+    }
+
+    return $rows;
+}
+
 if ($method === 'GET') {
     $rows = loadJsonArray($dataFile, 'Corrupt cornhole-tournaments.json');
     $id = isset($_GET['id']) ? trim((string) $_GET['id']) : '';
@@ -221,8 +377,7 @@ if ($method === 'POST') {
     $body = readBody();
     $tournament = buildCornholeTournament($body);
     mutateJsonArray($dataFile, 'Corrupt cornhole-tournaments.json', static function (array $rows) use ($tournament) {
-        $rows[] = $tournament;
-        return $rows;
+        return cornholeRowsForPersist($tournament, $rows, (string) ($tournament['id'] ?? ''));
     });
     respond(201, $tournament);
 }
@@ -235,21 +390,63 @@ if ($method === 'PUT') {
     }
 
     $updated = null;
-    mutateJsonArray($dataFile, 'Corrupt cornhole-tournaments.json', static function (array $rows) use ($id, $body, &$updated) {
+    mutateJsonArray($dataFile, 'Corrupt cornhole-tournaments.json', static function (array $rows) use ($id, $body, $playersFile, &$updated) {
         $found = false;
-        foreach ($rows as $i => $row) {
+        $existing = null;
+        foreach ($rows as $row) {
             if (!is_array($row) || (string) ($row['id'] ?? '') !== $id) {
                 continue;
             }
-            $updated = buildCornholeTournament($body, $row);
-            $rows[$i] = $updated;
+            $existing = $row;
             $found = true;
             break;
         }
-        if (!$found) {
+        if (!$found || !is_array($existing)) {
             respond(404, ['error' => 'Cornhole tournament not found']);
         }
-        return $rows;
+
+        $existingStatus = strtoupper(trim((string) ($existing['status'] ?? 'SETUP')));
+        $nextStatus = array_key_exists('status', $body)
+            ? normalizeCornholeStatus($body['status'])
+            : $existingStatus;
+
+        if ($existingStatus === 'ACTIVE' || $existingStatus === 'COMPLETED') {
+            if (array_key_exists('type', $body)) {
+                $nextType = normalizeCornholeType($body['type']);
+                $prevType = normalizeCornholeType($existing['type'] ?? '');
+                if ($nextType !== $prevType) {
+                    respond(409, ['error' => 'Tournament setup is locked after the tournament has started.']);
+                }
+            }
+            if (array_key_exists('teams', $body)) {
+                $nextTeams = normalizeCornholeTeams($body['teams'], $playersFile);
+                $prevTeams = isset($existing['teams']) && is_array($existing['teams'])
+                    ? normalizeCornholeTeams($existing['teams'], $playersFile)
+                    : [];
+                if (teamsFingerprint($nextTeams) !== teamsFingerprint($prevTeams)) {
+                    respond(409, ['error' => 'Tournament setup is locked after the tournament has started.']);
+                }
+            }
+        }
+
+        if ($nextStatus === 'ACTIVE' && $existingStatus !== 'ACTIVE') {
+            foreach ($rows as $row) {
+                if (!is_array($row)) {
+                    continue;
+                }
+                $otherId = (string) ($row['id'] ?? '');
+                $otherStatus = strtoupper(trim((string) ($row['status'] ?? '')));
+                if ($otherId !== $id && $otherStatus === 'ACTIVE') {
+                    $otherName = trim((string) ($row['name'] ?? 'another Cornhole tournament'));
+                    respond(409, [
+                        'error' => 'Only one Cornhole tournament can be active at a time. Finish or continue "' . $otherName . '" first.',
+                    ]);
+                }
+            }
+        }
+
+        $updated = buildCornholeTournament($body, $existing);
+        return cornholeRowsForPersist($updated, $rows, $id);
     });
     respond(200, $updated);
 }
