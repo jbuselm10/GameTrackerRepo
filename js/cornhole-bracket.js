@@ -152,19 +152,28 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
       /** @type {{ teamId: string|null, fromMatch: CornholeMatch|null }|null} */
       let byeEntrant = null;
 
-      const playing = sources.slice();
+      const skipThisRound = [];
+      const playing = [];
+      sources.forEach((entrant) => {
+        const feeder = entrant.fromMatch;
+        const skipNext =
+          feeder &&
+          feeder.byeToNextRound &&
+          !feeder.losersBye &&
+          feeder.round === roundNum - 1;
+        if (skipNext) {
+          skipThisRound.push(entrant);
+        } else {
+          playing.push(entrant);
+        }
+      });
+
       if (playing.length % 2 === 1) {
-        let byeIndex = playing.findIndex(
-          (entrant) => entrant.fromMatch && entrant.fromMatch.byeToNextRound
-        );
-        if (byeIndex < 0) {
-          byeIndex = Math.floor(Math.random() * playing.length);
-        }
+        const byeIndex = Math.floor(Math.random() * playing.length);
         byeEntrant = playing.splice(byeIndex, 1)[0];
-        if (byeEntrant.fromMatch) {
-          byeEntrant.fromMatch.byeToNextRound = true;
-        }
       }
+
+      skipThisRound.forEach((entrant) => advancing.push(entrant));
 
       for (let index = 0; index < playing.length; index += 2) {
         const left = playing[index];
@@ -249,6 +258,7 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
     function emitRound(entrantCount) {
       if (entrantCount <= 1) return 0;
       const matchCount = Math.floor(entrantCount / 2);
+      const created = [];
       for (let i = 0; i < matchCount; i += 1) {
         const match = makeMatch({
           id: newMatchId(counter),
@@ -261,7 +271,13 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
           losersBye: false,
         });
         matches.push(match);
+        created.push(match);
         finalMatch = match;
+      }
+      if (created.length > 1 && created.length % 2 === 1) {
+        const byeMatch =
+          created[Math.floor(Math.random() * created.length)];
+        byeMatch.byeToNextRound = true;
       }
       roundNum += 1;
       return matchCount + (entrantCount % 2);
@@ -528,7 +544,8 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
 
   /**
    * Place a losers-bracket winner into the next round's first open slot.
-   * Skips a round only when that round has no open spots.
+   * A two-team bye match (odd match count) skips the next round and fills
+   * the following round. Otherwise skips a round only when it has no open spots.
    * @param {CornholeMatch[]} matches
    * @param {Map<string, CornholeMatch>} byId
    * @param {CornholeMatch} fromMatch
@@ -557,7 +574,10 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
       .sort((a, b) => a.round - b.round || a.matchNumber - b.matchNumber);
 
     const maxRound = lbMatches.reduce((max, m) => Math.max(max, m.round), 0);
-    const startRound = (fromMatch.round || 1) + 1;
+    let startRound = (fromMatch.round || 1) + 1;
+    if (fromMatch.byeToNextRound && !fromMatch.losersBye) {
+      startRound += 1;
+    }
 
     for (let round = startRound; round <= maxRound; round += 1) {
       const roundMatches = lbMatches.filter((m) => m.round === round);
