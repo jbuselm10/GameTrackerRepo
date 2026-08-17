@@ -514,6 +514,8 @@ input[type="checkbox"].gt-saved {
 
 .gt-bracket-bye-note {
   margin: 0;
+  display: block;
+  width: 100%;
   font-size: 0.75rem;
   font-weight: 800;
   color: var(--danger);

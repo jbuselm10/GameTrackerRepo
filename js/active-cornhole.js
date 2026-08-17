@@ -348,9 +348,11 @@
     card.appendChild(titleRow);
 
     card.appendChild(renderTeamRow(match, "team1Id"));
-    card.appendChild(renderTeamRow(match, "team2Id"));
+    if (!(match.losersBye && !match.team2Id)) {
+      card.appendChild(renderTeamRow(match, "team2Id"));
+    }
 
-    if (match.status === STATUSES.COMPLETED && canEditMatch(match)) {
+    if (match.status === STATUSES.COMPLETED && canEditMatch(match) && !match.losersBye) {
       const changeBtn = document.createElement("button");
       changeBtn.type = "button";
       changeBtn.className = "gt-btn-secondary text-xs mt-2";

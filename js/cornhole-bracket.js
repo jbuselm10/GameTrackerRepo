@@ -149,23 +149,18 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
       const roundMatches = [];
       /** @type {{ teamId: string|null, fromMatch: CornholeMatch|null }[]} */
       const advancing = [];
-      /** @type {string|null} */
-      let teamByeId = null;
+      /** @type {{ teamId: string|null, fromMatch: CornholeMatch|null }|null} */
+      let byeEntrant = null;
 
-      if (sources.length % 2 === 1) {
-        const byeIndex = Math.floor(Math.random() * sources.length);
-        const byeEntrant = sources.splice(byeIndex, 1)[0];
-        if (byeEntrant.fromMatch) {
-          byeEntrant.fromMatch.byeToNextRound = true;
-        } else if (byeEntrant.teamId) {
-          teamByeId = byeEntrant.teamId;
-        }
-        advancing.push(byeEntrant);
+      const playing = sources.slice();
+      if (playing.length % 2 === 1) {
+        const byeIndex = Math.floor(Math.random() * playing.length);
+        byeEntrant = playing.splice(byeIndex, 1)[0];
       }
 
-      for (let index = 0; index < sources.length; index += 2) {
-        const left = sources[index];
-        const right = sources[index + 1];
+      for (let index = 0; index < playing.length; index += 2) {
+        const left = playing[index];
+        const right = playing[index + 1];
         const match = makeMatch({
           id: newMatchId(counter),
           round: roundNum,
@@ -188,8 +183,28 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
         advancing.push({ teamId: null, fromMatch: match });
       }
 
-      if (teamByeId && roundMatches[0]) {
-        roundMatches[0].roundByeTeamId = teamByeId;
+      if (byeEntrant) {
+        const byeMatch = makeMatch({
+          id: newMatchId(counter),
+          round: roundNum,
+          matchNumber: roundMatches.length + 1,
+          bracket: SIDES.WINNERS,
+          team1Id: byeEntrant.teamId,
+          team2Id: null,
+          status: STATUSES.PENDING,
+          losersBye: true,
+          byeToNextRound: true,
+        });
+        if (byeEntrant.fromMatch) {
+          byeEntrant.fromMatch.nextMatchId = byeMatch.id;
+          byeEntrant.fromMatch.nextSlot = "team1Id";
+        }
+        roundMatches.push(byeMatch);
+        advancing.push({ teamId: null, fromMatch: byeMatch });
+      } else if (roundMatches.length > 1 && roundMatches.length % 2 === 1) {
+        const byeMatch =
+          roundMatches[Math.floor(Math.random() * roundMatches.length)];
+        byeMatch.byeToNextRound = true;
       }
 
       allRounds.push(roundMatches);
@@ -198,6 +213,12 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
     }
 
     allRounds.forEach((roundMatches) => matches.push(...roundMatches));
+    const byId = indexById(matches);
+    matches.forEach((match) => {
+      if (match.losersBye && (match.team1Id || match.team2Id) && !match.winnerId) {
+        afterLosersSlotFilled(match, byId);
+      }
+    });
     const winnersFinalId = allRounds[allRounds.length - 1][0].id;
     return { matches, winnersFinalId, allRounds };
   }
@@ -239,7 +260,7 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
     }
 
     (winnersRounds || []).forEach((wrRound) => {
-      remaining += (wrRound || []).length;
+      remaining += (wrRound || []).filter((m) => !m.losersBye).length;
       if (remaining > 1) {
         remaining = emitRound(remaining);
       }
@@ -269,7 +290,7 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
     let lbRound = 1;
 
     rounds.forEach((round) => {
-      const dropIns = wr.filter((m) => m.round === round).length;
+      const dropIns = wr.filter((m) => m.round === round && !m.losersBye).length;
       const lbAdvance = remaining;
       remaining += dropIns;
       if (remaining <= 1) {
