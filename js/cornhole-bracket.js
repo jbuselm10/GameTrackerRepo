@@ -241,16 +241,19 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
   }
 
   /**
-   * Build losers-bracket rounds from winners-bracket rounds. Each WR round's
-   * losers drop in together; if that makes an odd count, a WR drop-in gets a
-   * bye instead of adding an extra match.
+   * Build a compact losers bracket: single-elimination of winners-bracket
+   * losers. LB losers are out, so this is fewer rounds than mirroring each
+   * WR round. Odd two-team match counts mark a bye that skips the next LB round.
    * @param {CornholeMatch[][]} winnersRounds
    * @param {{ value: number }} counter
    * @returns {{ matches: CornholeMatch[], finalMatch: CornholeMatch|null }}
    */
   function buildLosersBracketFromWinnersRounds(winnersRounds, counter) {
     const matches = [];
-    let remaining = 0;
+    const loserCount = (winnersRounds || [])
+      .flat()
+      .filter((m) => !m.losersBye).length;
+    let remaining = loserCount;
     let roundNum = 1;
     /** @type {CornholeMatch|null} */
     let finalMatch = null;
@@ -283,66 +286,11 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
       return matchCount + (entrantCount % 2);
     }
 
-    (winnersRounds || []).forEach((wrRound) => {
-      remaining += (wrRound || []).filter((m) => !m.losersBye).length;
-      if (remaining > 1) {
-        remaining = emitRound(remaining);
-      }
-    });
-
     while (remaining > 1) {
       remaining = emitRound(remaining);
     }
 
     return { matches, finalMatch };
-  }
-
-  /**
-   * Per WR round: which LB round those losers drop into, how many play, and
-   * whether a WR team gets a bye (odd count after drop-ins).
-   * @param {CornholeMatch[]} matches
-   * @returns {Map<number, { lbRound: number|null, wrSlots: number, wrByeCount: number, lbAdvance: number, skip: boolean }>}
-   */
-  function buildLosersDropPlan(matches) {
-    const wr = (matches || []).filter(
-      (m) => m.bracket === SIDES.WINNERS && m.active !== false
-    );
-    const rounds = [...new Set(wr.map((m) => m.round))].sort((a, b) => a - b);
-    /** @type {Map<number, { lbRound: number|null, wrSlots: number, wrByeCount: number, lbAdvance: number, skip: boolean }>} */
-    const byWrRound = new Map();
-    let remaining = 0;
-    let lbRound = 1;
-
-    rounds.forEach((round) => {
-      const dropIns = wr.filter((m) => m.round === round && !m.losersBye).length;
-      const lbAdvance = remaining;
-      remaining += dropIns;
-      if (remaining <= 1) {
-        byWrRound.set(round, {
-          lbRound: null,
-          wrSlots: 0,
-          wrByeCount: dropIns,
-          lbAdvance,
-          skip: true,
-        });
-        return;
-      }
-      const matchCount = Math.floor(remaining / 2);
-      const byeCount = remaining % 2;
-      const wrByeCount = byeCount > 0 && dropIns > 0 ? 1 : 0;
-      const wrSlots = Math.max(0, dropIns - wrByeCount);
-      byWrRound.set(round, {
-        lbRound,
-        wrSlots,
-        wrByeCount,
-        lbAdvance,
-        skip: false,
-      });
-      remaining = matchCount + byeCount;
-      lbRound += 1;
-    });
-
-    return byWrRound;
   }
 
   /**
@@ -447,9 +395,10 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
   }
 
   /**
-   * Place a winners-bracket loser into the losers bracket. WR losers drop into
-   * the LB round built for that WR round. If that round is odd, the WR team
-   * gets a bye into the next LB round instead of creating an extra match.
+   * Place a winners-bracket loser into the losers bracket.
+   * Round 1 WR losers fill the lowest LB slots. Later WR losers fill the
+   * highest remaining round that still has WR capacity after reserving
+   * slots for LB winners advancing (LB losers are out).
    * @param {CornholeMatch[]} matches
    * @param {Map<string, CornholeMatch>} byId
    * @param {string} teamId
@@ -471,64 +420,54 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
       .filter((m) => m.bracket === SIDES.LOSERS && m.active !== false)
       .sort((a, b) => a.round - b.round || a.matchNumber - b.matchNumber);
 
-    const plan = buildLosersDropPlan(matches);
-    const entry = plan.get(fromRound || 1);
-    let startRound = lbMatches[0] ? lbMatches[0].round : 1;
-    let asWrDropIn = true;
-    let byeFromRound = null;
-
-    if (entry && !entry.skip) {
-      startRound = entry.lbRound;
-      const targetMatches = lbMatches.filter((m) => m.round === entry.lbRound);
-      const prevMatches = lbMatches.filter((m) => m.round === entry.lbRound - 1);
-      const prevWinnerIds = new Set(
-        prevMatches
-          .filter((m) => m.status === STATUSES.COMPLETED && m.winnerId)
-          .map((m) => m.winnerId)
-      );
-      const { wrFilled } = countLosersRoundFill(targetMatches, prevWinnerIds);
-      if (entry.wrSlots <= 0 || wrFilled >= entry.wrSlots) {
-        asWrDropIn = false;
-        byeFromRound = entry.lbRound;
-        startRound = entry.lbRound + 1;
-      }
-    } else {
-      asWrDropIn = false;
-    }
-
     const rounds = [];
     lbMatches.forEach((m) => {
-      if (!rounds.includes(m.round) && m.round >= startRound) rounds.push(m.round);
+      if (!rounds.includes(m.round)) rounds.push(m.round);
     });
-    rounds.sort((a, b) => a - b);
+    const highestFirst = (fromRound || 1) >= 2;
+    rounds.sort((a, b) => (highestFirst ? b - a : a - b));
 
     for (let r = 0; r < rounds.length; r += 1) {
       const round = rounds[r];
       const roundMatches = lbMatches.filter((m) => m.round === round);
+      const totalSlots = roundMatches.reduce(
+        (n, m) => n + losersMatchSlotCount(m),
+        0
+      );
       const prevMatches = lbMatches.filter((m) => m.round === round - 1);
+      const advanceIn = prevMatches.length;
+      const wrCapacity = Math.max(0, totalSlots - advanceIn);
+      if (wrCapacity <= 0) continue;
+
       const prevWinnerIds = new Set(
         prevMatches
           .filter((m) => m.status === STATUSES.COMPLETED && m.winnerId)
           .map((m) => m.winnerId)
       );
-      const useWrSlot = asWrDropIn && r === 0;
-      const receivesLbAdvance = useWrSlot
-        ? !!(entry && entry.lbAdvance > 0)
-        : round > 1;
+      const { wrFilled, lbAdvanceFilled } = countLosersRoundFill(
+        roundMatches,
+        prevWinnerIds
+      );
+      const lbStillComing = Math.max(0, advanceIn - lbAdvanceFilled);
+      const openSlots = totalSlots - lbAdvanceFilled - wrFilled;
+      const wrSlotsLeft = Math.max(0, wrCapacity - wrFilled);
+      const freeForWr = Math.min(
+        wrSlotsLeft,
+        Math.max(0, openSlots - lbStillComing)
+      );
+      if (freeForWr <= 0) continue;
+
+      const receivesLbAdvance = advanceIn > 0;
       if (
         placeTeamInLosersRound(
           roundMatches,
           byId,
           teamId,
-          useWrSlot,
+          true,
           prevWinnerIds,
           receivesLbAdvance
         )
       ) {
-        if (byeFromRound) {
-          const skipped = lbMatches.find((m) => m.round === byeFromRound);
-          if (skipped && !skipped.roundByeTeamId) skipped.roundByeTeamId = teamId;
-        }
         return;
       }
     }
@@ -616,9 +555,8 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
   }
 
   /**
-   * Double elimination: losers drop in by winners-bracket round. An odd drop-in
-   * count gives the WR team a bye in the losers bracket instead of extra matches.
-   * Losers-bracket winners advance normally to the championship.
+   * Double elimination: compact losers bracket (LB losers are out). WR losers
+   * fill that playdown; the LB winner goes to the championship.
    * @param {CornholeMatch[]} winnersMatches
    * @param {CornholeMatch[][]} winnersRounds
    * @param {string} winnersFinalId
