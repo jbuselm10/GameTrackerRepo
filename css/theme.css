@@ -498,11 +498,26 @@ input[type="checkbox"].gt-saved {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 }
 
+.gt-bracket-match-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.5rem;
+  margin-bottom: 0.45rem;
+}
+
 .gt-bracket-match-title {
   font-size: 0.75rem;
   font-weight: 800;
   color: var(--ink-muted);
-  margin-bottom: 0.45rem;
+}
+
+.gt-bracket-bye-note {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--danger);
+  line-height: 1.3;
 }
 
 .gt-bracket-team {

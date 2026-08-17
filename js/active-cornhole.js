@@ -320,6 +320,9 @@
     card.className = "gt-bracket-match";
     if (match.active === false) card.classList.add("hidden");
 
+    const titleRow = document.createElement("div");
+    titleRow.className = "gt-bracket-match-heading";
+
     const title = document.createElement("div");
     title.className = "gt-bracket-match-title";
     let sideLabel = "Match";
@@ -333,10 +336,16 @@
           ? "Championship — Game 1"
           : match.bracket === SIDES.GRAND_FINAL_RESET
             ? "Game 2"
-            : match.byeToNextRound
-              ? `${sideLabel} ${match.matchNumber} · Round ${match.round} — Winner gets bye next round`
-              : `${sideLabel} ${match.matchNumber} · Round ${match.round}`;
-    card.appendChild(title);
+            : `${sideLabel} ${match.matchNumber} · Round ${match.round}`;
+    titleRow.appendChild(title);
+
+    if (match.byeToNextRound) {
+      const byeNote = document.createElement("span");
+      byeNote.className = "gt-bracket-bye-note";
+      byeNote.textContent = "This match was selected for next round bye";
+      titleRow.appendChild(byeNote);
+    }
+    card.appendChild(titleRow);
 
     card.appendChild(renderTeamRow(match, "team1Id"));
     card.appendChild(renderTeamRow(match, "team2Id"));
