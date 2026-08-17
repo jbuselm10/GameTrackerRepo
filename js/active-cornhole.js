@@ -237,21 +237,7 @@
       return "Eliminated";
     }
     if (match.bracket === SIDES.GRAND_FINAL_RESET) return "Eliminated";
-    if (match.bracket === SIDES.WINNERS) {
-      if (match.loserNextMatchId) return "To losers bracket";
-      const wrFinal = (tournament.matches || []).find(
-        (m) =>
-          m.bracket === SIDES.WINNERS &&
-          m.nextMatchId &&
-          (tournament.matches || []).some(
-            (g) => g.id === m.nextMatchId && g.bracket === SIDES.GRAND_FINAL
-          )
-      );
-      if (match.round === 1 && wrFinal && match.round !== wrFinal.round) {
-        return "To losers bracket";
-      }
-      return "Eliminated";
-    }
+    if (match.loserNextMatchId) return "To losers bracket";
     return GameTracker.Cornhole.isEliminated(tournament.matches, teamId, tournament.type)
       ? "Eliminated"
       : "To losers bracket";
