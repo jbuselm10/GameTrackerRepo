@@ -154,8 +154,16 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
 
       const playing = sources.slice();
       if (playing.length % 2 === 1) {
-        const byeIndex = Math.floor(Math.random() * playing.length);
+        let byeIndex = playing.findIndex(
+          (entrant) => entrant.fromMatch && entrant.fromMatch.byeToNextRound
+        );
+        if (byeIndex < 0) {
+          byeIndex = Math.floor(Math.random() * playing.length);
+        }
         byeEntrant = playing.splice(byeIndex, 1)[0];
+        if (byeEntrant.fromMatch) {
+          byeEntrant.fromMatch.byeToNextRound = true;
+        }
       }
 
       for (let index = 0; index < playing.length; index += 2) {
