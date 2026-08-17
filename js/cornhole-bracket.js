@@ -273,17 +273,18 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
   }
 
   /**
-   * Place a winners-bracket loser into the highest losers-bracket round that
-   * still has WR drop-in capacity after reserving slots for LB winners who will
-   * advance into that round. Example: LB R1 has 2 matches → those winners go to
-   * R2, so WR drop-ins fill R2's open WR slots (then lower rounds). In rounds
-   * that also receive LB winners, at most one WR drop-in per match (team2).
-   * If no LB slots remain, place on grand final team2.
+   * Place a winners-bracket loser into a losers-bracket WR drop-in slot.
+   * Round 1 WR losers fill the lowest LB round with WR capacity. Later WR
+   * losers fill the highest remaining round after reserving slots for LB
+   * winners who will advance into that round. In rounds that also receive LB
+   * winners, at most one WR drop-in per match (team2). If no LB slots remain,
+   * place on grand final team2.
    * @param {CornholeMatch[]} matches
    * @param {Map<string, CornholeMatch>} byId
    * @param {string} teamId
+   * @param {number} [fromRound]
    */
-  function placeInHighestLosersSlot(matches, byId, teamId) {
+  function placeInHighestLosersSlot(matches, byId, teamId, fromRound) {
     if (!teamId) return;
 
     const alreadyPlaced = matches.some(
@@ -303,7 +304,8 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
     lbMatches.forEach((m) => {
       if (!rounds.includes(m.round)) rounds.push(m.round);
     });
-    rounds.sort((a, b) => b - a);
+    const highestFirst = (fromRound || 1) >= 2;
+    rounds.sort((a, b) => (highestFirst ? b - a : a - b));
 
     for (let r = 0; r < rounds.length; r += 1) {
       const round = rounds[r];
@@ -458,9 +460,9 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
   }
 
   /**
-   * Double elimination: losers from the winners bracket fill the highest open
-   * losers-bracket WR slots (after reserving room for LB winners to advance).
-   * Losers-bracket winners advance normally to the grand final.
+   * Double elimination: round 1 WR losers fill the lowest LB WR slots; later
+   * WR losers fill the highest remaining WR slots after reserving room for LB
+   * winners to advance. Losers-bracket winners advance normally to the grand final.
    * @param {CornholeMatch[]} winnersMatches
    * @param {CornholeMatch[][]} winnersRounds
    * @param {string} winnersFinalId
@@ -781,7 +783,7 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
       inferType(next) === TYPES.DOUBLE_ELIMINATION
     ) {
       advanceWithSlot(byId, match, winnerId, false);
-      placeInHighestLosersSlot(next, byId, loserId);
+      placeInHighestLosersSlot(next, byId, loserId, match.round);
     } else {
       advanceWithSlot(byId, match, winnerId, false);
       advanceWithSlot(byId, match, loserId, true);
@@ -941,7 +943,7 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
       )
       .sort((a, b) => a.round - b.round || a.matchNumber - b.matchNumber)
       .forEach((m) => {
-        placeInHighestLosersSlot(matches, byId, m.loserId);
+        placeInHighestLosersSlot(matches, byId, m.loserId, m.round);
       });
 
     if (gf) {
