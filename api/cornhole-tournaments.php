@@ -245,6 +245,10 @@ function normalizeCornholeMatches($value): array
             'thirdPlaceSlot' => $thirdPlaceSlot,
             'losersBye' => !empty($row['losersBye']),
             'byeToNextRound' => !empty($row['byeToNextRound']),
+            'wrLosersPair' => !empty($row['wrLosersPair']),
+            'wrLosersPairMinRound' => isset($row['wrLosersPairMinRound']) && $row['wrLosersPairMinRound'] !== null && $row['wrLosersPairMinRound'] !== ''
+                ? (int) $row['wrLosersPairMinRound']
+                : null,
             'roundByeTeamId' => nullableString($row['roundByeTeamId'] ?? null),
         ];
     }

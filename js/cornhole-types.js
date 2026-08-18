@@ -34,6 +34,8 @@
  * @property {string|null} [thirdPlaceSlot]
  * @property {boolean} [losersBye]
  * @property {boolean} [byeToNextRound]
+ * @property {boolean} [wrLosersPair]
+ * @property {number|null} [wrLosersPairMinRound]
  * @property {string|null} [roundByeTeamId]
  * @property {CornholeMatchStatus} status
  * @property {boolean} [active]
