@@ -587,6 +587,19 @@ input[type="checkbox"].gt-saved {
   font-size: 1rem;
 }
 
+.gt-champion-callout {
+  margin: 0.35rem 0 0;
+  padding: 0.5rem 0.75rem;
+  max-width: 18rem;
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 1.85rem;
+  font-weight: 800;
+  line-height: 1.2;
+  color: var(--gold);
+  text-shadow: 0 1px 0 var(--wood-deep);
+  align-self: center;
+}
+
 .gt-standings-banner {
   background: linear-gradient(180deg, #f7f1e4, #efe4cf);
   border: 1px solid var(--wood-muted, #a8893a);

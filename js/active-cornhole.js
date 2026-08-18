@@ -15,6 +15,7 @@
   const losersBracket = document.getElementById("losers-bracket");
   const finalsSection = document.getElementById("finals-section");
   const grandFinalBracket = document.getElementById("grand-final-bracket");
+  const grandFinalRow = document.getElementById("grand-final-row");
   const resetNote = document.getElementById("reset-note");
   const resetBracket = document.getElementById("reset-bracket");
   const thirdPlaceSection = document.getElementById("third-place-section");
@@ -364,6 +365,17 @@
     return card;
   }
 
+  function appendChampionCallout(container) {
+    if (!container || !tournament) return;
+    container.querySelectorAll(".gt-champion-callout").forEach((el) => el.remove());
+    const champion = GameTracker.Cornhole.championId(tournament.matches || []);
+    if (!champion) return;
+    const el = document.createElement("p");
+    el.className = "gt-champion-callout";
+    el.textContent = `${teamLabel(champion)} IS THE CHAMPION !!`;
+    container.appendChild(el);
+  }
+
   function renderRounds(container, matches, options = {}) {
     if (!container) return;
     const hideRoundTitles = !!options.hideRoundTitles;
@@ -495,6 +507,9 @@
     const thirdPlace = matches.filter((m) => m.bracket === SIDES.THIRD_PLACE);
 
     renderRounds(winnersBracket, winners);
+    if (tournament.type !== TYPES.DOUBLE_ELIMINATION) {
+      appendChampionCallout(winnersBracket);
+    }
 
     if (tournament.type === TYPES.DOUBLE_ELIMINATION) {
       losersSection?.classList.remove("hidden");
@@ -506,6 +521,7 @@
       } else {
         if (resetBracket) resetBracket.innerHTML = "";
       }
+      appendChampionCallout(grandFinalRow);
       resetNote?.classList.add("hidden");
     } else {
       losersSection?.classList.add("hidden");
