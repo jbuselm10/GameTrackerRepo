@@ -372,7 +372,7 @@
     if (!champion) return;
     const el = document.createElement("p");
     el.className = "gt-champion-callout";
-    el.textContent = `${teamLabel(champion)} IS THE CHAMPION !!`;
+    el.textContent = `${teamLabel(champion)} ARE THE CHAMPIONS !!`;
     container.appendChild(el);
   }
 

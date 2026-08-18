@@ -592,11 +592,10 @@ input[type="checkbox"].gt-saved {
   padding: 0.5rem 0.75rem;
   max-width: 18rem;
   font-family: "Fraunces", Georgia, serif;
-  font-size: 1.85rem;
+  font-size: 1.15rem;
   font-weight: 800;
-  line-height: 1.2;
-  color: var(--gold);
-  text-shadow: 0 1px 0 var(--wood-deep);
+  line-height: 1.25;
+  color: var(--danger);
   align-self: center;
 }
 

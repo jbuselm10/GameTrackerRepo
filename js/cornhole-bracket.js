@@ -274,10 +274,25 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
         created.push(match);
         finalMatch = match;
       }
-      if (created.length > 1 && created.length % 2 === 1) {
-        const byeMatch =
+      if (entrantCount % 2 === 1) {
+        const byeMatch = makeMatch({
+          id: newMatchId(counter),
+          round: roundNum,
+          matchNumber: created.length + 1,
+          bracket: SIDES.LOSERS,
+          team1Id: null,
+          team2Id: null,
+          status: STATUSES.PENDING,
+          losersBye: true,
+          byeToNextRound: true,
+        });
+        matches.push(byeMatch);
+        created.push(byeMatch);
+        finalMatch = byeMatch;
+      } else if (matchCount > 1 && matchCount % 2 === 1) {
+        const skipMatch =
           created[Math.floor(Math.random() * created.length)];
-        byeMatch.byeToNextRound = true;
+        skipMatch.byeToNextRound = true;
       }
       roundNum += 1;
       return matchCount + (entrantCount % 2);
@@ -364,7 +379,7 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
       // those winners instead of occupying a match by themselves.
       for (let i = 0; i < roundMatches.length; i += 1) {
         const match = roundMatches[i];
-        if (match.status === STATUSES.COMPLETED) continue;
+        if (match.status === STATUSES.COMPLETED || match.losersBye) continue;
         const hasWr = [match.team1Id, match.team2Id].some(
           (id) => id && !prevWinnerIds.has(id)
         );
@@ -378,7 +393,7 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
       }
       for (let i = 0; i < roundMatches.length; i += 1) {
         const match = roundMatches[i];
-        if (match.status === STATUSES.COMPLETED) continue;
+        if (match.status === STATUSES.COMPLETED || match.losersBye) continue;
         const hasWr = [match.team1Id, match.team2Id].some(
           (id) => id && !prevWinnerIds.has(id)
         );
@@ -399,7 +414,7 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
 
     for (let i = 0; i < roundMatches.length; i += 1) {
       const match = roundMatches[i];
-      if (match.status === STATUSES.COMPLETED) continue;
+      if (match.status === STATUSES.COMPLETED || match.losersBye) continue;
       if (!match.team1Id) {
         match.team1Id = teamId;
         afterLosersSlotFilled(match, byId);
@@ -418,7 +433,8 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
    * Place a winners-bracket loser into the losers bracket.
    * Round 1 WR losers fill the lowest LB slots. Later WR losers drop into the
    * earliest round that still has WR slots opposite LB winners (they play
-   * those LB winners, not each other).
+   * those LB winners, not each other). If that WR round had a selected bye
+   * match, that match's loser gets the LB bye and skips to the next round.
    * @param {CornholeMatch[]} matches
    * @param {Map<string, CornholeMatch>} byId
    * @param {string} teamId
@@ -435,6 +451,20 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
         (m.team1Id === teamId || m.team2Id === teamId)
     );
     if (alreadyPlaced) return;
+
+    const wrLoss = (matches || []).find(
+      (m) =>
+        m.bracket === SIDES.WINNERS &&
+        m.active !== false &&
+        m.round === (fromRound || 1) &&
+        m.status === STATUSES.COMPLETED &&
+        m.loserId === teamId
+    );
+    const isWrByeLoser = !!(
+      wrLoss &&
+      wrLoss.byeToNextRound &&
+      !wrLoss.losersBye
+    );
 
     const lbMatches = matches
       .filter((m) => m.bracket === SIDES.LOSERS && m.active !== false)
@@ -458,6 +488,24 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
       const wrCapacity = Math.max(0, totalSlots - advanceIn);
       if (wrCapacity <= 0) continue;
       if ((fromRound || 1) >= 2 && advanceIn === 0) continue;
+
+      if (isWrByeLoser) {
+        const byeMatch = roundMatches.find(
+          (m) =>
+            m.losersBye &&
+            m.status !== STATUSES.COMPLETED &&
+            !m.team1Id &&
+            !m.team2Id
+        );
+        if (byeMatch) {
+          byeMatch.team1Id = teamId;
+          byeMatch.roundByeTeamId = teamId;
+          afterLosersSlotFilled(byeMatch, byId);
+          placeInNextLosersRound(matches, byId, byeMatch, teamId);
+          return;
+        }
+        continue;
+      }
 
       const prevWinnerIds = new Set(
         prevMatches
@@ -534,7 +582,7 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
 
     const maxRound = lbMatches.reduce((max, m) => Math.max(max, m.round), 0);
     let startRound = (fromMatch.round || 1) + 1;
-    if (fromMatch.byeToNextRound && !fromMatch.losersBye) {
+    if (fromMatch.byeToNextRound) {
       startRound += 1;
     }
 
