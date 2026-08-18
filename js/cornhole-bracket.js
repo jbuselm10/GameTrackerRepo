@@ -242,8 +242,9 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
 
   /**
    * Build losers-bracket rounds from winners-bracket drop-ins. Each WR round's
-   * losers join the LB winners already there, so a team is out only after two
-   * losses. Odd two-team match counts mark a bye that skips the next LB round.
+   * losers join the LB winners already there. A team that loses in the losers
+   * bracket is eliminated (that is their second loss). Odd two-team match
+   * counts mark a bye that skips the next LB round.
    * @param {CornholeMatch[][]} winnersRounds
    * @param {{ value: number }} counter
    * @returns {{ matches: CornholeMatch[], finalMatch: CornholeMatch|null }}
@@ -318,8 +319,8 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
   }
 
   /**
-   * Slot capacity for a losers-bracket match (bye matches only need one team).
    * @param {CornholeMatch} match
+   * @returns {number}
    */
   function losersMatchSlotCount(match) {
     return match.losersBye ? 1 : 2;
@@ -585,8 +586,8 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
 
   /**
    * Double elimination: WR losers drop into the losers bracket by round and
-   * play LB winners. A team is out only after two losses. The LB champion
-   * goes to the championship.
+   * play LB winners. A loss in the losers bracket is elimination. The LB
+   * champion goes to the championship.
    * @param {CornholeMatch[]} winnersMatches
    * @param {CornholeMatch[][]} winnersRounds
    * @param {string} winnersFinalId
