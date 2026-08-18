@@ -567,7 +567,20 @@
     placeholder.className = "gt-option-placeholder";
     select.appendChild(placeholder);
 
-    players.forEach((player) => {
+    function byPlayerName(a, b) {
+      return playerLabel(a).localeCompare(playerLabel(b), undefined, {
+        sensitivity: "base",
+      });
+    }
+
+    const unassigned = players
+      .filter((player) => !takenIds.has(String(player.id)))
+      .sort(byPlayerName);
+    const assigned = players
+      .filter((player) => takenIds.has(String(player.id)))
+      .sort(byPlayerName);
+
+    [...unassigned, ...assigned].forEach((player) => {
       const id = String(player.id);
       const option = document.createElement("option");
       option.value = id;
