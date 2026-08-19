@@ -318,6 +318,20 @@
   }
 
   /**
+   * @param {string} playerId
+   * @returns {{ teamIndex: number, slot: "player1"|"player2" }|null}
+   */
+  function findPlayerAssignment(playerId) {
+    if (!playerId) return null;
+    for (let i = 0; i < teamAssignments.length; i += 1) {
+      const team = teamAssignments[i];
+      if (team.player1Id === playerId) return { teamIndex: i, slot: "player1" };
+      if (team.player2Id === playerId) return { teamIndex: i, slot: "player2" };
+    }
+    return null;
+  }
+
+  /**
    * @returns {Set<string>}
    */
   function selectedPlayerIds() {
@@ -587,7 +601,6 @@
       const takenElsewhere = id !== selectedId && takenIds.has(id);
       if (takenElsewhere) {
         option.textContent = `${playerLabel(player)} (assigned)`;
-        option.disabled = true;
         option.className = "gt-option-taken";
       } else {
         option.textContent = playerLabel(player);
@@ -635,10 +648,12 @@
     teamAssignments = next;
   }
 
-  function renderTeams() {
+  function renderTeams(options = {}) {
     if (!teamsList) return;
 
-    readAssignmentsFromDom();
+    if (!options.fromMemory) {
+      readAssignmentsFromDom();
+    }
 
     if (teamCount === null) {
       teamsList.innerHTML = "";
@@ -685,19 +700,57 @@
 
         select.addEventListener("change", () => {
           const chosen = String(select.value || "");
-          if (chosen) {
-            const takenNow = selectedPlayerIds();
-            const prior =
-              slot === "player1" ? assignment.player1Id : assignment.player2Id;
-            if (chosen !== prior && takenNow.has(chosen)) {
-              select.value = prior || "";
-              return;
-            }
+          const prior =
+            slot === "player1" ? assignment.player1Id : assignment.player2Id;
+
+          function applyChange() {
+            readAssignmentsFromDom();
+            renderTeams();
+            syncSetupStatus();
+            syncDirtyUI();
           }
-          readAssignmentsFromDom();
-          renderTeams();
-          syncSetupStatus();
-          syncDirtyUI();
+
+          if (!chosen || chosen === prior) {
+            applyChange();
+            return;
+          }
+
+          const existing = findPlayerAssignment(chosen);
+          if (
+            !existing ||
+            (existing.teamIndex === i && existing.slot === slot)
+          ) {
+            applyChange();
+            return;
+          }
+
+          select.value = prior || "";
+          select.classList.toggle("gt-select-empty", !select.value);
+          const name = playerNameById(chosen) || "That player";
+          GameTracker.confirmModal({
+            message: `${name} is already assigned to Team ${existing.teamIndex + 1}.`,
+            confirmLabel: "Move Player",
+            cancelLabel: "Return",
+            onConfirm: () => {
+              const from = teamAssignments[existing.teamIndex];
+              if (from) {
+                if (from.player1Id === chosen) from.player1Id = "";
+                if (from.player2Id === chosen) from.player2Id = "";
+              }
+              const dest = teamAssignments[i];
+              if (dest) {
+                if (slot === "player1") dest.player1Id = chosen;
+                else dest.player2Id = chosen;
+              }
+              renderTeams({ fromMemory: true });
+              syncSetupStatus();
+              syncDirtyUI();
+            },
+            onCancel: () => {
+              select.value = prior || "";
+              select.classList.toggle("gt-select-empty", !select.value);
+            },
+          });
         });
 
         field.append(label, select);

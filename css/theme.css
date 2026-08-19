@@ -595,7 +595,7 @@ input[type="checkbox"].gt-saved {
   font-size: 1.15rem;
   font-weight: 800;
   line-height: 1.25;
-  color: var(--ink);
+  color: var(--gold-soft);
   align-self: center;
 }
 
