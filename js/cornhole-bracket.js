@@ -128,6 +128,103 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
   }
 
   /**
+   * @param {{ teamId: string|null, fromMatch: CornholeMatch|null }} entrant
+   * @returns {boolean}
+   */
+  function entrantHadPriorTeamBye(entrant) {
+    return !!(entrant.fromMatch && entrant.fromMatch.losersBye);
+  }
+
+  /**
+   * @param {CornholeMatch|null|undefined} match
+   * @param {Set<string>} teamByeRecipients
+   * @returns {boolean}
+   */
+  function matchHasTeamByeRecipient(match, teamByeRecipients) {
+    if (!match || match.losersBye) return false;
+    return (
+      !!(match.team1Id && teamByeRecipients.has(match.team1Id)) ||
+      !!(match.team2Id && teamByeRecipients.has(match.team2Id))
+    );
+  }
+
+  /**
+   * Pick a one-team bye entrant: never repeat a prior team bye; from round 3
+   * onward prefer entrants fed by the previous round's two-team matches.
+   * @param {{ teamId: string|null, fromMatch: CornholeMatch|null }[]} playing
+   * @param {number} roundNum
+   * @param {Set<string>} teamByeRecipients
+   * @returns {{ byeEntrant: { teamId: string|null, fromMatch: CornholeMatch|null }|null, playing: typeof playing }}
+   */
+  function pickTeamByeEntrant(playing, roundNum, teamByeRecipients) {
+    if (playing.length % 2 === 0) {
+      return { byeEntrant: null, playing };
+    }
+
+    let candidates = playing.filter((e) => {
+      if (e.teamId && teamByeRecipients.has(e.teamId)) return false;
+      if (entrantHadPriorTeamBye(e)) return false;
+      return true;
+    });
+    if (roundNum >= 3) {
+      const prevRoundWinners = candidates.filter(
+        (e) =>
+          e.fromMatch &&
+          e.fromMatch.round === roundNum - 1 &&
+          !e.fromMatch.losersBye &&
+          !matchHasTeamByeRecipient(e.fromMatch, teamByeRecipients)
+      );
+      if (prevRoundWinners.length > 0) candidates = prevRoundWinners;
+    }
+    if (candidates.length === 0) {
+      candidates = playing.filter((e) => {
+        if (e.teamId && teamByeRecipients.has(e.teamId)) return false;
+        if (entrantHadPriorTeamBye(e)) return false;
+        return true;
+      });
+    }
+    if (candidates.length === 0) candidates = playing.slice();
+
+    const pick = candidates[Math.floor(Math.random() * candidates.length)];
+    const idx = playing.indexOf(pick);
+    const next = playing.slice();
+    const byeEntrant = next.splice(idx, 1)[0];
+    return { byeEntrant, playing: next };
+  }
+
+  /**
+   * @param {CornholeMatch[]} matches
+   * @param {string} teamId
+   * @param {number} beforeRound
+   * @returns {boolean}
+   */
+  function teamHadPriorTeamBye(matches, teamId, beforeRound) {
+    return (matches || []).some(
+      (m) =>
+        m.losersBye &&
+        m.active !== false &&
+        m.round < beforeRound &&
+        (m.team1Id === teamId || m.team2Id === teamId) &&
+        (m.bracket === SIDES.LOSERS || m.bracket === SIDES.WINNERS)
+    );
+  }
+
+  /**
+   * @param {CornholeMatch} match
+   * @param {number} round
+   * @param {CornholeMatch} fromMatch
+   * @param {string} teamId
+   * @param {CornholeMatch[]} matches
+   * @returns {boolean}
+   */
+  function canFillLosersTeamBye(match, round, fromMatch, teamId, matches) {
+    if (!match.losersBye) return true;
+    if (teamHadPriorTeamBye(matches, teamId, round)) return false;
+    if (round >= 3 && fromMatch.round !== round - 1) return false;
+    return true;
+  }
+
+  /**
    * Entry-order winners bracket.
    * Odd number of entrants → a randomly chosen entrant gets a one-team bye
    * match and plays in the next round only. When round 1 also has that team
@@ -147,6 +244,8 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
       fromMatch: null,
     }));
     let roundNum = 1;
+    /** @type {Set<string>} */
+    const teamByeRecipients = new Set();
 
     while (entrants.length > 1) {
       const sources = entrants.slice();
@@ -173,8 +272,10 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
       });
 
       if (playing.length % 2 === 1) {
-        const byeIndex = Math.floor(Math.random() * playing.length);
-        byeEntrant = playing.splice(byeIndex, 1)[0];
+        const picked = pickTeamByeEntrant(playing, roundNum, teamByeRecipients);
+        byeEntrant = picked.byeEntrant;
+        playing.length = 0;
+        playing.push(...picked.playing);
       }
 
       skipThisRound.forEach((entrant) => advancing.push(entrant));
@@ -205,6 +306,7 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
       }
 
       if (byeEntrant) {
+        if (byeEntrant.teamId) teamByeRecipients.add(byeEntrant.teamId);
         const byeMatch = makeMatch({
           id: newMatchId(counter),
           round: roundNum,
@@ -221,14 +323,13 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
           byeEntrant.fromMatch.nextSlot = "team1Id";
         }
         roundMatches.push(byeMatch);
-        advancing.push({ teamId: null, fromMatch: byeMatch });
+        advancing.push({ teamId: byeEntrant.teamId, fromMatch: byeMatch });
       }
 
       const twoTeamMatches = roundMatches.filter((m) => !m.losersBye);
-      const needMatchBye =
-        roundNum === 1 && byeEntrant
-          ? twoTeamMatches.length > 0
-          : twoTeamMatches.length > 1 && twoTeamMatches.length % 2 === 1;
+      const needMatchBye = byeEntrant
+        ? twoTeamMatches.length > 0
+        : twoTeamMatches.length > 1 && twoTeamMatches.length % 2 === 1;
       if (needMatchBye) {
         const skipMatch =
           twoTeamMatches[Math.floor(Math.random() * twoTeamMatches.length)];
@@ -693,10 +794,24 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
       const leaveTeam2ForWr = wrCapacity > 0;
 
       let placed = false;
-      for (let i = 0; i < roundMatches.length; i += 1) {
-        const match = roundMatches[i];
-        if (match.wrLosersPair) continue;
+      const playable = roundMatches.filter((m) => !m.wrLosersPair);
+      const ordered =
+        round >= 3
+          ? [
+              ...playable.filter((m) => !m.losersBye),
+              ...playable.filter((m) => m.losersBye),
+            ]
+          : playable;
+
+      for (let i = 0; i < ordered.length; i += 1) {
+        const match = ordered[i];
         if (match.status === STATUSES.COMPLETED) continue;
+        if (
+          match.losersBye &&
+          !canFillLosersTeamBye(match, round, fromMatch, teamId, matches)
+        ) {
+          continue;
+        }
         if (!match.team1Id) {
           match.team1Id = teamId;
           afterLosersSlotFilled(match, byId);
