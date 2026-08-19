@@ -129,8 +129,10 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
 
   /**
    * Entry-order winners bracket.
-   * Even number of entrants in a round → everyone plays (no byes).
-   * Odd number → a randomly chosen entrant gets a bye into the next round.
+   * Odd number of entrants → a randomly chosen entrant gets a one-team bye
+   * match and plays in the next round only. When round 1 also has that team
+   * bye, one of the real two-team matches is randomly marked to skip the
+   * following round. Otherwise an odd count of two-team matches gets one skip.
    * @param {CornholeTeam[]} teams
    * @param {{ value: number }} counter
    */
@@ -212,7 +214,7 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
           team2Id: null,
           status: STATUSES.PENDING,
           losersBye: true,
-          byeToNextRound: true,
+          byeToNextRound: false,
         });
         if (byeEntrant.fromMatch) {
           byeEntrant.fromMatch.nextMatchId = byeMatch.id;
@@ -220,10 +222,17 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
         }
         roundMatches.push(byeMatch);
         advancing.push({ teamId: null, fromMatch: byeMatch });
-      } else if (roundMatches.length > 1 && roundMatches.length % 2 === 1) {
-        const byeMatch =
-          roundMatches[Math.floor(Math.random() * roundMatches.length)];
-        byeMatch.byeToNextRound = true;
+      }
+
+      const twoTeamMatches = roundMatches.filter((m) => !m.losersBye);
+      const needMatchBye =
+        roundNum === 1 && byeEntrant
+          ? twoTeamMatches.length > 0
+          : twoTeamMatches.length > 1 && twoTeamMatches.length % 2 === 1;
+      if (needMatchBye) {
+        const skipMatch =
+          twoTeamMatches[Math.floor(Math.random() * twoTeamMatches.length)];
+        skipMatch.byeToNextRound = true;
       }
 
       allRounds.push(roundMatches);
@@ -256,8 +265,9 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
    * losers join the LB winners already there, except when two consecutive WR
    * rounds each have one real loser: those two share one reserved LB match
    * and leftover LB players play down after it. A team that loses in the
-   * losers bracket is eliminated. Odd two-team match counts mark a bye that
-   * skips the next LB round.
+   * losers bracket is eliminated. Odd team counts in a round add a one-team
+   * bye (play the next round only) and randomly mark one two-team match to
+   * skip the following round.
    * @param {CornholeMatch[][]} winnersRounds
    * @param {{ value: number }} counter
    * @returns {{ matches: CornholeMatch[], finalMatch: CornholeMatch|null }}
@@ -272,14 +282,36 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
     let reservedPairMatch = null;
 
     function emitRound(entrantCount) {
-      if (entrantCount <= 1) return 0;
-      const matchCount = Math.floor(entrantCount / 2);
+      if (entrantCount <= 1) return entrantCount;
+
       const created = [];
+      let twoTeamEntrants = entrantCount;
+      let hadTeamBye = false;
+
+      if (twoTeamEntrants % 2 === 1) {
+        hadTeamBye = true;
+        const byeMatch = makeMatch({
+          id: newMatchId(counter),
+          round: roundNum,
+          matchNumber: created.length + 1,
+          bracket: SIDES.LOSERS,
+          team1Id: null,
+          team2Id: null,
+          status: STATUSES.PENDING,
+          losersBye: true,
+          byeToNextRound: false,
+        });
+        matches.push(byeMatch);
+        created.push(byeMatch);
+        twoTeamEntrants -= 1;
+      }
+
+      const matchCount = Math.floor(twoTeamEntrants / 2);
       for (let i = 0; i < matchCount; i += 1) {
         const match = makeMatch({
           id: newMatchId(counter),
           round: roundNum,
-          matchNumber: i + 1,
+          matchNumber: created.length + 1,
           bracket: SIDES.LOSERS,
           team1Id: null,
           team2Id: null,
@@ -290,13 +322,20 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
         created.push(match);
         finalMatch = match;
       }
-      if (created.length > 1 && created.length % 2 === 1) {
-        const byeMatch =
-          created[Math.floor(Math.random() * created.length)];
-        byeMatch.byeToNextRound = true;
+
+      const twoTeamMatches = created.filter((m) => !m.losersBye);
+      const needMatchBye =
+        hadTeamBye
+          ? twoTeamMatches.length > 0
+          : twoTeamMatches.length > 1 && twoTeamMatches.length % 2 === 1;
+      if (needMatchBye) {
+        const skipMatch =
+          twoTeamMatches[Math.floor(Math.random() * twoTeamMatches.length)];
+        skipMatch.byeToNextRound = true;
       }
+
       roundNum += 1;
-      return matchCount + (entrantCount % 2);
+      return matchCount + (hadTeamBye ? 1 : 0);
     }
 
     const rounds = winnersRounds || [];
