@@ -290,7 +290,17 @@
       row.classList.add("gt-bracket-team-winner");
       const badge = document.createElement("span");
       badge.className = "gt-bracket-badge";
-      badge.textContent = "Winner";
+      const dest = match.nextMatchId
+        ? (tournament.matches || []).find((m) => m.id === match.nextMatchId)
+        : null;
+      badge.textContent =
+        dest && dest.bracket === SIDES.LOSERS && dest.round > match.round
+          ? `Winner · to Round ${dest.round}`
+          : dest &&
+              (dest.bracket === SIDES.GRAND_FINAL ||
+                dest.bracket === SIDES.GRAND_FINAL_RESET)
+            ? "Winner · to Championship"
+            : "Winner";
       actions.appendChild(badge);
     } else if (match.status === STATUSES.COMPLETED && match.loserId === teamId) {
       row.classList.add("gt-bracket-team-out");

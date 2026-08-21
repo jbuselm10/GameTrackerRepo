@@ -481,47 +481,32 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
     }
 
     const rounds = winnersRounds || [];
+    /** @type {{ feeders: CornholeMatch[], minRound: number }|null} */
+    let pendingPair = null;
+
     for (let i = 0; i < rounds.length; i += 1) {
       const dropIns = wrDropInCount(rounds[i]);
       const nextDropIns =
         i + 1 < rounds.length ? wrDropInCount(rounds[i + 1]) : 0;
       // Only the last two WR rounds may share a reserved pair (e.g. R3+R4 on
       // 7/10 teams). Mid-bracket singles like R2+R3 on 7 teams must drop in
-      // against LB winners instead.
+      // against LB winners instead. Create the pair only after earlier LB
+      // rounds have played down, so its winner advances into the next round
+      // instead of skipping over a parallel playdown column.
       const isLastSinglePair =
         dropIns === 1 &&
         nextDropIns === 1 &&
         i + 1 === rounds.length - 1;
 
       if (isLastSinglePair) {
-        absorbDeferredSkippers();
         const firstReal =
           (rounds[i] || []).find((m) => !m.losersBye) || (rounds[i] || [])[0];
-        const reserved = makeMatch({
-          id: newMatchId(counter),
-          round: roundNum,
-          matchNumber: 1,
-          bracket: SIDES.LOSERS,
-          team1Id: null,
-          team2Id: null,
-          status: STATUSES.PENDING,
-          losersBye: false,
-          wrLosersPair: true,
-          wrLosersPairMinRound: firstReal ? firstReal.round : roundNum,
-        });
-        matches.push(reserved);
-        reservedPairMatch = reserved;
-        finalMatch = reserved;
-        roundNum += 1;
-
-        const pairFeeders = [rounds[i], rounds[i + 1]]
-          .flat()
-          .filter((m) => !m.losersBye);
-        pairFeeders.forEach((m, index) => {
-          m.loserNextMatchId = reserved.id;
-          m.loserNextSlot = index === 0 ? "team1Id" : "team2Id";
-        });
-
+        pendingPair = {
+          feeders: [rounds[i], rounds[i + 1]]
+            .flat()
+            .filter((m) => !m.losersBye),
+          minRound: firstReal ? firstReal.round : roundNum,
+        };
         i += 1;
         continue;
       }
@@ -535,7 +520,29 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
 
     drainUntilOneOrNone();
 
-    if (reservedPairMatch) {
+    if (pendingPair) {
+      const reserved = makeMatch({
+        id: newMatchId(counter),
+        round: roundNum,
+        matchNumber: 1,
+        bracket: SIDES.LOSERS,
+        team1Id: null,
+        team2Id: null,
+        status: STATUSES.PENDING,
+        losersBye: false,
+        wrLosersPair: true,
+        wrLosersPairMinRound: pendingPair.minRound,
+      });
+      matches.push(reserved);
+      reservedPairMatch = reserved;
+      finalMatch = reserved;
+      roundNum += 1;
+
+      pendingPair.feeders.forEach((m, index) => {
+        m.loserNextMatchId = reserved.id;
+        m.loserNextSlot = index === 0 ? "team1Id" : "team2Id";
+      });
+
       remaining += 1;
       drainUntilOneOrNone();
       if (finalMatch && finalMatch.id !== reservedPairMatch.id) {
