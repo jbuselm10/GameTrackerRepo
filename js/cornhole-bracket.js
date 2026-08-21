@@ -381,9 +381,25 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
     let finalMatch = null;
     /** @type {CornholeMatch|null} */
     let reservedPairMatch = null;
+    // byeToNextRound winners skip the next LB round and join the one after.
+    // Track them separately so emitRound capacity matches placeInNextLosersRound.
+    let skippersArrivingNext = 0;
+    let skippersArrivingAfter = 0;
 
+    function absorbDeferredSkippers() {
+      remaining += skippersArrivingNext;
+      skippersArrivingNext = skippersArrivingAfter;
+      skippersArrivingAfter = 0;
+    }
+
+    /**
+     * @param {number} entrantCount
+     * @returns {{ intoNext: number, newSkippers: number }}
+     */
     function emitRound(entrantCount) {
-      if (entrantCount <= 1) return entrantCount;
+      if (entrantCount <= 1) {
+        return { intoNext: entrantCount, newSkippers: 0 };
+      }
 
       const created = [];
       let twoTeamEntrants = entrantCount;
@@ -429,14 +445,39 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
         hadTeamBye
           ? twoTeamMatches.length > 0
           : twoTeamMatches.length > 1 && twoTeamMatches.length % 2 === 1;
+      let newSkippers = 0;
       if (needMatchBye) {
         const skipMatch =
           twoTeamMatches[Math.floor(Math.random() * twoTeamMatches.length)];
         skipMatch.byeToNextRound = true;
+        newSkippers = 1;
       }
 
+      const advancers = matchCount + (hadTeamBye ? 1 : 0);
       roundNum += 1;
-      return matchCount + (hadTeamBye ? 1 : 0);
+      return { intoNext: advancers - newSkippers, newSkippers };
+    }
+
+    /**
+     * @param {number} entrantCount
+     */
+    function emitAndTrack(entrantCount) {
+      const result = emitRound(entrantCount);
+      remaining = result.intoNext;
+      skippersArrivingAfter += result.newSkippers;
+    }
+
+    function drainUntilOneOrNone() {
+      for (let guard = 0; guard < 64; guard += 1) {
+        absorbDeferredSkippers();
+        if (remaining > 1) {
+          emitAndTrack(remaining);
+          continue;
+        }
+        if (skippersArrivingNext === 0 && skippersArrivingAfter === 0) {
+          return;
+        }
+      }
     }
 
     const rounds = winnersRounds || [];
@@ -453,6 +494,7 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
         i + 1 === rounds.length - 1;
 
       if (isLastSinglePair) {
+        absorbDeferredSkippers();
         const firstReal =
           (rounds[i] || []).find((m) => !m.losersBye) || (rounds[i] || [])[0];
         const reserved = makeMatch({
@@ -485,20 +527,17 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
       }
 
       remaining += dropIns;
+      absorbDeferredSkippers();
       if (remaining > 1) {
-        remaining = emitRound(remaining);
+        emitAndTrack(remaining);
       }
     }
 
-    while (remaining > 1) {
-      remaining = emitRound(remaining);
-    }
+    drainUntilOneOrNone();
 
     if (reservedPairMatch) {
       remaining += 1;
-      while (remaining > 1) {
-        remaining = emitRound(remaining);
-      }
+      drainUntilOneOrNone();
       if (finalMatch && finalMatch.id !== reservedPairMatch.id) {
         reservedPairMatch.nextMatchId = finalMatch.id;
         reservedPairMatch.nextSlot = "team2Id";
@@ -524,6 +563,9 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
       match.status = STATUSES.COMPLETED;
       if (match.nextMatchId) {
         advanceWithSlot(byId, match, only, false);
+      } else if (match.bracket === SIDES.LOSERS) {
+        // LB one-team byes are not pre-wired; place the winner into a later round.
+        placeInNextLosersRound(Array.from(byId.values()), byId, match, only);
       }
     }
   }
@@ -698,15 +740,37 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
       const prevMatches = lbMatches.filter(
         (m) => m.round === round - 1 && !m.wrLosersPair
       );
-      const advanceIn = prevMatches.length;
+      const skippersFromTwoBack = lbMatches.filter(
+        (m) =>
+          m.round === round - 2 &&
+          !m.wrLosersPair &&
+          m.byeToNextRound &&
+          !m.losersBye
+      ).length;
+      const advanceIn =
+        prevMatches.filter((m) => !m.byeToNextRound).length + skippersFromTwoBack;
       const wrCapacity = Math.max(0, totalSlots - advanceIn);
       if (wrCapacity <= 0) continue;
       if ((fromRound || 1) >= 2 && advanceIn === 0) continue;
 
       const prevWinnerIds = new Set(
-        prevMatches
-          .filter((m) => m.status === STATUSES.COMPLETED && m.winnerId)
-          .map((m) => m.winnerId)
+        [
+          ...prevMatches.filter(
+            (m) =>
+              !m.byeToNextRound &&
+              m.status === STATUSES.COMPLETED &&
+              m.winnerId
+          ),
+          ...lbMatches.filter(
+            (m) =>
+              m.round === round - 2 &&
+              !m.wrLosersPair &&
+              m.byeToNextRound &&
+              !m.losersBye &&
+              m.status === STATUSES.COMPLETED &&
+              m.winnerId
+          ),
+        ].map((m) => m.winnerId)
       );
       const { wrFilled, lbAdvanceFilled } = countLosersRoundFill(
         roundMatches,
@@ -798,13 +862,22 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
       const prevMatches = lbMatches.filter(
         (m) => m.round === round - 1 && !m.wrLosersPair
       );
+      const skippersFromTwoBack = lbMatches.filter(
+        (m) =>
+          m.round === round - 2 &&
+          !m.wrLosersPair &&
+          m.byeToNextRound &&
+          !m.losersBye
+      ).length;
+      const advanceIn =
+        prevMatches.filter((m) => !m.byeToNextRound).length + skippersFromTwoBack;
       const totalSlots = roundMatches.reduce(
         (n, m) => n + losersMatchSlotCount(m),
         0
       );
       const wrCapacity = prevHadReserved
         ? 0
-        : Math.max(0, totalSlots - prevMatches.length);
+        : Math.max(0, totalSlots - advanceIn);
       const leaveTeam2ForWr = wrCapacity > 0;
 
       let placed = false;
