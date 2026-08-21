@@ -363,7 +363,7 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
 
   /**
    * Build losers-bracket rounds from winners-bracket drop-ins. Each WR round's
-   * losers join the LB winners already there, except when two consecutive WR
+   * losers join the LB winners already there, except when the last two WR
    * rounds each have one real loser: those two share one reserved LB match
    * and leftover LB players play down after it. A team that loses in the
    * losers bracket is eliminated. Odd team counts in a round add a one-team
@@ -444,8 +444,15 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
       const dropIns = wrDropInCount(rounds[i]);
       const nextDropIns =
         i + 1 < rounds.length ? wrDropInCount(rounds[i + 1]) : 0;
+      // Only the last two WR rounds may share a reserved pair (e.g. R3+R4 on
+      // 7/10 teams). Mid-bracket singles like R2+R3 on 7 teams must drop in
+      // against LB winners instead.
+      const isLastSinglePair =
+        dropIns === 1 &&
+        nextDropIns === 1 &&
+        i + 1 === rounds.length - 1;
 
-      if (dropIns === 1 && nextDropIns === 1) {
+      if (isLastSinglePair) {
         const firstReal =
           (rounds[i] || []).find((m) => !m.losersBye) || (rounds[i] || [])[0];
         const reserved = makeMatch({
@@ -646,10 +653,16 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
         m.wrLosersPair &&
         m.active !== false
     );
-    const pairMin = reserved && reserved.wrLosersPairMinRound
-      ? reserved.wrLosersPairMinRound
-      : 0;
-    if (reserved && pairMin && (fromRound || 1) >= pairMin) {
+    const feedsReserved =
+      !!reserved &&
+      (matches || []).some(
+        (m) =>
+          m.bracket === SIDES.WINNERS &&
+          m.active !== false &&
+          m.loserNextMatchId === reserved.id &&
+          m.round === (fromRound || 1)
+      );
+    if (reserved && feedsReserved) {
       if (reserved.status === STATUSES.COMPLETED) return;
       if (!reserved.team1Id) {
         reserved.team1Id = teamId;
@@ -659,8 +672,9 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
       if (!reserved.team2Id) {
         reserved.team2Id = teamId;
         afterLosersSlotFilled(reserved, byId);
+        return;
       }
-      return;
+      // Both slots filled — fall through for any other WR loser.
     }
 
     const lbMatches = matches
