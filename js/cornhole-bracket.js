@@ -227,9 +227,10 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
   /**
    * Entry-order winners bracket.
    * Odd number of entrants → a randomly chosen entrant gets a one-team bye
-   * match and plays in the next round only. When round 1 also has that team
-   * bye, one of the real two-team matches is randomly marked to skip the
-   * following round. Otherwise an odd count of two-team matches gets one skip.
+   * match and plays in the next round only. When a round would still send an
+   * odd number of entrants forward, one of its real two-team matches is
+   * randomly marked to skip the following round so the next round always has
+   * an even field to pair up.
    * @param {CornholeTeam[]} teams
    * @param {{ value: number }} counter
    */
@@ -326,10 +327,16 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
         advancing.push({ teamId: byeEntrant.teamId, fromMatch: byeMatch });
       }
 
+      // Skip a match forward only when this round would otherwise send an odd
+      // number of entrants into the next round. Skipping on an even count
+      // leaves the next round with a single entrant, which turns it into a
+      // bye-only round instead of moving the winner on to play.
       const twoTeamMatches = roundMatches.filter((m) => !m.losersBye);
-      const needMatchBye = byeEntrant
-        ? twoTeamMatches.length > 0
-        : twoTeamMatches.length > 1 && twoTeamMatches.length % 2 === 1;
+      const advancingCount = advancing.length;
+      const needMatchBye =
+        twoTeamMatches.length > 0 &&
+        advancingCount > 1 &&
+        advancingCount % 2 === 1;
       if (needMatchBye) {
         const skipMatch =
           twoTeamMatches[Math.floor(Math.random() * twoTeamMatches.length)];

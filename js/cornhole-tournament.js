@@ -274,8 +274,60 @@
   }
 
   function syncPrepopulatedButtons() {
-    lastResultsBtn?.classList.toggle("hidden", !fromPrepopulated);
+    lastResultsBtn?.classList.toggle("hidden", !getExistingTournamentSource());
     syncKeepExistingPlayersButton();
+  }
+
+  function rememberPreviousTournament(tournament) {
+    if (!tournament) return;
+    existingTournamentSource = tournament;
+    reservedName = String(tournament.name || "").trim() || null;
+    storeLastResults(tournament);
+  }
+
+  function initBlankStep1() {
+    if (nameInput) nameInput.value = "";
+    typeInputs.forEach((input) => {
+      input.checked = false;
+    });
+    selectedType = "";
+    fromPrepopulated = false;
+    reservedName = null;
+    nameError?.classList.add("hidden");
+    typeError?.classList.add("hidden");
+  }
+
+  function startFreshSetup(options = {}) {
+    suppressDirty = true;
+    editingId = null;
+    savedMatches = [];
+    savedStatus = GameTracker.Cornhole.TOURNAMENT_STATUSES.SETUP;
+    savedTeams = [];
+    teamAssignments = [];
+    tournamentPlayerIds = new Set();
+    teamsLockedFromRandom = false;
+    keepExistingPlayersUsed = false;
+    setDerivedTeamCount(null);
+    setupPhase = PHASE_SETUP;
+    initBlankStep1();
+    if (options.previousTournament) {
+      rememberPreviousTournament(options.previousTournament);
+    }
+    if (teamsList) teamsList.innerHTML = "";
+    renderPlayerPicker();
+    renderTeams({ fromMemory: true });
+    syncPhaseUI();
+    syncSetupStatus();
+    suppressDirty = false;
+    baseline = {
+      name: "",
+      type: "",
+      teamCount: null,
+      teams: [],
+    };
+    syncDirtyUI();
+    syncPrepopulatedButtons();
+    setSaveStatus("");
   }
 
   /**
@@ -1460,56 +1512,12 @@
   }
 
   /**
-   * Copy name/type (and prior player pool) from a finished tournament into a
-   * new unsaved draft. Do not show teams until the user finishes select +
-   * assign/randomize again.
+   * Remember a completed tournament for Keep-all-players / last results only.
+   * Step 1 stays blank until the user enters name and elimination type.
    * @param {CornholeTournament} tournament
    */
   function applyPrepopulatedFrom(tournament) {
-    suppressDirty = true;
-    editingId = null;
-    savedMatches = [];
-    savedStatus = GameTracker.Cornhole.TOURNAMENT_STATUSES.SETUP;
-    savedTeams = [];
-    fromPrepopulated = true;
-    existingTournamentSource = tournament;
-    keepExistingPlayersUsed = false;
-    reservedName = String(tournament.name || "").trim() || null;
-    storeLastResults(tournament);
-
-    if (nameInput) {
-      nameInput.value = tournament.name || "Cornhole Tournament";
-    }
-
-    typeInputs.forEach((input) => {
-      input.checked = input.value === tournament.type;
-    });
-
-    teamAssignments = [];
-    tournamentPlayerIds = new Set();
-    teamsLockedFromRandom = false;
-    setDerivedTeamCount(null);
-    setupPhase = PHASE_SETUP;
-
-    selectedType = currentType();
-    teamCount = parseTeamCount();
-    if (teamsList) teamsList.innerHTML = "";
-    renderPlayerPicker();
-    renderTeams({ fromMemory: true });
-    syncPhaseUI();
-    syncSetupStatus();
-    suppressDirty = false;
-
-    baseline = {
-      name: "",
-      type: "",
-      teamCount: null,
-      teams: [],
-    };
-    syncDirtyUI();
-    syncNameError();
-    syncPrepopulatedButtons();
-    setSaveStatus(UNSAVED_MESSAGE, true);
+    startFreshSetup({ previousTournament: tournament });
   }
 
   function clearSetupUrlId() {
@@ -1805,16 +1813,10 @@
           tournament.status === GameTracker.Cornhole.TOURNAMENT_STATUSES.COMPLETED &&
           !formDraft
         ) {
-          applyPrepopulatedFrom(tournament);
+          startFreshSetup({ previousTournament: tournament });
           clearSetupUrlId();
         } else if (!formDraft) {
-          suppressDirty = true;
-          renderPlayerPicker();
-          renderTeams({ fromMemory: true });
-          syncPhaseUI();
-          syncSetupStatus();
-          suppressDirty = false;
-          markBaseline();
+          startFreshSetup();
         }
       } else if (!formDraft) {
         const draft = pickDraftTournament(tournaments);
@@ -1825,26 +1827,12 @@
           setSaveStatus("Loaded your in-progress Cornhole tournament.");
         } else {
           const previous = pickLatestCompleted(tournaments);
-          if (previous) {
-            applyPrepopulatedFrom(previous);
-          } else {
-            suppressDirty = true;
-            renderPlayerPicker();
-            renderTeams({ fromMemory: true });
-            syncPhaseUI();
-            syncSetupStatus();
-            suppressDirty = false;
-            markBaseline();
-          }
+          startFreshSetup(
+            previous ? { previousTournament: previous } : undefined
+          );
         }
       } else {
-        suppressDirty = true;
-        renderPlayerPicker();
-        renderTeams({ fromMemory: true });
-        syncPhaseUI();
-        syncSetupStatus();
-        suppressDirty = false;
-        markBaseline();
+        startFreshSetup();
       }
 
       if (formDraft) {

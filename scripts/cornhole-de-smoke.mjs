@@ -48,6 +48,14 @@ function countMatches(matches) {
   return { wr, lb, gf, total: list.length };
 }
 
+// A winners round made up only of byes/skips means a winner was never moved
+// on to play the next round.
+function deadWinnersRounds(matches) {
+  const wr = (matches || []).filter((m) => m.bracket === SIDES.WINNERS);
+  const rounds = [...new Set(wr.map((m) => m.round))].sort((a, b) => a - b);
+  return rounds.filter((r) => !wr.some((m) => m.round === r && !m.losersBye));
+}
+
 function readyMatches(matches) {
   return (matches || [])
     .filter(
@@ -86,6 +94,10 @@ function playTournament(n, path) {
   const teams = makeTeams(n);
   let matches = Cornhole.generateBracket(TYPES.DOUBLE_ELIMINATION, teams);
   const counts = countMatches(matches);
+  const dead = deadWinnersRounds(matches);
+  if (dead.length) {
+    throw new Error(`winners round(s) ${dead.join(", ")} have no match`);
+  }
   let guard = 0;
   while (!Cornhole.championId(matches)) {
     guard += 1;
