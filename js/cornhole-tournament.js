@@ -903,13 +903,25 @@
 
   function updateStepIndicator() {
     if (!setupStepIndicator) return;
-    const labels = {
-      [PHASE_SETUP]: "Step 1 of 4 — Name and elimination type",
-      [PHASE_PICKING]: "Step 2 of 4 — Select players",
-      [PHASE_CHOOSE]: "Step 3 of 4 — Assign or randomize teams",
-      [PHASE_TEAMS]: "Step 4 of 4 — Teams and Start",
+    const stepNumber = {
+      [PHASE_SETUP]: 1,
+      [PHASE_PICKING]: 2,
+      [PHASE_CHOOSE]: 3,
+      [PHASE_TEAMS]: 4,
     };
-    setupStepIndicator.textContent = labels[setupPhase] || labels[PHASE_SETUP];
+    const titles = {
+      [PHASE_SETUP]: "Name and elimination type",
+      [PHASE_PICKING]: "Select players",
+      [PHASE_CHOOSE]: "Assign or randomize teams",
+      [PHASE_TEAMS]: "Teams and Start",
+    };
+    const step = stepNumber[setupPhase] || 1;
+    const title = titles[setupPhase] || titles[PHASE_SETUP];
+    const stepsLeft = 4 - step;
+    let leftText = "";
+    if (stepsLeft === 1) leftText = " · 1 step left";
+    else if (stepsLeft > 1) leftText = ` · ${stepsLeft} steps left`;
+    setupStepIndicator.textContent = `Step ${step} of 4 — ${title}${leftText}`;
   }
 
   function syncPhaseUI() {
