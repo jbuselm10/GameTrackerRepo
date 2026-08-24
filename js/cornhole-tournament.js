@@ -116,7 +116,7 @@
 
   function allTeamsFullyAssigned() {
     if (teamCount === null || teamCount < MIN_TEAMS) return false;
-    readAssignmentsFromDom();
+    syncAssignmentsFromUi();
     resizeAssignments(teamCount);
     return teamAssignments.every((t) => t.player1Id && t.player2Id);
   }
@@ -482,7 +482,7 @@
   }
 
   function snapshotState() {
-    readAssignmentsFromDom();
+    syncAssignmentsFromUi();
     return {
       name: currentName(),
       type: currentType(),
@@ -561,7 +561,7 @@
   }
 
   function saveFormDraft() {
-    readAssignmentsFromDom();
+    syncAssignmentsFromUi();
     if (teamCount !== null) {
       resizeAssignments(teamCount);
     }
@@ -1164,8 +1164,14 @@
     syncDirtyUI();
   }
 
+  function syncAssignmentsFromUi() {
+    if (!teamsLockedFromRandom) {
+      readAssignmentsFromDom();
+    }
+  }
+
   function readAssignmentsFromDom() {
-    if (!teamsList) return;
+    if (!teamsList || teamsLockedFromRandom) return;
     const seen = new Set();
     teamsList.querySelectorAll("[data-team-index]").forEach((row) => {
       const index = Number(row.getAttribute("data-team-index"));
@@ -1200,7 +1206,7 @@
   function renderTeams(options = {}) {
     if (!teamsList) return;
 
-    if (!options.fromMemory) {
+    if (!options.fromMemory && !teamsLockedFromRandom) {
       readAssignmentsFromDom();
     }
 
@@ -1327,6 +1333,10 @@
 
   function syncSetupStatus() {
     if (!setupStatus) return;
+    syncAssignmentsFromUi();
+    if (teamCount !== null) {
+      resizeAssignments(teamCount);
+    }
     const parts = [];
     if (selectedType) parts.push(typeLabel(selectedType));
     if (teamCount !== null) {
@@ -1522,7 +1532,7 @@
   }
 
   function buildTeamsPayload() {
-    readAssignmentsFromDom();
+    syncAssignmentsFromUi();
     resizeAssignments(teamCount || 0);
     return teamAssignments.map((team, index) => ({
       id: team.id || undefined,
@@ -1576,10 +1586,11 @@
       return;
     }
 
+    const teamsPayload = buildTeamsPayload();
     const payload = {
       name: currentName(),
       type: selectedType,
-      teams: buildTeamsPayload(),
+      teams: teamsPayload,
       matches: savedMatches,
       status: savedStatus || GameTracker.Cornhole.TOURNAMENT_STATUSES.SETUP,
       playerPoolIds: [...tournamentPlayerIds],
@@ -1600,11 +1611,22 @@
       savedMatches = Array.isArray(saved.matches) ? saved.matches : [];
       savedStatus = saved.status || GameTracker.Cornhole.TOURNAMENT_STATUSES.SETUP;
       if (Array.isArray(saved.teams)) {
-        teamAssignments = saved.teams.map((team) => ({
+        const fromSaved = saved.teams.map((team) => ({
           id: team.id,
           player1Id: team.player1Id || "",
           player2Id: team.player2Id || "",
         }));
+        const sentFilled = teamsPayload.filter((t) => t.player1Id && t.player2Id).length;
+        const savedFilled = fromSaved.filter((t) => t.player1Id && t.player2Id).length;
+        if (teamsLockedFromRandom && sentFilled > savedFilled) {
+          teamAssignments = teamsPayload.map((team, index) => ({
+            id: fromSaved[index]?.id || team.id,
+            player1Id: team.player1Id || "",
+            player2Id: team.player2Id || "",
+          }));
+        } else {
+          teamAssignments = fromSaved;
+        }
         savedTeams = saved.teams.map((team) => ({ ...team }));
         if (Array.isArray(saved.playerPoolIds) && saved.playerPoolIds.length > 0) {
           tournamentPlayerIds = new Set(
