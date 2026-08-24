@@ -2,15 +2,34 @@
   const pageStatus = document.getElementById("page-status");
   const teamsList = document.getElementById("teams-list");
   const teamsHint = document.getElementById("teams-hint");
+  const teamsSection = document.getElementById("teams-section");
   const playersEmpty = document.getElementById("players-empty");
+  const setupStep1 = document.getElementById("setup-step-1");
+  const setupStep2 = document.getElementById("setup-step-2");
+  const setupStep3 = document.getElementById("setup-step-3");
+  const setupStep4 = document.getElementById("setup-step-4");
+  const setupStepIndicator = document.getElementById("setup-step-indicator");
+  const playerPickerList = document.getElementById("player-picker-list");
+  const playerSelectedList = document.getElementById("player-selected-list");
+  const playerPickerStatus = document.getElementById("player-picker-status");
+  const playerPickerError = document.getElementById("player-picker-error");
+  const donePlayersBtn = document.getElementById("done-players-btn");
+  const changePlayersBtn = document.getElementById("change-players-btn");
+  const setupNextBtn = document.getElementById("setup-next-btn");
+  const setupBackBtn = document.getElementById("setup-back-btn");
+  const setupBackBtn2 = document.getElementById("setup-back-btn-2");
+  const setupBackBtn3 = document.getElementById("setup-back-btn-3");
+  const addMoreTeamsBtn = document.getElementById("add-more-teams-btn");
+  const assignTeamsBtn = document.getElementById("assign-teams-btn");
+  const randomizeTeamsBtn = document.getElementById("randomize-teams-btn");
   const typeInputs = Array.from(document.querySelectorAll('input[name="gtCornholeType"]'));
   const typeError = document.getElementById("type-error");
   const teamCountInput = document.getElementById("team-count");
   const teamCountError = document.getElementById("team-count-error");
   const nameInput = document.getElementById("tournament-name");
   const nameError = document.getElementById("name-error");
-  const clearAllBtn = document.getElementById("clear-all-fields-btn");
   const lastResultsBtn = document.getElementById("last-results-btn");
+  const keepExistingPlayersBtn = document.getElementById("keep-existing-players-btn");
   const setupStatus = document.getElementById("setup-status");
   const saveStatus = document.getElementById("save-status");
   const saveBtn = document.getElementById("save-tournament-btn");
@@ -20,9 +39,15 @@
 
   const MIN_TEAMS = GameTracker.Cornhole.MIN_TEAMS;
   const MAX_TEAMS = GameTracker.Cornhole.MAX_TEAMS;
+  const MIN_PLAYERS = MIN_TEAMS * 2;
+  const MAX_PLAYERS = MAX_TEAMS * 2;
   const UNSAVED_MESSAGE = "Changes have NOT been saved.";
   const FORM_DRAFT_KEY = "gametracker.cornholeFormDraft";
   const LAST_RESULTS_KEY = "gametracker.cornholeLastResults";
+  const PHASE_SETUP = "setup";
+  const PHASE_PICKING = "picking";
+  const PHASE_CHOOSE = "chooseMode";
+  const PHASE_TEAMS = "teamsReady";
 
   /** @type {CornholePlayer[]} */
   let players = [];
@@ -47,6 +72,13 @@
   let reservedName = null;
   /** True when the form was filled from a completed tournament. */
   let fromPrepopulated = false;
+  /** @type {CornholeTournament | null} */
+  let existingTournamentSource = null;
+  /** Players chosen for this tournament (before / while assigning teams). */
+  /** @type {Set<string>} */
+  let tournamentPlayerIds = new Set();
+  /** @type {"setup"|"picking"|"chooseMode"|"teamsReady"} */
+  let setupPhase = PHASE_SETUP;
 
   function setStatus(message, isError = false) {
     if (!pageStatus) return;
@@ -87,7 +119,7 @@
 
   function canStartTournament() {
     if (!editingId) {
-      return { ok: false, message: "Save the tournament with Update Cornhole Tournament before starting." };
+      return { ok: false, message: "Save the tournament with Save Teams before starting." };
     }
     if (isDirty()) {
       return { ok: false, message: "Save your changes before starting the tournament." };
@@ -99,7 +131,7 @@
       return { ok: false, message: "Select single or double elimination." };
     }
     if (teamCount === null) {
-      return { ok: false, message: "Enter a valid number of teams (2–20)." };
+      return { ok: false, message: "Select an even number of players and place them on teams first." };
     }
     if (!allTeamsFullyAssigned()) {
       return { ok: false, message: "Assign two players to every team before starting." };
@@ -238,8 +270,92 @@
   }
 
   function syncPrepopulatedButtons() {
-    clearAllBtn?.classList.toggle("hidden", !fromPrepopulated);
     lastResultsBtn?.classList.toggle("hidden", !fromPrepopulated);
+    syncKeepExistingPlayersButton();
+  }
+
+  /**
+   * @returns {CornholeTournament | null}
+   */
+  function getExistingTournamentSource() {
+    if (existingTournamentSource) return existingTournamentSource;
+    try {
+      const raw = sessionStorage.getItem(LAST_RESULTS_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? parsed : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function countPlayersOnTeams(teams) {
+    let count = 0;
+    (teams || []).forEach((team) => {
+      if (team?.player1Id) count += 1;
+      if (team?.player2Id) count += 1;
+    });
+    return count;
+  }
+
+  function syncKeepExistingPlayersButton() {
+    if (!keepExistingPlayersBtn) return;
+    const source = getExistingTournamentSource();
+    const teams = Array.isArray(source?.teams) ? source.teams : [];
+    const show =
+      setupPhase === PHASE_SETUP &&
+      countPlayersOnTeams(teams) >= MIN_PLAYERS;
+    keepExistingPlayersBtn.classList.toggle("hidden", !show);
+  }
+
+  function keepAllPlayersFromExisting() {
+    const source = getExistingTournamentSource();
+    const teams = Array.isArray(source?.teams) ? source.teams : [];
+    if (countPlayersOnTeams(teams) < MIN_PLAYERS) return;
+
+    syncNameError();
+    const name = currentName();
+    selectedType = currentType();
+    let ok = true;
+    if (!name || isReservedName(name)) {
+      syncNameError();
+      ok = false;
+    }
+    if (!selectedType) {
+      typeError?.classList.remove("hidden");
+      ok = false;
+    } else {
+      typeError?.classList.add("hidden");
+    }
+    if (!ok) return;
+
+    syncPoolFromTeams(teams);
+    setPlayerPickerError("");
+    teamCountError?.classList.add("hidden");
+
+    const poolCheck = validateTournamentPlayerPool();
+    if (!poolCheck.ok) {
+      setPlayerPickerError(poolCheck.message);
+      setupPhase = PHASE_PICKING;
+      renderPlayerPicker();
+      syncPhaseUI();
+      syncDirtyUI();
+      return;
+    }
+
+    setDerivedTeamCount(poolCheck.teamCount);
+    resizeAssignments(poolCheck.teamCount);
+    teamAssignments.forEach((team) => {
+      team.player1Id = "";
+      team.player2Id = "";
+    });
+    setupPhase = PHASE_CHOOSE;
+    if (teamsList) teamsList.innerHTML = "";
+    renderPlayerPicker();
+    renderTeams({ fromMemory: true });
+    syncPhaseUI();
+    syncSetupStatus();
+    syncDirtyUI();
   }
 
   function storeLastResults(tournament) {
@@ -249,36 +365,6 @@
     } catch {
       // Ignore storage failures.
     }
-  }
-
-  function clearAllFields() {
-    suppressDirty = true;
-    fromPrepopulated = false;
-    reservedName = null;
-    editingId = null;
-    savedMatches = [];
-    savedStatus = GameTracker.Cornhole.TOURNAMENT_STATUSES.SETUP;
-    savedTeams = [];
-    teamAssignments = [];
-    selectedType = "";
-    teamCount = null;
-
-    if (nameInput) nameInput.value = "";
-    typeInputs.forEach((input) => {
-      input.checked = false;
-    });
-    if (teamCountInput) teamCountInput.value = "";
-
-    renderTeams();
-    syncSetupStatus();
-    suppressDirty = false;
-    markBaseline();
-    clearFormDraft();
-    clearSetupUrlId();
-    syncNameError();
-    setSaveStatus("");
-    setStartError("");
-    syncPrepopulatedButtons();
   }
 
   function openLastResults() {
@@ -301,11 +387,74 @@
   }
 
   /**
+   * @param {number | null} count
+   */
+  function setDerivedTeamCount(count) {
+    teamCount = count;
+    if (teamCountInput) {
+      teamCountInput.value = count === null ? "" : String(count);
+    }
+    const display = document.getElementById("team-count-display");
+    if (display) {
+      display.textContent = count === null ? "—" : String(count);
+    }
+  }
+
+  /**
    * @param {CornholePlayer} player
    */
   function playerLabel(player) {
     const nickname = player.nickname ? ` (${player.nickname})` : "";
     return `${player.name}${nickname}`;
+  }
+
+  /**
+   * @param {CornholePlayer} a
+   * @param {CornholePlayer} b
+   */
+  function byPlayerName(a, b) {
+    return playerLabel(a).localeCompare(playerLabel(b), undefined, {
+      sensitivity: "base",
+    });
+  }
+
+  /**
+   * @param {string} message
+   */
+  function setPlayerPickerError(message) {
+    if (!playerPickerError) return;
+    playerPickerError.textContent = message || "";
+    playerPickerError.classList.toggle("hidden", !message);
+  }
+
+  /**
+   * @returns {{ ok: boolean, message: string, teamCount: number | null }}
+   */
+  function validateTournamentPlayerPool() {
+    const count = tournamentPlayerIds.size;
+    if (count === 0) {
+      return {
+        ok: false,
+        message: "Select players for the tournament.",
+        teamCount: null,
+      };
+    }
+    if (count % 2 !== 0) {
+      return {
+        ok: false,
+        message: "The number of players must be even (two players per team).",
+        teamCount: null,
+      };
+    }
+    const teams = count / 2;
+    if (teams < MIN_TEAMS || teams > MAX_TEAMS) {
+      return {
+        ok: false,
+        message: `Select ${MIN_PLAYERS}–${MAX_PLAYERS} players (${MIN_TEAMS}–${MAX_TEAMS} teams).`,
+        teamCount: null,
+      };
+    }
+    return { ok: true, message: "", teamCount: teams };
   }
 
   /**
@@ -334,13 +483,32 @@
   /**
    * @returns {Set<string>}
    */
-  function selectedPlayerIds() {
+  function assignedPlayerIds() {
     const ids = new Set();
     teamAssignments.forEach((team) => {
-      if (team.player1Id) ids.add(team.player1Id);
-      if (team.player2Id) ids.add(team.player2Id);
+      if (team.player1Id) ids.add(String(team.player1Id));
+      if (team.player2Id) ids.add(String(team.player2Id));
     });
     return ids;
+  }
+
+  /**
+   * @param {{ id?: string, player1Id?: string, player2Id?: string }[]} teams
+   */
+  function syncPoolFromTeams(teams) {
+    tournamentPlayerIds = new Set();
+    mergePoolFromTeams(teams);
+  }
+
+  /**
+   * Add assigned player ids to the tournament pool without removing existing selections.
+   * @param {{ id?: string, player1Id?: string, player2Id?: string }[]} teams
+   */
+  function mergePoolFromTeams(teams) {
+    (teams || []).forEach((team) => {
+      if (team.player1Id) tournamentPlayerIds.add(String(team.player1Id));
+      if (team.player2Id) tournamentPlayerIds.add(String(team.player2Id));
+    });
   }
 
   function snapshotState() {
@@ -437,9 +605,23 @@
         player1Id: team.player1Id || "",
         player2Id: team.player2Id || "",
       })),
+      tournamentPlayerIds: [...tournamentPlayerIds],
+      setupPhase,
       baseline,
       reservedName,
       fromPrepopulated,
+      existingTournamentSource: existingTournamentSource
+        ? {
+            name: existingTournamentSource.name || "",
+            type: existingTournamentSource.type || "",
+            teams: Array.isArray(existingTournamentSource.teams)
+              ? existingTournamentSource.teams.map((team) => ({
+                  player1Id: team?.player1Id || "",
+                  player2Id: team?.player2Id || "",
+                }))
+              : [],
+          }
+        : null,
       knownPlayerIds: players.map((player) => String(player.id || "")),
     };
     try {
@@ -523,6 +705,31 @@
       }));
     }
 
+    if (Array.isArray(draft.tournamentPlayerIds)) {
+      tournamentPlayerIds = new Set(
+        draft.tournamentPlayerIds.map((id) => String(id || "")).filter(Boolean)
+      );
+    } else {
+      syncPoolFromTeams(teamAssignments);
+    }
+
+    if (
+      draft.setupPhase === PHASE_SETUP ||
+      draft.setupPhase === PHASE_PICKING ||
+      draft.setupPhase === PHASE_CHOOSE ||
+      draft.setupPhase === PHASE_TEAMS
+    ) {
+      setupPhase = draft.setupPhase;
+    } else if (teamCount !== null && teamAssignments.some((t) => t.player1Id || t.player2Id)) {
+      setupPhase = PHASE_TEAMS;
+    } else if (tournamentPlayerIds.size > 0 && teamCount !== null) {
+      setupPhase = PHASE_CHOOSE;
+    } else if (tournamentPlayerIds.size > 0) {
+      setupPhase = PHASE_PICKING;
+    } else {
+      setupPhase = PHASE_SETUP;
+    }
+
     if (draft.baseline && typeof draft.baseline === "object") {
       baseline = {
         name: typeof draft.baseline.name === "string" ? draft.baseline.name : "",
@@ -545,8 +752,19 @@
         ? draft.reservedName.trim()
         : null;
     fromPrepopulated = !!draft.fromPrepopulated;
+    if (draft.existingTournamentSource && typeof draft.existingTournamentSource === "object") {
+      existingTournamentSource = {
+        name: draft.existingTournamentSource.name || "",
+        type: draft.existingTournamentSource.type || "",
+        teams: Array.isArray(draft.existingTournamentSource.teams)
+          ? draft.existingTournamentSource.teams
+          : [],
+      };
+    }
 
-    renderTeams();
+    renderPlayerPicker();
+    renderTeams({ fromMemory: true });
+    syncPhaseUI();
     syncSetupStatus();
     suppressDirty = false;
     syncDirtyUI();
@@ -581,16 +799,14 @@
     placeholder.className = "gt-option-placeholder";
     select.appendChild(placeholder);
 
-    function byPlayerName(a, b) {
-      return playerLabel(a).localeCompare(playerLabel(b), undefined, {
-        sensitivity: "base",
-      });
-    }
+    const pool = players.filter((player) =>
+      tournamentPlayerIds.has(String(player.id))
+    );
 
-    const unassigned = players
+    const unassigned = pool
       .filter((player) => !takenIds.has(String(player.id)))
       .sort(byPlayerName);
-    const assigned = players
+    const assigned = pool
       .filter((player) => takenIds.has(String(player.id)))
       .sort(byPlayerName);
 
@@ -613,6 +829,340 @@
       [...select.options].some((o) => o.value === selectedId && !o.disabled);
     select.value = validSelection ? selectedId : "";
     select.classList.toggle("gt-select-empty", !select.value);
+  }
+
+  function renderPlayerPicker() {
+    if (!playerPickerList) return;
+    playerPickerList.innerHTML = "";
+    if (playerSelectedList) playerSelectedList.innerHTML = "";
+
+    const picking = setupPhase === PHASE_PICKING;
+    const unselected = players
+      .filter((player) => !tournamentPlayerIds.has(String(player.id)))
+      .sort(byPlayerName);
+    const selected = players
+      .filter((player) => tournamentPlayerIds.has(String(player.id)))
+      .sort(byPlayerName);
+
+    function appendPlayerRow(container, player, isSelected) {
+      if (!container) return;
+      const id = String(player.id);
+      const row = document.createElement("label");
+      row.className =
+        "flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-ink hover:bg-parchment/80";
+      if (isSelected) row.classList.add("bg-gold/20");
+
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.className = "border-wood/40 text-felt focus:ring-felt/30";
+      checkbox.value = id;
+      checkbox.checked = isSelected;
+      checkbox.disabled = !picking;
+      checkbox.addEventListener("change", () => {
+        if (!picking) return;
+        if (checkbox.checked) tournamentPlayerIds.add(id);
+        else tournamentPlayerIds.delete(id);
+        setPlayerPickerError("");
+        renderPlayerPicker();
+        syncConfirmPlayersButton();
+        syncDirtyUI();
+      });
+
+      const text = document.createElement("span");
+      text.textContent = playerLabel(player);
+      row.append(checkbox, text);
+      container.appendChild(row);
+    }
+
+    if (unselected.length === 0) {
+      const empty = document.createElement("p");
+      empty.className = "px-2 py-1.5 text-sm gt-muted";
+      empty.textContent = "All players selected.";
+      playerPickerList.appendChild(empty);
+    } else {
+      unselected.forEach((player) => appendPlayerRow(playerPickerList, player, false));
+    }
+
+    if (selected.length === 0 && playerSelectedList) {
+      const empty = document.createElement("p");
+      empty.className = "px-2 py-1.5 text-sm gt-muted";
+      empty.textContent = "No players selected yet.";
+      playerSelectedList.appendChild(empty);
+    } else {
+      selected.forEach((player) => appendPlayerRow(playerSelectedList, player, true));
+    }
+
+    syncConfirmPlayersButton();
+    updatePlayerPickerStatus();
+  }
+
+  function updatePlayerPickerStatus() {
+    if (!playerPickerStatus) return;
+    const count = tournamentPlayerIds.size;
+    if (players.length === 0) {
+      playerPickerStatus.textContent = "";
+      return;
+    }
+    const teams = count % 2 === 0 ? count / 2 : null;
+    let detail = `${count} selected`;
+    if (count === 0) {
+      detail =
+        "Select players from the left box; they move to Selected players on the right. Total must be even.";
+    } else if (count % 2 !== 0) {
+      detail = `${count} selected (must be even)`;
+    } else if (teams !== null && (teams < MIN_TEAMS || teams > MAX_TEAMS)) {
+      detail = `${count} selected → ${teams} teams (need ${MIN_TEAMS}–${MAX_TEAMS} teams)`;
+    } else if (teams !== null) {
+      detail = `${count} selected → ${teams} team${teams === 1 ? "" : "s"}`;
+    }
+    playerPickerStatus.textContent = detail;
+  }
+
+  function syncConfirmPlayersButton() {
+    const check = validateTournamentPlayerPool();
+    if (donePlayersBtn) {
+      donePlayersBtn.disabled = setupPhase !== PHASE_PICKING || !check.ok;
+    }
+  }
+
+  function updateStepIndicator() {
+    if (!setupStepIndicator) return;
+    const labels = {
+      [PHASE_SETUP]: "Step 1 of 4 — Name and elimination type",
+      [PHASE_PICKING]: "Step 2 of 4 — Select players",
+      [PHASE_CHOOSE]: "Step 3 of 4 — Assign or randomize teams",
+      [PHASE_TEAMS]: "Step 4 of 4 — Teams and Start",
+    };
+    setupStepIndicator.textContent = labels[setupPhase] || labels[PHASE_SETUP];
+  }
+
+  function syncPhaseUI() {
+    const isSetup = setupPhase === PHASE_SETUP;
+    const picking = setupPhase === PHASE_PICKING;
+    const choose = setupPhase === PHASE_CHOOSE;
+    const teams = setupPhase === PHASE_TEAMS;
+
+    setupStep1?.classList.toggle("hidden", !isSetup);
+    setupStep2?.classList.toggle("hidden", !picking);
+    setupStep3?.classList.toggle("hidden", !choose);
+    setupStep4?.classList.toggle("hidden", !teams);
+
+    changePlayersBtn?.classList.toggle("hidden", true);
+    if (donePlayersBtn) {
+      donePlayersBtn.classList.toggle("hidden", !picking);
+    }
+
+    if (playerPickerList) {
+      playerPickerList.querySelectorAll('input[type="checkbox"]').forEach((el) => {
+        el.disabled = !picking;
+      });
+    }
+    if (playerSelectedList) {
+      playerSelectedList.querySelectorAll('input[type="checkbox"]').forEach((el) => {
+        el.disabled = !picking;
+      });
+    }
+
+    if (teams && teamCount !== null) {
+      teamsHint?.classList.add("hidden");
+    } else if (teamsHint) {
+      teamsHint.classList.toggle("hidden", !teams);
+    }
+
+    updateStepIndicator();
+    syncConfirmPlayersButton();
+    updatePlayerPickerStatus();
+    syncKeepExistingPlayersButton();
+  }
+
+  function goToPlayerStep() {
+    syncNameError();
+    const name = currentName();
+    selectedType = currentType();
+    let ok = true;
+    if (!name || isReservedName(name)) {
+      syncNameError();
+      ok = false;
+    }
+    if (!selectedType) {
+      typeError?.classList.remove("hidden");
+      ok = false;
+    } else {
+      typeError?.classList.add("hidden");
+    }
+    if (!ok) return;
+    setupPhase = PHASE_PICKING;
+    renderPlayerPicker();
+    syncPhaseUI();
+    syncDirtyUI();
+  }
+
+  function goBackToSetup() {
+    setupPhase = PHASE_SETUP;
+    syncPhaseUI();
+    syncDirtyUI();
+  }
+
+  function goBackToPicking() {
+    setupPhase = PHASE_PICKING;
+    setDerivedTeamCount(null);
+    teamAssignments = [];
+    if (teamsList) teamsList.innerHTML = "";
+    renderPlayerPicker();
+    syncPhaseUI();
+    syncSetupStatus();
+    syncDirtyUI();
+  }
+
+  function goBackToChoose() {
+    function resetToChoose() {
+      setupPhase = PHASE_CHOOSE;
+      teamAssignments.forEach((team) => {
+        team.player1Id = "";
+        team.player2Id = "";
+      });
+      if (teamsList) teamsList.innerHTML = "";
+      syncPhaseUI();
+      syncSetupStatus();
+      syncDirtyUI();
+    }
+
+    const hasAssignments = teamAssignments.some((t) => t.player1Id || t.player2Id);
+    if (hasAssignments) {
+      GameTracker.confirmModal({
+        message: "Going back will clear current team assignments. Continue?",
+        confirmLabel: "Go back",
+        cancelLabel: "Cancel",
+        onConfirm: resetToChoose,
+      });
+      return;
+    }
+    resetToChoose();
+  }
+
+  /**
+   * @param {string[]} ids
+   */
+  function randomizeTeamAssignments(ids) {
+    const shuffled = ids.slice();
+    for (let i = shuffled.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const tmp = shuffled[i];
+      shuffled[i] = shuffled[j];
+      shuffled[j] = tmp;
+    }
+    const next = [];
+    for (let i = 0; i < shuffled.length; i += 2) {
+      next.push({
+        id: teamAssignments[next.length]?.id,
+        player1Id: shuffled[i] || "",
+        player2Id: shuffled[i + 1] || "",
+      });
+    }
+    teamAssignments = next;
+  }
+
+  function confirmAllPlayersSelected() {
+    const check = validateTournamentPlayerPool();
+    if (!check.ok) {
+      setPlayerPickerError(check.message);
+      teamCountError?.classList.remove("hidden");
+      return;
+    }
+    setPlayerPickerError("");
+    teamCountError?.classList.add("hidden");
+    setDerivedTeamCount(check.teamCount);
+    resizeAssignments(check.teamCount);
+    // Drop assignments for players no longer in the pool.
+    teamAssignments.forEach((team) => {
+      if (team.player1Id && !tournamentPlayerIds.has(String(team.player1Id))) {
+        team.player1Id = "";
+      }
+      if (team.player2Id && !tournamentPlayerIds.has(String(team.player2Id))) {
+        team.player2Id = "";
+      }
+    });
+    setupPhase = PHASE_CHOOSE;
+    if (teamsList) teamsList.innerHTML = "";
+    renderPlayerPicker();
+    renderTeams({ fromMemory: true });
+    syncPhaseUI();
+    syncSetupStatus();
+    syncDirtyUI();
+  }
+
+  function changeSelectedPlayers() {
+    function resetToPicking() {
+      setupPhase = PHASE_PICKING;
+      setDerivedTeamCount(null);
+      teamAssignments = [];
+      if (teamsList) teamsList.innerHTML = "";
+      renderPlayerPicker();
+      syncPhaseUI();
+      syncSetupStatus();
+      syncDirtyUI();
+    }
+
+    const hasAssignments = teamAssignments.some((t) => t.player1Id || t.player2Id);
+    if (hasAssignments) {
+      GameTracker.confirmModal({
+        message:
+          "Changing selected players will clear current team assignments. Continue?",
+        confirmLabel: "Change players",
+        cancelLabel: "Cancel",
+        onConfirm: resetToPicking,
+      });
+      return;
+    }
+    resetToPicking();
+  }
+
+  function goToAddMoreTeams() {
+    function resetToPicking() {
+      setupPhase = PHASE_PICKING;
+      setDerivedTeamCount(null);
+      teamAssignments = [];
+      if (teamsList) teamsList.innerHTML = "";
+      renderPlayerPicker();
+      syncPhaseUI();
+      syncSetupStatus();
+      syncDirtyUI();
+    }
+
+    const hasAssignments = teamAssignments.some((t) => t.player1Id || t.player2Id);
+    if (hasAssignments) {
+      GameTracker.confirmModal({
+        message:
+          "Adding more teams will clear current team assignments. Continue?",
+        confirmLabel: "Add more teams",
+        cancelLabel: "Cancel",
+        onConfirm: resetToPicking,
+      });
+      return;
+    }
+    resetToPicking();
+  }
+
+  function beginManualAssign() {
+    if (teamCount === null) return;
+    setupPhase = PHASE_TEAMS;
+    resizeAssignments(teamCount);
+    renderTeams({ fromMemory: true });
+    syncPhaseUI();
+    syncSetupStatus();
+    syncDirtyUI();
+  }
+
+  function beginRandomizeAssign() {
+    if (teamCount === null) return;
+    const ids = [...tournamentPlayerIds];
+    if (ids.length !== teamCount * 2) return;
+    randomizeTeamAssignments(ids);
+    setupPhase = PHASE_TEAMS;
+    renderTeams({ fromMemory: true });
+    syncPhaseUI();
+    syncSetupStatus();
+    syncDirtyUI();
   }
 
   function readAssignmentsFromDom() {
@@ -655,9 +1205,10 @@
       readAssignmentsFromDom();
     }
 
-    if (teamCount === null) {
-      teamsList.innerHTML = "";
-      teamsHint?.classList.remove("hidden");
+    if (setupPhase !== PHASE_TEAMS || teamCount === null) {
+      if (setupPhase !== PHASE_TEAMS) {
+        teamsList.innerHTML = "";
+      }
       syncDirtyUI();
       return;
     }
@@ -665,7 +1216,7 @@
     teamsHint?.classList.add("hidden");
     resizeAssignments(teamCount);
 
-    const taken = selectedPlayerIds();
+    const taken = assignedPlayerIds();
     teamsList.innerHTML = "";
 
     for (let i = 0; i < teamCount; i += 1) {
@@ -787,28 +1338,24 @@
 
   function syncSetup() {
     selectedType = currentType();
-    const previousCount = teamCount;
     teamCount = parseTeamCount();
 
     if (typeError) {
       typeError.classList.toggle("hidden", !!selectedType);
     }
 
-    const teamCountTouched =
-      teamCountInput && String(teamCountInput.value ?? "").trim() !== "";
     if (teamCountError) {
-      teamCountError.classList.toggle("hidden", !teamCountTouched || teamCount !== null);
+      const poolCheck = validateTournamentPlayerPool();
+      const showTeamError =
+        setupPhase !== PHASE_PICKING && teamCount === null && tournamentPlayerIds.size > 0;
+      teamCountError.classList.toggle("hidden", !showTeamError || poolCheck.ok);
     }
 
     if (nameError) {
       syncNameError();
     }
 
-    if (previousCount !== teamCount) {
-      renderTeams();
-    } else {
-      syncDirtyUI();
-    }
+    syncDirtyUI();
     syncSetupStatus();
   }
 
@@ -832,20 +1379,63 @@
     });
 
     const teams = Array.isArray(tournament.teams) ? tournament.teams : [];
-    if (teamCountInput) {
-      teamCountInput.value = String(Math.max(teams.length, MIN_TEAMS));
-    }
-
-    teamAssignments = teams.map((team, index) => ({
+    teamAssignments = teams.map((team) => ({
       id: team.id,
       player1Id: team.player1Id || "",
       player2Id: team.player2Id || "",
     }));
     savedTeams = teams.map((team) => ({ ...team }));
+    if (Array.isArray(tournament.playerPoolIds) && tournament.playerPoolIds.length > 0) {
+      tournamentPlayerIds = new Set(
+        tournament.playerPoolIds.map((id) => String(id || "")).filter(Boolean)
+      );
+      mergePoolFromTeams(teamAssignments);
+    } else {
+      syncPoolFromTeams(teamAssignments);
+    }
 
+    const hasAssignedPlayers = teamAssignments.some(
+      (t) => t.player1Id || t.player2Id
+    );
     selectedType = currentType();
+
+    // Only show the Teams step after players were placed (assign/randomize).
+    if (hasAssignedPlayers) {
+      setDerivedTeamCount(
+        Math.max(teamAssignments.length, Math.ceil(tournamentPlayerIds.size / 2), MIN_TEAMS)
+      );
+      setupPhase = PHASE_TEAMS;
+    } else if (tournamentPlayerIds.size > 0) {
+      const poolCheck = validateTournamentPlayerPool();
+      if (poolCheck.ok) {
+        setDerivedTeamCount(poolCheck.teamCount);
+        teamAssignments = [];
+        resizeAssignments(poolCheck.teamCount);
+        setupPhase = PHASE_CHOOSE;
+      } else {
+        setDerivedTeamCount(null);
+        teamAssignments = [];
+        setupPhase = PHASE_PICKING;
+      }
+    } else if (teams.length >= MIN_TEAMS) {
+      setDerivedTeamCount(teams.length);
+      teamAssignments = teams.map((team) => ({
+        id: team.id,
+        player1Id: team.player1Id || "",
+        player2Id: team.player2Id || "",
+      }));
+      resizeAssignments(teams.length);
+      setupPhase = PHASE_CHOOSE;
+    } else {
+      setDerivedTeamCount(null);
+      teamAssignments = [];
+      setupPhase = PHASE_SETUP;
+    }
+
     teamCount = parseTeamCount();
-    renderTeams();
+    renderPlayerPicker();
+    renderTeams({ fromMemory: true });
+    syncPhaseUI();
     syncSetupStatus();
     suppressDirty = false;
     markBaseline();
@@ -854,7 +1444,9 @@
   }
 
   /**
-   * Copy setup from a finished tournament into a new unsaved draft.
+   * Copy name/type (and prior player pool) from a finished tournament into a
+   * new unsaved draft. Do not show teams until the user finishes select +
+   * assign/randomize again.
    * @param {CornholeTournament} tournament
    */
   function applyPrepopulatedFrom(tournament) {
@@ -864,6 +1456,7 @@
     savedStatus = GameTracker.Cornhole.TOURNAMENT_STATUSES.SETUP;
     savedTeams = [];
     fromPrepopulated = true;
+    existingTournamentSource = tournament;
     reservedName = String(tournament.name || "").trim() || null;
     storeLastResults(tournament);
 
@@ -876,27 +1469,25 @@
     });
 
     const teams = Array.isArray(tournament.teams) ? tournament.teams : [];
-    if (teamCountInput) {
-      teamCountInput.value = String(Math.max(teams.length, MIN_TEAMS));
-    }
-
-    teamAssignments = teams.map((team) => ({
-      player1Id: team.player1Id || "",
-      player2Id: team.player2Id || "",
-    }));
+    syncPoolFromTeams(teams);
+    teamAssignments = [];
+    setDerivedTeamCount(null);
+    setupPhase = PHASE_SETUP;
 
     selectedType = currentType();
     teamCount = parseTeamCount();
-    renderTeams();
+    if (teamsList) teamsList.innerHTML = "";
+    renderPlayerPicker();
+    renderTeams({ fromMemory: true });
+    syncPhaseUI();
     syncSetupStatus();
     suppressDirty = false;
 
-    // Empty baseline so every pre-filled field counts as unsaved.
     baseline = {
       name: "",
       type: "",
       teamCount: null,
-      teams: teamAssignments.map(() => ({ player1Id: "", player2Id: "" })),
+      teams: [],
     };
     syncDirtyUI();
     syncNameError();
@@ -945,8 +1536,15 @@
     } else {
       typeError?.classList.add("hidden");
     }
-    if (teamCount === null) {
+    if (teamCount === null || setupPhase === PHASE_PICKING || setupPhase === PHASE_SETUP) {
       teamCountError?.classList.remove("hidden");
+      setPlayerPickerError(
+        setupPhase === PHASE_SETUP
+          ? "Complete name and elimination type, then select players."
+          : setupPhase === PHASE_PICKING
+            ? "Select players and tap Done first."
+            : "Select an even number of players for 2–20 teams."
+      );
       ok = false;
     } else {
       teamCountError?.classList.add("hidden");
@@ -970,6 +1568,7 @@
       teams: buildTeamsPayload(),
       matches: savedMatches,
       status: savedStatus || GameTracker.Cornhole.TOURNAMENT_STATUSES.SETUP,
+      playerPoolIds: [...tournamentPlayerIds],
     };
     if (editingId) {
       payload.id = editingId;
@@ -993,7 +1592,18 @@
           player2Id: team.player2Id || "",
         }));
         savedTeams = saved.teams.map((team) => ({ ...team }));
-        renderTeams();
+        if (Array.isArray(saved.playerPoolIds) && saved.playerPoolIds.length > 0) {
+          tournamentPlayerIds = new Set(
+            saved.playerPoolIds.map((id) => String(id || "")).filter(Boolean)
+          );
+          mergePoolFromTeams(teamAssignments);
+        }
+        if (setupPhase === PHASE_PICKING || setupPhase === PHASE_CHOOSE) {
+          setupPhase = PHASE_TEAMS;
+        }
+        renderPlayerPicker();
+        renderTeams({ fromMemory: true });
+        syncPhaseUI();
       }
       const params = new URLSearchParams(window.location.search);
       params.set("id", saved.id);
@@ -1047,21 +1657,17 @@
   typeInputs.forEach((input) => {
     input.addEventListener("change", syncSetup);
   });
-  if (teamCountInput) {
-    teamCountInput.addEventListener("input", syncSetup);
-    teamCountInput.addEventListener("change", syncSetup);
-  }
   if (nameInput) {
     nameInput.addEventListener("input", syncSetup);
-  }
-  if (clearAllBtn) {
-    clearAllBtn.addEventListener("click", () => {
-      clearAllFields();
-    });
   }
   if (lastResultsBtn) {
     lastResultsBtn.addEventListener("click", () => {
       openLastResults();
+    });
+  }
+  if (keepExistingPlayersBtn) {
+    keepExistingPlayersBtn.addEventListener("click", () => {
+      keepAllPlayersFromExisting();
     });
   }
   if (saveBtn) {
@@ -1074,6 +1680,51 @@
       startTournament();
     });
   }
+  if (setupNextBtn) {
+    setupNextBtn.addEventListener("click", () => {
+      goToPlayerStep();
+    });
+  }
+  if (setupBackBtn) {
+    setupBackBtn.addEventListener("click", () => {
+      goBackToSetup();
+    });
+  }
+  if (setupBackBtn2) {
+    setupBackBtn2.addEventListener("click", () => {
+      goBackToPicking();
+    });
+  }
+  if (setupBackBtn3) {
+    setupBackBtn3.addEventListener("click", () => {
+      goBackToChoose();
+    });
+  }
+  if (donePlayersBtn) {
+    donePlayersBtn.addEventListener("click", () => {
+      confirmAllPlayersSelected();
+    });
+  }
+  if (changePlayersBtn) {
+    changePlayersBtn.addEventListener("click", () => {
+      changeSelectedPlayers();
+    });
+  }
+  if (assignTeamsBtn) {
+    assignTeamsBtn.addEventListener("click", () => {
+      beginManualAssign();
+    });
+  }
+  if (randomizeTeamsBtn) {
+    randomizeTeamsBtn.addEventListener("click", () => {
+      beginRandomizeAssign();
+    });
+  }
+  if (addMoreTeamsBtn) {
+    addMoreTeamsBtn.addEventListener("click", () => {
+      goToAddMoreTeams();
+    });
+  }
 
   async function load() {
     try {
@@ -1081,12 +1732,13 @@
       if (players.length === 0) {
         setStatus("");
         playersEmpty?.classList.remove("hidden");
-        teamsHint?.classList.add("hidden");
+        if (playerPickerList) playerPickerList.innerHTML = "";
+        if (playerSelectedList) playerSelectedList.innerHTML = "";
         if (teamsList) teamsList.innerHTML = "";
       } else {
         playersEmpty?.classList.add("hidden");
         setStatus(
-          `${players.length} player${players.length === 1 ? "" : "s"} available for team assignment.`
+          `${players.length} player${players.length === 1 ? "" : "s"} available.`
         );
       }
 
@@ -1128,7 +1780,9 @@
           clearSetupUrlId();
         } else if (!formDraft) {
           suppressDirty = true;
-          renderTeams();
+          renderPlayerPicker();
+          renderTeams({ fromMemory: true });
+          syncPhaseUI();
           syncSetupStatus();
           suppressDirty = false;
           markBaseline();
@@ -1146,7 +1800,9 @@
             applyPrepopulatedFrom(previous);
           } else {
             suppressDirty = true;
-            renderTeams();
+            renderPlayerPicker();
+            renderTeams({ fromMemory: true });
+            syncPhaseUI();
             syncSetupStatus();
             suppressDirty = false;
             markBaseline();
@@ -1154,7 +1810,9 @@
         }
       } else {
         suppressDirty = true;
-        renderTeams();
+        renderPlayerPicker();
+        renderTeams({ fromMemory: true });
+        syncPhaseUI();
         syncSetupStatus();
         suppressDirty = false;
         markBaseline();
@@ -1162,6 +1820,9 @@
 
       if (formDraft) {
         restoreFormDraft(formDraft);
+      } else {
+        renderPlayerPicker();
+        syncPhaseUI();
       }
       updateAddPlayerLink();
     } catch (err) {
@@ -1173,6 +1834,7 @@
   }
 
   syncSetup();
+  syncPhaseUI();
   if (addPlayerLink) {
     updateAddPlayerLink();
     addPlayerLink.addEventListener("click", () => {

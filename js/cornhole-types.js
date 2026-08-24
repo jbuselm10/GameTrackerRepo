@@ -47,6 +47,7 @@
  * @property {CornholeTeam[]} teams
  * @property {CornholeMatch[]} matches
  * @property {CornholeTournamentStatus} status
+ * @property {string[]} [playerPoolIds] Selected player ids for SETUP drafts (before all slots assigned).
  */
 
 window.GameTracker = window.GameTracker || {};

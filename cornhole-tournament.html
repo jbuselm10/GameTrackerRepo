@@ -48,11 +48,17 @@
     <header class="mb-8">
       <p class="gt-eyebrow">Game Tracker</p>
       <h1 class="gt-title mt-1 text-3xl font-semibold tracking-tight">Cornhole Tournament</h1>
-      <p class="gt-subtitle mt-2">Choose elimination type and team count, then assign two players to each team.</p>
+      <p class="gt-subtitle mt-2">
+        Follow each step: name the tournament, select players, then assign or randomize teams.
+      </p>
+      <p id="setup-step-indicator" class="mt-3 text-sm font-semibold text-felt">
+        Step 1 of 4 — Name and elimination type
+      </p>
     </header>
 
-    <section class="gt-panel mb-6 p-5">
-      <h2 class="mb-4 font-display text-lg font-semibold text-ink">Tournament setup</h2>
+    <!-- Step 1: Name + elimination type -->
+    <section id="setup-step-1" class="gt-panel mb-6 p-5">
+      <h2 class="mb-4 font-display text-lg font-semibold text-ink">Step 1 — Tournament name and type</h2>
       <div class="mb-4">
         <label for="tournament-name" class="gt-label">Tournament name <span class="text-red-600">*</span></label>
         <div class="mt-1 flex max-w-3xl flex-wrap items-center gap-2">
@@ -66,85 +72,135 @@
             placeholder="e.g. Saturday Cornhole"
             value="Cornhole Tournament"
           />
-          <button type="button" id="clear-all-fields-btn" class="gt-btn-secondary text-sm hidden whitespace-nowrap">
-            Clear All fields
-          </button>
           <button type="button" id="last-results-btn" class="gt-btn-secondary text-sm hidden whitespace-nowrap">
             Results of last tournament
           </button>
         </div>
         <p id="name-error" class="mt-1 hidden text-sm text-red-600">Name is required.</p>
       </div>
-      <div class="grid gap-4 sm:grid-cols-2 sm:items-start">
-        <fieldset>
-          <legend class="gt-label">Elimination type <span class="text-red-600">*</span></legend>
-          <div class="gt-panel-muted mt-2 space-y-2 p-3">
-            <label class="flex items-center gap-2 text-sm text-ink">
-              <input
-                type="radio"
-                name="gtCornholeType"
-                value="SINGLE_ELIMINATION"
-                required
-                class="border-wood/40 text-felt focus:ring-felt/30"
-              />
-              <span>Single elimination</span>
-            </label>
-            <label class="flex items-center gap-2 text-sm text-ink">
-              <input
-                type="radio"
-                name="gtCornholeType"
-                value="DOUBLE_ELIMINATION"
-                class="border-wood/40 text-felt focus:ring-felt/30"
-              />
-              <span>Double elimination</span>
-            </label>
-          </div>
-          <p id="type-error" class="mt-1 hidden text-sm text-red-600">Select single or double elimination.</p>
-        </fieldset>
+      <fieldset class="mb-4">
+        <legend class="gt-label">Elimination type <span class="text-red-600">*</span></legend>
+        <div class="gt-panel-muted mt-2 max-w-md space-y-2 p-3">
+          <label class="flex items-center gap-2 text-sm text-ink">
+            <input
+              type="radio"
+              name="gtCornholeType"
+              value="SINGLE_ELIMINATION"
+              required
+              class="border-wood/40 text-felt focus:ring-felt/30"
+            />
+            <span>Single elimination</span>
+          </label>
+          <label class="flex items-center gap-2 text-sm text-ink">
+            <input
+              type="radio"
+              name="gtCornholeType"
+              value="DOUBLE_ELIMINATION"
+              class="border-wood/40 text-felt focus:ring-felt/30"
+            />
+            <span>Double elimination</span>
+          </label>
+        </div>
+        <p id="type-error" class="mt-1 hidden text-sm text-red-600">Select single or double elimination.</p>
+      </fieldset>
+      <div class="flex flex-wrap items-center gap-2">
+        <button type="button" id="setup-next-btn" class="gt-btn text-sm">Next</button>
+        <button type="button" id="keep-existing-players-btn" class="gt-btn-secondary text-sm hidden">
+          Keep all Players from existing tournament
+        </button>
+      </div>
+    </section>
+
+    <!-- Step 2: Select players -->
+    <section id="setup-step-2" class="gt-panel mb-6 hidden p-4">
+      <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <h2 class="font-display text-base font-semibold text-ink">Step 2 — Select players</h2>
+        <a id="add-player-link" href="players.html" class="gt-btn text-sm">Add a player NOT in the list</a>
+      </div>
+      <p id="page-status" class="mb-2 text-sm gt-muted">Loading players…</p>
+      <p id="players-empty" class="mb-2 hidden text-sm font-bold text-ink">No players available. Add players first.</p>
+      <p id="player-picker-status" class="mb-2 text-sm gt-muted">
+        Select players for this tournament. Selected players appear in the box on the right. Total must be even.
+      </p>
+      <div class="mb-3 grid gap-3 sm:grid-cols-2">
         <div>
-          <label for="team-count" class="gt-label">Number of teams <span class="text-red-600">*</span></label>
-          <input
-            id="team-count"
-            name="gtCornholeTeamCount"
-            type="number"
-            inputmode="numeric"
-            min="2"
-            max="20"
-            step="1"
-            required
-            class="gt-input max-w-[8rem]"
-            placeholder="e.g. 8"
-          />
-          <p class="mt-1 text-sm gt-muted">Enter 2–20 teams.</p>
-          <p id="team-count-error" class="mt-1 hidden text-sm text-red-600">Enter a whole number from 2 to 20.</p>
+          <p class="gt-label mb-1">Available players</p>
+          <div
+            id="player-picker-list"
+            class="grid max-h-48 gap-1 overflow-y-auto rounded border border-wood/20 bg-parchment/40 p-2"
+          ></div>
+        </div>
+        <div>
+          <p class="gt-label mb-1">Selected players</p>
+          <div
+            id="player-selected-list"
+            class="grid max-h-48 gap-1 overflow-y-auto rounded border border-wood/20 bg-parchment/40 p-2"
+          ></div>
         </div>
       </div>
-      <div class="mt-4 flex flex-wrap items-center gap-2">
-        <button type="button" id="save-tournament-btn" class="gt-btn text-sm">Update Cornhole Tournament</button>
+      <div class="flex flex-wrap items-center gap-2">
+        <button type="button" id="setup-back-btn" class="gt-btn-secondary text-sm">Back</button>
+        <button type="button" id="done-players-btn" class="gt-btn text-sm" disabled>Done</button>
+        <button type="button" id="change-players-btn" class="gt-btn-secondary text-sm hidden">
+          Change selected players
+        </button>
+      </div>
+      <p id="player-picker-error" class="mt-2 hidden text-sm text-red-600" role="alert"></p>
+    </section>
+
+    <!-- Step 3: Assign or randomize -->
+    <section id="setup-step-3" class="gt-panel mb-6 hidden p-4">
+      <h2 class="mb-2 font-display text-base font-semibold text-ink">Step 3 — Place players on teams</h2>
+      <p class="mb-3 text-sm gt-muted">
+        Assign players to teams yourself, or randomize the pairings.
+      </p>
+      <div class="flex flex-wrap items-center gap-2">
+        <button type="button" id="randomize-teams-btn" class="gt-btn text-sm">Random Teams</button>
+        <button type="button" id="assign-teams-btn" class="gt-btn text-sm">Assign Team</button>
+        <button type="button" id="setup-back-btn-2" class="gt-btn text-sm">Back</button>
+      </div>
+    </section>
+
+    <!-- Step 4: Teams + Update / Start -->
+    <section id="setup-step-4" class="gt-panel mb-6 hidden p-5">
+      <h2 class="mb-4 font-display text-lg font-semibold text-ink">Step 4 — Teams and Start</h2>
+      <div class="mb-4">
+        <p class="gt-label">Number of teams</p>
+        <p id="team-count-display" class="mt-1 text-lg font-semibold text-ink">—</p>
+        <input id="team-count" name="gtCornholeTeamCount" type="hidden" value="" />
+        <p id="team-count-help" class="mt-1 text-sm gt-muted">
+          Derived from selected players (2 players per team).
+        </p>
+        <p id="team-count-error" class="mt-1 hidden text-sm text-red-600">
+          Select an even number of players for 2–20 teams.
+        </p>
+      </div>
+      <div id="teams-section" class="mb-4">
+        <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <h3 class="font-display text-base font-semibold text-ink">Teams</h3>
+        </div>
+        <p id="teams-hint" class="mb-2 text-sm gt-muted">
+          Assign two players to each team.
+        </p>
+        <div id="teams-list" class="grid gap-2 sm:grid-cols-2"></div>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <button type="button" id="save-tournament-btn" class="gt-btn text-sm">Save Teams</button>
+        <button type="button" id="add-more-teams-btn" class="gt-btn text-sm">Add more teams</button>
+        <button type="button" id="setup-back-btn-3" class="gt-btn-secondary text-sm">Back</button>
         <button type="button" id="start-tournament-btn" class="gt-btn-warn text-sm">Start Tournament</button>
         <p id="setup-status" class="hidden text-sm gt-muted"></p>
       </div>
       <p id="save-status" class="mt-2 hidden text-sm" role="status"></p>
       <p id="start-error" class="mt-2 hidden text-sm text-red-600" role="alert"></p>
     </section>
-
-    <section class="gt-panel p-4">
-      <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <h2 class="font-display text-base font-semibold text-ink">Teams</h2>
-        <a id="add-player-link" href="players.html" class="gt-btn text-sm">Add a player NOT in drop down list</a>
-      </div>
-      <p id="page-status" class="mb-2 text-sm gt-muted">Loading players…</p>
-      <p id="teams-hint" class="mb-2 text-sm gt-muted">Enter a valid number of teams above to assign players.</p>
-      <p id="players-empty" class="mb-2 hidden text-sm font-bold text-ink">No players available. Add players first.</p>
-      <div id="teams-list" class="grid gap-2 sm:grid-cols-2"></div>
-    </section>
   </div>
 
-  <script src="js/common.js?v=20260821b" defer></script>
-  <script src="js/cornhole-types.js?v=20260821b" defer></script>
-  <script src="js/cornhole-players.js?v=20260821b" defer></script>
-  <script src="js/cornhole-api.js?v=20260821b" defer></script>
-  <script src="js/cornhole-bracket.js?v=20260821b" defer></script>
-  <script src="js/cornhole-tournament.js?v=20260821b" defer></script>
+  <script src="js/common.js?v=20260823e" defer></script>
+  <script src="js/cornhole-types.js?v=20260823e" defer></script>
+  <script src="js/cornhole-players.js?v=20260823e" defer></script>
+  <script src="js/cornhole-api.js?v=20260823e" defer></script>
+  <script src="js/cornhole-bracket.js?v=20260823e" defer></script>
+  <script src="js/cornhole-tournament.js?v=20260823h" defer></script>
 </body>
 </html>

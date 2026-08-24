@@ -1,7 +1,7 @@
 <?php
 /**
  * Cornhole tournaments API — CRUD against ../data/cornhole-tournaments.json
- * Tournament: { id, name, type, teams[], matches[], status, updatedAt }
+ * Tournament: { id, name, type, teams[], matches[], status, updatedAt, playerPoolIds? }
  * Team: { id, name, player1Id, player2Id, player1Name, player2Name }
  */
 
@@ -148,6 +148,27 @@ function normalizeCornholeTeams($value, string $playersPath): array
     }
 
     return $teams;
+}
+
+function normalizePlayerPoolIds($value, array $playersMap): array
+{
+    if ($value === null) {
+        return [];
+    }
+    if (!is_array($value)) {
+        respond(400, ['error' => 'playerPoolIds must be an array']);
+    }
+
+    $ids = [];
+    foreach ($value as $id) {
+        $id = trim((string) $id);
+        if ($id === '' || !isset($playersMap[$id])) {
+            continue;
+        }
+        $ids[$id] = true;
+    }
+
+    return array_keys($ids);
 }
 
 function nullableString($value): ?string
@@ -302,7 +323,14 @@ function buildCornholeTournament(array $body, ?array $existing = null): array
             ? normalizeCornholeMatches($existing['matches'])
             : []);
 
-    return [
+    $playersMap = loadPlayersMap($playersFile);
+    $playerPoolIds = array_key_exists('playerPoolIds', $body)
+        ? normalizePlayerPoolIds($body['playerPoolIds'], $playersMap)
+        : (isset($existing['playerPoolIds']) && is_array($existing['playerPoolIds'])
+            ? normalizePlayerPoolIds($existing['playerPoolIds'], $playersMap)
+            : []);
+
+    $tournament = [
         'id' => $existing['id'] ?? newId('cornhole_'),
         'name' => $name,
         'type' => $type,
@@ -311,6 +339,11 @@ function buildCornholeTournament(array $body, ?array $existing = null): array
         'status' => $status,
         'updatedAt' => gmdate('c'),
     ];
+    if ($playerPoolIds !== []) {
+        $tournament['playerPoolIds'] = $playerPoolIds;
+    }
+
+    return $tournament;
 }
 
 $method = $_SERVER['REQUEST_METHOD'];
