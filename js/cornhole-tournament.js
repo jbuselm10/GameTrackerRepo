@@ -1077,7 +1077,15 @@
         team.player2Id = "";
       }
     });
-    setupPhase = PHASE_CHOOSE;
+    const hasExistingAssignments = teamAssignments.some(
+      (t) => t.player1Id || t.player2Id
+    );
+    if (hasExistingAssignments) {
+      setupPhase = PHASE_TEAMS;
+      teamsLockedFromRandom = false;
+    } else {
+      setupPhase = PHASE_CHOOSE;
+    }
     if (teamsList) teamsList.innerHTML = "";
     renderPlayerPicker();
     renderTeams({ fromMemory: true });
@@ -1114,30 +1122,15 @@
   }
 
   function goToAddMoreTeams() {
-    function resetToPicking() {
-      setupPhase = PHASE_PICKING;
-      teamsLockedFromRandom = false;
-      setDerivedTeamCount(null);
-      teamAssignments = [];
-      if (teamsList) teamsList.innerHTML = "";
-      renderPlayerPicker();
-      syncPhaseUI();
-      syncSetupStatus();
-      syncDirtyUI();
-    }
-
-    const hasAssignments = teamAssignments.some((t) => t.player1Id || t.player2Id);
-    if (hasAssignments) {
-      GameTracker.confirmModal({
-        message:
-          "Adding more teams will clear current team assignments. Continue?",
-        confirmLabel: "Add more teams",
-        cancelLabel: "Cancel",
-        onConfirm: resetToPicking,
-      });
-      return;
-    }
-    resetToPicking();
+    syncAssignmentsFromUi();
+    teamsLockedFromRandom = false;
+    setupPhase = PHASE_PICKING;
+    setDerivedTeamCount(null);
+    if (teamsList) teamsList.innerHTML = "";
+    renderPlayerPicker();
+    syncPhaseUI();
+    syncSetupStatus();
+    syncDirtyUI();
   }
 
   function beginManualAssign() {
