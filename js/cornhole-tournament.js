@@ -901,21 +901,27 @@
     const count = tournamentPlayerIds.size;
     if (players.length === 0) {
       playerPickerStatus.textContent = "";
+      playerPickerStatus.classList.remove("text-red-600");
+      playerPickerStatus.classList.add("gt-muted");
       return;
     }
     const teams = count % 2 === 0 ? count / 2 : null;
     let detail = `${count} selected`;
+    let isError = false;
     if (count === 0) {
       detail =
         "Select players from the left box; they move to Selected players on the right. Total must be even.";
     } else if (count % 2 !== 0) {
-      detail = `${count} selected (must be even)`;
+      detail = "Must have even number of players.";
+      isError = true;
     } else if (teams !== null && (teams < MIN_TEAMS || teams > MAX_TEAMS)) {
       detail = `${count} selected → ${teams} teams (need ${MIN_TEAMS}–${MAX_TEAMS} teams)`;
     } else if (teams !== null) {
       detail = `${count} selected → ${teams} team${teams === 1 ? "" : "s"}`;
     }
     playerPickerStatus.textContent = detail;
+    playerPickerStatus.classList.toggle("text-red-600", isError);
+    playerPickerStatus.classList.toggle("gt-muted", !isError);
   }
 
   function syncConfirmPlayersButton() {
