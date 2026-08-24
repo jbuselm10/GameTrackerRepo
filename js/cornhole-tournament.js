@@ -74,6 +74,8 @@
   let fromPrepopulated = false;
   /** @type {CornholeTournament | null} */
   let existingTournamentSource = null;
+  /** True after Keep-all-players has been used once this draft. */
+  let keepExistingPlayersUsed = false;
   /** Players chosen for this tournament (before / while assigning teams). */
   /** @type {Set<string>} */
   let tournamentPlayerIds = new Set();
@@ -303,7 +305,8 @@
     const source = getExistingTournamentSource();
     const teams = Array.isArray(source?.teams) ? source.teams : [];
     const show =
-      setupPhase === PHASE_SETUP &&
+      setupPhase === PHASE_PICKING &&
+      !keepExistingPlayersUsed &&
       countPlayersOnTeams(teams) >= MIN_PLAYERS;
     keepExistingPlayersBtn.classList.toggle("hidden", !show);
   }
@@ -313,46 +316,11 @@
     const teams = Array.isArray(source?.teams) ? source.teams : [];
     if (countPlayersOnTeams(teams) < MIN_PLAYERS) return;
 
-    syncNameError();
-    const name = currentName();
-    selectedType = currentType();
-    let ok = true;
-    if (!name || isReservedName(name)) {
-      syncNameError();
-      ok = false;
-    }
-    if (!selectedType) {
-      typeError?.classList.remove("hidden");
-      ok = false;
-    } else {
-      typeError?.classList.add("hidden");
-    }
-    if (!ok) return;
-
+    keepExistingPlayersUsed = true;
     syncPoolFromTeams(teams);
     setPlayerPickerError("");
-    teamCountError?.classList.add("hidden");
-
-    const poolCheck = validateTournamentPlayerPool();
-    if (!poolCheck.ok) {
-      setPlayerPickerError(poolCheck.message);
-      setupPhase = PHASE_PICKING;
-      renderPlayerPicker();
-      syncPhaseUI();
-      syncDirtyUI();
-      return;
-    }
-
-    setDerivedTeamCount(poolCheck.teamCount);
-    resizeAssignments(poolCheck.teamCount);
-    teamAssignments.forEach((team) => {
-      team.player1Id = "";
-      team.player2Id = "";
-    });
-    setupPhase = PHASE_CHOOSE;
-    if (teamsList) teamsList.innerHTML = "";
+    setupPhase = PHASE_PICKING;
     renderPlayerPicker();
-    renderTeams({ fromMemory: true });
     syncPhaseUI();
     syncSetupStatus();
     syncDirtyUI();
@@ -610,6 +578,7 @@
       baseline,
       reservedName,
       fromPrepopulated,
+      keepExistingPlayersUsed,
       existingTournamentSource: existingTournamentSource
         ? {
             name: existingTournamentSource.name || "",
@@ -752,6 +721,7 @@
         ? draft.reservedName.trim()
         : null;
     fromPrepopulated = !!draft.fromPrepopulated;
+    keepExistingPlayersUsed = !!draft.keepExistingPlayersUsed;
     if (draft.existingTournamentSource && typeof draft.existingTournamentSource === "object") {
       existingTournamentSource = {
         name: draft.existingTournamentSource.name || "",
@@ -1372,6 +1342,8 @@
     suppressDirty = true;
     reservedName = null;
     fromPrepopulated = false;
+    existingTournamentSource = null;
+    keepExistingPlayersUsed = false;
     editingId = tournament.id || null;
     savedMatches = Array.isArray(tournament.matches) ? tournament.matches : [];
     savedStatus = tournament.status || GameTracker.Cornhole.TOURNAMENT_STATUSES.SETUP;
@@ -1463,6 +1435,7 @@
     savedTeams = [];
     fromPrepopulated = true;
     existingTournamentSource = tournament;
+    keepExistingPlayersUsed = false;
     reservedName = String(tournament.name || "").trim() || null;
     storeLastResults(tournament);
 
@@ -1474,9 +1447,8 @@
       input.checked = input.value === tournament.type;
     });
 
-    const teams = Array.isArray(tournament.teams) ? tournament.teams : [];
-    syncPoolFromTeams(teams);
     teamAssignments = [];
+    tournamentPlayerIds = new Set();
     setDerivedTeamCount(null);
     setupPhase = PHASE_SETUP;
 
