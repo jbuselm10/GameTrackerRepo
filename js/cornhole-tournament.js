@@ -81,6 +81,8 @@
   let tournamentPlayerIds = new Set();
   /** @type {"setup"|"picking"|"chooseMode"|"teamsReady"} */
   let setupPhase = PHASE_SETUP;
+  /** True when Step 4 teams came from Random Teams (no player dropdowns). */
+  let teamsLockedFromRandom = false;
 
   function setStatus(message, isError = false) {
     if (!pageStatus) return;
@@ -575,6 +577,7 @@
       })),
       tournamentPlayerIds: [...tournamentPlayerIds],
       setupPhase,
+      teamsLockedFromRandom,
       baseline,
       reservedName,
       fromPrepopulated,
@@ -698,6 +701,8 @@
     } else {
       setupPhase = PHASE_SETUP;
     }
+
+    teamsLockedFromRandom = !!draft.teamsLockedFromRandom;
 
     if (draft.baseline && typeof draft.baseline === "object") {
       baseline = {
@@ -993,6 +998,7 @@
 
   function goBackToPicking() {
     setupPhase = PHASE_PICKING;
+    teamsLockedFromRandom = false;
     setDerivedTeamCount(null);
     teamAssignments = [];
     if (teamsList) teamsList.innerHTML = "";
@@ -1005,6 +1011,7 @@
   function goBackToChoose() {
     function resetToChoose() {
       setupPhase = PHASE_CHOOSE;
+      teamsLockedFromRandom = false;
       teamAssignments.forEach((team) => {
         team.player1Id = "";
         team.player2Id = "";
@@ -1082,6 +1089,7 @@
   function changeSelectedPlayers() {
     function resetToPicking() {
       setupPhase = PHASE_PICKING;
+      teamsLockedFromRandom = false;
       setDerivedTeamCount(null);
       teamAssignments = [];
       if (teamsList) teamsList.innerHTML = "";
@@ -1108,6 +1116,7 @@
   function goToAddMoreTeams() {
     function resetToPicking() {
       setupPhase = PHASE_PICKING;
+      teamsLockedFromRandom = false;
       setDerivedTeamCount(null);
       teamAssignments = [];
       if (teamsList) teamsList.innerHTML = "";
@@ -1133,6 +1142,7 @@
 
   function beginManualAssign() {
     if (teamCount === null) return;
+    teamsLockedFromRandom = false;
     setupPhase = PHASE_TEAMS;
     resizeAssignments(teamCount);
     renderTeams({ fromMemory: true });
@@ -1146,6 +1156,7 @@
     const ids = [...tournamentPlayerIds];
     if (ids.length !== teamCount * 2) return;
     randomizeTeamAssignments(ids);
+    teamsLockedFromRandom = true;
     setupPhase = PHASE_TEAMS;
     renderTeams({ fromMemory: true });
     syncPhaseUI();
@@ -1225,8 +1236,20 @@
         const field = document.createElement("div");
         const label = document.createElement("label");
         label.className = "gt-label";
-        label.htmlFor = `team-${i + 1}-${slot}`;
         label.textContent = `Player ${slotIndex + 1}`;
+
+        const selectedId = slot === "player1" ? assignment.player1Id : assignment.player2Id;
+
+        if (teamsLockedFromRandom) {
+          const nameEl = document.createElement("p");
+          nameEl.className = "gt-input gt-input-compact flex items-center";
+          nameEl.textContent = playerNameById(selectedId) || "—";
+          field.append(label, nameEl);
+          grid.appendChild(field);
+          return;
+        }
+
+        label.htmlFor = `team-${i + 1}-${slot}`;
 
         const select = document.createElement("select");
         select.id = `team-${i + 1}-${slot}`;
@@ -1234,7 +1257,6 @@
         select.className = "gt-input gt-input-compact";
         select.setAttribute("data-slot", slot);
 
-        const selectedId = slot === "player1" ? assignment.player1Id : assignment.player2Id;
         fillPlayerSelect(select, selectedId, taken);
 
         select.addEventListener("change", () => {
@@ -1356,6 +1378,7 @@
     fromPrepopulated = false;
     existingTournamentSource = null;
     keepExistingPlayersUsed = false;
+    teamsLockedFromRandom = false;
     editingId = tournament.id || null;
     savedMatches = Array.isArray(tournament.matches) ? tournament.matches : [];
     savedStatus = tournament.status || GameTracker.Cornhole.TOURNAMENT_STATUSES.SETUP;
@@ -1461,6 +1484,7 @@
 
     teamAssignments = [];
     tournamentPlayerIds = new Set();
+    teamsLockedFromRandom = false;
     setDerivedTeamCount(null);
     setupPhase = PHASE_SETUP;
 
