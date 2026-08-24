@@ -256,6 +256,13 @@
     return match.bracket === SIDES.THIRD_PLACE;
   }
 
+  function canShowChangeResult(match) {
+    if (viewingLastResults) return false;
+    if (!tournament || !match || match.active === false) return false;
+    if (match.losersBye) return false;
+    return true;
+  }
+
   function toggleEditingResults() {
     editingResults = !editingResults;
     renderBracket();
@@ -363,7 +370,7 @@
       card.appendChild(renderTeamRow(match, "team2Id"));
     }
 
-    if (match.status === STATUSES.COMPLETED && canEditMatch(match) && !match.losersBye) {
+    if (match.status === STATUSES.COMPLETED && canShowChangeResult(match)) {
       const changeBtn = document.createElement("button");
       changeBtn.type = "button";
       changeBtn.className = "gt-btn-secondary text-xs mt-2";
