@@ -297,6 +297,17 @@
     typeError?.classList.add("hidden");
   }
 
+  /** Clear Step 1 inputs without dropping prior-tournament memory. */
+  function clearStep1Fields() {
+    if (nameInput) nameInput.value = "";
+    typeInputs.forEach((input) => {
+      input.checked = false;
+    });
+    selectedType = "";
+    nameError?.classList.add("hidden");
+    typeError?.classList.add("hidden");
+  }
+
   function startFreshSetup(options = {}) {
     suppressDirty = true;
     editingId = null;
@@ -677,6 +688,36 @@
     } catch {
       // Ignore.
     }
+  }
+
+  /**
+   * True when the draft was saved mid-wizard (Step 2+) so we should restore it
+   * after returning from Add Player / last results — not a stale Step 1 name.
+   * @param {object|null} draft
+   * @returns {boolean}
+   */
+  function isMidWizardFormDraft(draft) {
+    if (!draft || typeof draft !== "object") return false;
+    if (
+      draft.setupPhase === PHASE_PICKING ||
+      draft.setupPhase === PHASE_CHOOSE ||
+      draft.setupPhase === PHASE_TEAMS
+    ) {
+      return true;
+    }
+    if (
+      Array.isArray(draft.tournamentPlayerIds) &&
+      draft.tournamentPlayerIds.some((id) => String(id || "").trim())
+    ) {
+      return true;
+    }
+    if (
+      Array.isArray(draft.teams) &&
+      draft.teams.some((team) => team?.player1Id || team?.player2Id)
+    ) {
+      return true;
+    }
+    return false;
   }
 
   /**
@@ -1439,7 +1480,7 @@
     savedStatus = tournament.status || GameTracker.Cornhole.TOURNAMENT_STATUSES.SETUP;
 
     if (nameInput) {
-      nameInput.value = tournament.name || "Cornhole Tournament";
+      nameInput.value = tournament.name || "";
     }
 
     typeInputs.forEach((input) => {
@@ -1792,6 +1833,7 @@
         return;
       }
 
+      let resumedSetup = false;
       const loadId = id || (formDraft && formDraft.editingId) || "";
       if (loadId) {
         const tournament = await GameTracker.Cornhole.fetchTournament(loadId);
@@ -1802,6 +1844,7 @@
         }
         if (tournament.status === GameTracker.Cornhole.TOURNAMENT_STATUSES.SETUP) {
           applyTournament(tournament);
+          resumedSetup = true;
           if (!params.get("id")) {
             params.set("id", tournament.id);
             window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
@@ -1810,18 +1853,19 @@
             setSaveStatus("Loaded saved Cornhole tournament.");
           }
         } else if (
-          tournament.status === GameTracker.Cornhole.TOURNAMENT_STATUSES.COMPLETED &&
-          !formDraft
+          tournament.status === GameTracker.Cornhole.TOURNAMENT_STATUSES.COMPLETED
         ) {
+          // New tournament after a completed one: leave Step 1 blank.
           startFreshSetup({ previousTournament: tournament });
           clearSetupUrlId();
-        } else if (!formDraft) {
+        } else {
           startFreshSetup();
         }
-      } else if (!formDraft) {
+      } else if (!formDraft || !isMidWizardFormDraft(formDraft)) {
         const draft = pickDraftTournament(tournaments);
         if (draft) {
           applyTournament(draft);
+          resumedSetup = true;
           params.set("id", draft.id);
           window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
           setSaveStatus("Loaded your in-progress Cornhole tournament.");
@@ -1835,9 +1879,16 @@
         startFreshSetup();
       }
 
-      if (formDraft) {
+      // Restore session draft only when returning mid-wizard (Add Player /
+      // last results). Stale Step 1 drafts must not re-fill name/type.
+      if (formDraft && isMidWizardFormDraft(formDraft)) {
         restoreFormDraft(formDraft);
       } else {
+        clearFormDraft();
+        if (!resumedSetup) {
+          clearStep1Fields();
+          syncPrepopulatedButtons();
+        }
         renderPlayerPicker();
         syncPhaseUI();
       }

@@ -115,6 +115,11 @@
             status: GameTracker.Cornhole.TOURNAMENT_STATUSES.COMPLETED,
           });
           storeLastResults(saved);
+          try {
+            sessionStorage.removeItem("gametracker.cornholeFormDraft");
+          } catch {
+            // Ignore.
+          }
           window.location.href = "cornhole-tournament.html";
         } catch (err) {
           setSaveStatus(err.message || "Could not end tournament.", true);
