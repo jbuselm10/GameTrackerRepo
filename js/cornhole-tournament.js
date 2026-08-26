@@ -1105,30 +1105,13 @@
   }
 
   function goBackToChoose() {
-    function resetToChoose() {
-      setupPhase = PHASE_CHOOSE;
-      teamsLockedFromRandom = false;
-      teamAssignments.forEach((team) => {
-        team.player1Id = "";
-        team.player2Id = "";
-      });
-      if (teamsList) teamsList.innerHTML = "";
-      syncPhaseUI();
-      syncSetupStatus();
-      syncDirtyUI();
-    }
-
-    const hasAssignments = teamAssignments.some((t) => t.player1Id || t.player2Id);
-    if (hasAssignments) {
-      GameTracker.confirmModal({
-        message: "Going back will clear current team assignments. Continue?",
-        confirmLabel: "Go back",
-        cancelLabel: "Cancel",
-        onConfirm: resetToChoose,
-      });
-      return;
-    }
-    resetToChoose();
+    syncAssignmentsFromUi();
+    setupPhase = PHASE_CHOOSE;
+    teamsLockedFromRandom = false;
+    if (teamsList) teamsList.innerHTML = "";
+    syncPhaseUI();
+    syncSetupStatus();
+    syncDirtyUI();
   }
 
   /**
