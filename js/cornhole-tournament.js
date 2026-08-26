@@ -515,6 +515,30 @@
   }
 
   /**
+   * Place a player on a team slot. Removes them from any prior slot; any player
+   * replaced in the destination slot becomes unassigned.
+   * @param {number} teamIndex
+   * @param {"player1"|"player2"} slot
+   * @param {string} playerId
+   */
+  function movePlayerToSlot(teamIndex, slot, playerId) {
+    const dest = teamAssignments[teamIndex];
+    if (!dest || !playerId) return;
+
+    const existing = findPlayerAssignment(playerId);
+    if (existing) {
+      const from = teamAssignments[existing.teamIndex];
+      if (from) {
+        if (from.player1Id === playerId) from.player1Id = "";
+        if (from.player2Id === playerId) from.player2Id = "";
+      }
+    }
+
+    if (slot === "player1") dest.player1Id = playerId;
+    else dest.player2Id = playerId;
+  }
+
+  /**
    * @returns {Set<string>}
    */
   function assignedPlayerIds() {
@@ -1357,54 +1381,18 @@
           const prior =
             slot === "player1" ? assignment.player1Id : assignment.player2Id;
 
-          function applyChange() {
-            readAssignmentsFromDom();
-            renderTeams();
-            syncSetupStatus();
-            syncDirtyUI();
+          if (chosen === prior) return;
+
+          if (!chosen) {
+            if (slot === "player1") assignment.player1Id = "";
+            else assignment.player2Id = "";
+          } else {
+            movePlayerToSlot(i, slot, chosen);
           }
 
-          if (!chosen || chosen === prior) {
-            applyChange();
-            return;
-          }
-
-          const existing = findPlayerAssignment(chosen);
-          if (
-            !existing ||
-            (existing.teamIndex === i && existing.slot === slot)
-          ) {
-            applyChange();
-            return;
-          }
-
-          select.value = prior || "";
-          select.classList.toggle("gt-select-empty", !select.value);
-          const name = playerNameById(chosen) || "That player";
-          GameTracker.confirmModal({
-            message: `${name} is already assigned to Team ${existing.teamIndex + 1}.`,
-            confirmLabel: "Move Player",
-            cancelLabel: "Return",
-            onConfirm: () => {
-              const from = teamAssignments[existing.teamIndex];
-              if (from) {
-                if (from.player1Id === chosen) from.player1Id = "";
-                if (from.player2Id === chosen) from.player2Id = "";
-              }
-              const dest = teamAssignments[i];
-              if (dest) {
-                if (slot === "player1") dest.player1Id = chosen;
-                else dest.player2Id = chosen;
-              }
-              renderTeams({ fromMemory: true });
-              syncSetupStatus();
-              syncDirtyUI();
-            },
-            onCancel: () => {
-              select.value = prior || "";
-              select.classList.toggle("gt-select-empty", !select.value);
-            },
-          });
+          renderTeams({ fromMemory: true });
+          syncSetupStatus();
+          syncDirtyUI();
         });
 
         field.append(label, select);
