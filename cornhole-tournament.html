@@ -114,7 +114,7 @@
     <section id="setup-step-2" class="gt-panel mb-6 hidden p-4">
       <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
         <h2 class="font-display text-base font-semibold text-ink">Step 2 of 4 — Select players</h2>
-        <a id="add-player-link" href="players.html" class="gt-btn text-sm">Add a player NOT in the list</a>
+        <a id="add-player-link" href="players.html" class="gt-btn text-sm">Add a player's Name that is not on the list</a>
       </div>
       <p id="page-status" class="mb-2 text-sm gt-muted">Loading players…</p>
       <p id="players-empty" class="mb-2 hidden text-sm font-bold text-ink">No players available. Add players first.</p>
@@ -141,7 +141,7 @@
         <button type="button" id="setup-back-btn" class="gt-btn-secondary text-sm">Back</button>
         <button type="button" id="done-players-btn" class="gt-btn text-sm" disabled>Done</button>
         <button type="button" id="keep-existing-players-btn" class="gt-btn-secondary text-sm hidden">
-          Keep all Players from existing tournament
+          Keep all players to last tournament
         </button>
         <button type="button" id="change-players-btn" class="gt-btn-secondary text-sm hidden">
           Change selected players
@@ -163,7 +163,7 @@
       </div>
     </section>
 
-    <!-- Step 4: Teams + Update / Start -->
+    <!-- Step 4: Teams and Start -->
     <section id="setup-step-4" class="gt-panel mb-6 hidden p-5">
       <h2 class="mb-4 font-display text-lg font-semibold text-ink">Step 4 of 4 — Teams and Start</h2>
       <div class="mb-4">
@@ -187,10 +187,9 @@
         <div id="teams-list" class="grid gap-2 sm:grid-cols-2"></div>
       </div>
       <div class="flex flex-wrap items-center gap-2">
-        <button type="button" id="save-tournament-btn" class="gt-btn text-sm">Save Teams</button>
-        <button type="button" id="add-more-teams-btn" class="gt-btn text-sm">Add more teams</button>
-        <button type="button" id="setup-back-btn-3" class="gt-btn-secondary text-sm">Back</button>
         <button type="button" id="start-tournament-btn" class="gt-btn-warn text-sm">Start Tournament</button>
+        <button type="button" id="add-more-teams-btn" class="gt-btn text-sm">Add More Teams</button>
+        <button type="button" id="setup-back-btn-3" class="gt-btn-secondary text-sm">Back</button>
         <p id="setup-status" class="hidden text-sm gt-muted"></p>
       </div>
       <p id="save-status" class="mt-2 hidden text-sm" role="status"></p>
@@ -203,6 +202,6 @@
   <script src="js/cornhole-players.js?v=20260823e" defer></script>
   <script src="js/cornhole-api.js?v=20260823e" defer></script>
   <script src="js/cornhole-bracket.js?v=20260824i" defer></script>
-  <script src="js/cornhole-tournament.js?v=20260825a" defer></script>
+  <script src="js/cornhole-tournament.js?v=20260826d" defer></script>
 </body>
 </html>

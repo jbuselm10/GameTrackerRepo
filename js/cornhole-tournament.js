@@ -32,7 +32,6 @@
   const keepExistingPlayersBtn = document.getElementById("keep-existing-players-btn");
   const setupStatus = document.getElementById("setup-status");
   const saveStatus = document.getElementById("save-status");
-  const saveBtn = document.getElementById("save-tournament-btn");
   const startBtn = document.getElementById("start-tournament-btn");
   const startError = document.getElementById("start-error");
   const addPlayerLink = document.getElementById("add-player-link");
@@ -41,7 +40,7 @@
   const MAX_TEAMS = GameTracker.Cornhole.MAX_TEAMS;
   const MIN_PLAYERS = MIN_TEAMS * 2;
   const MAX_PLAYERS = MAX_TEAMS * 2;
-  const UNSAVED_MESSAGE = "Changes have NOT been saved.";
+  const UNSAVED_MESSAGE = "Unsaved changes will be saved when you start.";
   const FORM_DRAFT_KEY = "gametracker.cornholeFormDraft";
   const LAST_RESULTS_KEY = "gametracker.cornholeLastResults";
   const PHASE_SETUP = "setup";
@@ -122,12 +121,6 @@
   }
 
   function canStartTournament() {
-    if (!editingId) {
-      return { ok: false, message: "Save the tournament with Save Teams before starting." };
-    }
-    if (isDirty()) {
-      return { ok: false, message: "Save your changes before starting the tournament." };
-    }
     if (!currentName()) {
       return { ok: false, message: "Tournament name is required." };
     }
@@ -149,6 +142,11 @@
     if (!check.ok) {
       setStartError(check.message);
       return;
+    }
+
+    if (!editingId || isDirty()) {
+      const saved = await saveTournament({ quiet: true });
+      if (!saved) return;
     }
 
     const firstRoundMatchCount = teamCount !== null ? Math.floor(teamCount / 2) : 0;
@@ -612,13 +610,13 @@
       setSaveStatus("");
     }
 
-    if (saveBtn) {
+    if (startBtn && setupPhase === PHASE_TEAMS) {
       if (dirty) {
-        saveBtn.classList.remove("gt-btn");
-        saveBtn.classList.add("gt-btn-danger-solid");
+        startBtn.classList.remove("gt-btn-warn");
+        startBtn.classList.add("gt-btn-danger-solid");
       } else {
-        saveBtn.classList.remove("gt-btn-danger-solid");
-        saveBtn.classList.add("gt-btn");
+        startBtn.classList.remove("gt-btn-danger-solid");
+        startBtn.classList.add("gt-btn-warn");
       }
     }
   }
@@ -1618,14 +1616,23 @@
     return ok;
   }
 
-  async function saveTournament() {
+  /**
+   * @param {{ quiet?: boolean }} [options]
+   * @returns {Promise<CornholeTournament|null>}
+   */
+  async function saveTournament(options = {}) {
+    const quiet = !!options.quiet;
     if (!validateForSave()) {
-      if (isReservedName(currentName())) {
-        setSaveStatus("Change the tournament name before saving.", true);
+      if (!quiet) {
+        if (isReservedName(currentName())) {
+          setSaveStatus("Change the tournament name before saving.", true);
+        } else {
+          setSaveStatus("Fix the highlighted setup fields, then try again.", true);
+        }
       } else {
-        setSaveStatus("Fix the highlighted setup fields, then try again.", true);
+        setStartError("Fix the highlighted setup fields, then try again.");
       }
-      return;
+      return null;
     }
 
     const teamsPayload = buildTeamsPayload();
@@ -1641,8 +1648,9 @@
       payload.id = editingId;
     }
 
-    if (saveBtn) saveBtn.disabled = true;
-    setSaveStatus("Saving tournament…");
+    if (startBtn) startBtn.disabled = true;
+    if (!quiet) setSaveStatus("Saving tournament…");
+    else setSaveStatus("Saving…");
 
     try {
       const saved = await GameTracker.Cornhole.saveTournament(payload);
@@ -1696,11 +1704,23 @@
       clearFormDraft();
       syncNameError();
       syncPrepopulatedButtons();
-      setSaveStatus("Cornhole tournament saved. You can leave and update it later.");
+      if (!quiet) {
+        setSaveStatus("Cornhole tournament saved. You can leave and update it later.");
+      } else {
+        setSaveStatus("");
+      }
+      return saved;
     } catch (err) {
-      setSaveStatus(err.message || "Could not save tournament.", true);
+      const message = err.message || "Could not save tournament.";
+      if (!quiet) {
+        setSaveStatus(message, true);
+      } else {
+        setStartError(message);
+        setSaveStatus("");
+      }
+      return null;
     } finally {
-      if (saveBtn) saveBtn.disabled = false;
+      if (startBtn) startBtn.disabled = false;
     }
   }
 
@@ -1746,11 +1766,6 @@
   if (keepExistingPlayersBtn) {
     keepExistingPlayersBtn.addEventListener("click", () => {
       keepAllPlayersFromExisting();
-    });
-  }
-  if (saveBtn) {
-    saveBtn.addEventListener("click", () => {
-      saveTournament();
     });
   }
   if (startBtn) {
