@@ -118,7 +118,7 @@
   }
 
   function updateSortLabels() {
-    const arrow = sortDir === "desc" ? "\u00a0↓" : "\u00a0↑";
+    const arrow = sortDir === "desc" ? "\u00a0\u2193" : "\u00a0\u2191";
     sortTournamentBtn.textContent =
       "Tournament wins" + (sortKey === "tournamentWins" ? arrow : "");
     sortGameBtn.textContent = "Game wins" + (sortKey === "gameWins" ? arrow : "");
@@ -163,7 +163,7 @@
   }
 
   async function loadPlayerHistory() {
-    listStatus.textContent = "Loading player history…";
+    listStatus.textContent = "Loading player history...";
     listStatus.classList.remove("hidden");
     emptyState.classList.add("hidden");
     standingsHeader.classList.add("hidden");

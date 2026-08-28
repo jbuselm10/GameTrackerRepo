@@ -3,69 +3,81 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GameTracker — Tournament Summary</title>
+  <title>GameTracker - Tournament Summary</title>
   <link rel="icon" href="favicon.png" type="image/png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Nunito:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       theme: {
         extend: {
           colors: {
-            felt: { DEFAULT: "#1f6b4a", dark: "#154f36", light: "#2d8a60" },
-            wood: { DEFAULT: "#8b6914", deep: "#5c4510", muted: "#a8893a" },
-            parchment: { DEFAULT: "#f3ebd8", deep: "#e8dcc4" },
-            ink: { DEFAULT: "#1f1a14", muted: "#5c5348" },
+            surface: "#F4F6F3",
+            panel: { DEFAULT: "#FFFFFF", muted: "#EEF1EE" },
+            line: "#D8DED8",
+            accent: { DEFAULT: "#1B7A4E", soft: "#E3F3EA", dark: "#145C3A" },
+            pop: { DEFAULT: "#C9A227", soft: "#F5E6B8" },
+            felt: { DEFAULT: "#1B7A4E", dark: "#145C3A", light: "#2d9a64" },
+            wood: { DEFAULT: "#D8DED8", deep: "#5E6B62", muted: "#C5CFC5" },
+            parchment: { DEFAULT: "#FFFFFF", deep: "#EEF1EE" },
+            ink: { DEFAULT: "#1A221C", muted: "#5E6B62" },
             gold: { DEFAULT: "#c9a227", soft: "#f5e6b8" },
           },
           fontFamily: {
-            display: ['"Fraunces"', "Georgia", "serif"],
-            body: ['"Nunito"', "system-ui", "sans-serif"],
+            display: ['"Barlow Condensed"', "system-ui", "sans-serif"],
+            body: ['"Inter"', "system-ui", "sans-serif"],
           },
         },
       },
     };
   </script>
-  <link rel="stylesheet" href="css/theme.css?v=20260811d" />
+  <link rel="stylesheet" href="css/theme.css?v=20260827m" />
   <script src="js/config.js?v=20260811d"></script>
   <script src="https://browser.sentry-cdn.com/8.55.0/bundle.replay.min.js" crossorigin="anonymous"></script>
   <script src="js/sentry-init.js?v=20260811d"></script>
 </head>
 <body class="gt-body font-body">
-  <div class="gt-wood-strip"></div>
+  <div class="gt-accent-strip"></div>
+  <div class="gt-page-chrome">
+    <div class="mx-auto max-w-5xl px-4 py-3">
+      <nav class="gt-nav">
+        <a href="index.html">Home</a>
+        <a href="tournaments.html">Tournaments</a>
+        <a href="cornhole-tournament.html">Cornhole</a>
+        <a href="games.html">Games</a>
+        <a href="players.html">Players</a>
+        <a href="teams.html">Teams</a>
+        <a href="history.html" aria-current="page">History</a>
+      </nav>
+    </div>
+  </div>
   <div class="mx-auto max-w-2xl px-4 py-10">
-    <nav class="gt-nav mb-6 flex flex-wrap gap-x-4 gap-y-2 text-lg font-bold">
-      <a href="index.html">Home</a>
-      <a href="tournaments.html">Tournaments</a>
-      <a href="games.html">Games</a>
-      <a href="players.html">Players</a>
-      <a href="teams.html">Teams</a>
-      <a href="history.html">History</a>
-      <a href="cornhole-tournament.html">Cornhole</a>
-    </nav>
-    <header class="mb-8">
+    <header class="gt-page-header">
       <p class="gt-eyebrow">Game Tracker</p>
       <h1 class="gt-title mt-1 text-3xl font-semibold tracking-tight">Tournament Summary</h1>
-      <p id="summary-subtitle" class="gt-subtitle mt-2">Results ranked by wins.</p>
       <div class="mt-4 flex flex-wrap items-center gap-2">
         <button type="button" id="return-btn" class="gt-btn-secondary text-sm">Return</button>
         <button type="button" id="reactivate-btn" class="gt-btn-secondary hidden text-sm">Re-activate</button>
       </div>
     </header>
 
-    <p id="page-status" class="mb-4 text-sm gt-subtitle">Loading summary…</p>
+    <p id="page-status" class="mb-4 text-sm gt-subtitle">Loading summary...</p>
 
     <section id="summary-panel" class="hidden space-y-6">
       <div class="gt-panel p-5">
-        <h2 id="tournament-name" class="font-display text-lg font-semibold text-ink"></h2>
-        <p id="tournament-meta" class="mt-1 text-sm gt-muted"></p>
+        <h2 id="tournament-name" class="gt-title mt-1 text-2xl font-semibold tracking-tight sm:text-3xl"></h2>
+        <p id="tournament-date" class="mt-2 text-sm gt-muted"></p>
+        <div class="mt-2 flex flex-wrap items-center gap-2">
+          <span id="tournament-scoring-badge" class="gt-badge-active"></span>
+          <span id="tournament-competitor-badge" class="gt-badge-active"></span>
+        </div>
         <p id="games-played" class="mt-2 text-sm text-ink"></p>
       </div>
 
-      <div id="top-winners" class="gt-top-winners hidden p-5">
-        <h2 class="text-sm font-bold uppercase tracking-wide text-wood-deep">Top by wins</h2>
+      <div id="top-winners" class="gt-top-winners hidden p-5 text-center">
+        <h2 class="text-sm font-bold tracking-wide text-wood-deep">Winner!</h2>
         <p id="top-winners-text" class="mt-2 text-lg font-semibold text-wood-deep"></p>
       </div>
 
@@ -79,6 +91,6 @@
 
   <script src="js/common.js?v=20260811d" defer></script>
   <script src="js/play-winners.js?v=20260811d" defer></script>
-  <script src="js/tournament-summary.js?v=20260811d" defer></script>
+  <script src="js/tournament-summary.js?v=20260827b" defer></script>
 </body>
 </html>

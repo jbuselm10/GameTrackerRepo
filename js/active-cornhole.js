@@ -164,6 +164,30 @@
     return players ? `${team.name}: ${players}` : team.name;
   }
 
+  function missingRosterPlayerNames() {
+    if (!tournament) return [];
+    const missing = [];
+    for (const team of tournament.teams || []) {
+      if (team.player1Name && !team.player1Id) {
+        missing.push(team.player1Name);
+      }
+      if (team.player2Name && !team.player2Id) {
+        missing.push(team.player2Name);
+      }
+    }
+    return [...new Set(missing)];
+  }
+
+  function syncRosterWarning() {
+    if (viewingLastResults) return;
+    const missing = missingRosterPlayerNames();
+    if (!missing.length) return;
+    setPageStatus(
+      `${missing.join(", ")} ${missing.length === 1 ? "is" : "are"} no longer on the roster (removed from Players). You can still finish or end this tournament; add them back on the Players page to link them again.`,
+      true
+    );
+  }
+
   function waitingLabel(match, slot) {
     const feeders = (tournament.matches || []).filter((m) => {
       if (slot === "team1Id") {
@@ -301,18 +325,29 @@
     if (match.status === STATUSES.COMPLETED && match.winnerId === teamId) {
       row.classList.add("gt-bracket-team-winner");
       const badge = document.createElement("span");
-      badge.className = "gt-bracket-badge";
-      const dest = match.nextMatchId
-        ? (tournament.matches || []).find((m) => m.id === match.nextMatchId)
-        : null;
-      badge.textContent =
-        dest && dest.bracket === SIDES.LOSERS && dest.round > match.round
-          ? `Winner · to Round ${dest.round}`
-          : dest &&
-              (dest.bracket === SIDES.GRAND_FINAL ||
-                dest.bracket === SIDES.GRAND_FINAL_RESET)
-            ? "Winner · to Championship"
-            : "Winner";
+      const championId = GameTracker.Cornhole.championId(tournament?.matches || []);
+      const isChampionshipFinal =
+        championId &&
+        championId === teamId &&
+        (match.bracket === SIDES.GRAND_FINAL ||
+          match.bracket === SIDES.GRAND_FINAL_RESET);
+      if (isChampionshipFinal) {
+        badge.className = "gt-bracket-badge gt-bracket-badge-champions";
+        badge.textContent = "Champions!";
+      } else {
+        badge.className = "gt-bracket-badge";
+        const dest = match.nextMatchId
+          ? (tournament.matches || []).find((m) => m.id === match.nextMatchId)
+          : null;
+        badge.textContent =
+          dest && dest.bracket === SIDES.LOSERS && dest.round > match.round
+            ? `Winner - to Round ${dest.round}`
+            : dest &&
+                (dest.bracket === SIDES.GRAND_FINAL ||
+                  dest.bracket === SIDES.GRAND_FINAL_RESET)
+              ? "Winner - to Championship"
+              : "Winner";
+      }
       actions.appendChild(badge);
     } else if (match.status === STATUSES.COMPLETED && match.loserId === teamId) {
       row.classList.add("gt-bracket-team-out");
@@ -442,6 +477,27 @@
     });
   }
 
+  function renderStandingsRows(standings) {
+    const rows = [
+      { place: "1st", teamId: standings.first, mod: "first" },
+      { place: "2nd", teamId: standings.second, mod: "second" },
+      { place: "3rd", teamId: standings.third, mod: "third" },
+    ].filter((row) => row.teamId);
+
+    return `
+      <ol class="gt-standings-ranks">
+        ${rows
+          .map(
+            (row) => `
+          <li class="gt-standings-rank gt-standings-rank--${row.mod}">
+            <span class="gt-standings-rank__place">${row.place}</span>
+            <span class="gt-standings-rank__team">${escapeHtml(teamLabel(row.teamId))}</span>
+          </li>`
+          )
+          .join("")}
+      </ol>`;
+  }
+
   function renderHeader() {
     if (!tournament) return;
     if (tournamentNameEl) tournamentNameEl.textContent = tournament.name || "Cornhole Tournament";
@@ -458,10 +514,15 @@
       }
     }
 
+    syncRosterWarning();
+
     if (championBanner) {
       if (champion) {
         championBanner.classList.remove("hidden");
-        championBanner.innerHTML = `<strong>Champion:</strong> ${escapeHtml(teamLabel(champion))}`;
+        championBanner.innerHTML = `
+          <span class="gt-champion-banner__label">Champion</span>
+          <span class="gt-champion-banner__name">${escapeHtml(teamLabel(champion))}</span>
+        `;
         reminder?.classList.remove("hidden");
       } else {
         championBanner.classList.add("hidden");
@@ -473,19 +534,12 @@
     if (standingsBanner) {
       if (champion && !viewingLastResults) {
         const standings = GameTracker.Cornhole.topThree(tournament.matches || []);
-        const thirdText = standings.third ? escapeHtml(teamLabel(standings.third)) : "";
         standingsBanner.classList.remove("hidden");
         standingsBanner.innerHTML = `
           <div class="gt-standings-row">
-            <div>
-              <strong>Top 3</strong>
-              <ol>
-                <li><strong>1st</strong> — ${escapeHtml(teamLabel(standings.first))}</li>
-                <li><strong>2nd</strong> — ${
-                  standings.second ? escapeHtml(teamLabel(standings.second)) : ""
-                }</li>
-                <li><strong>3rd</strong> — ${thirdText}</li>
-              </ol>
+            <div class="gt-standings-block">
+              <p class="gt-standings-heading">Top 3</p>
+              ${renderStandingsRows(standings)}
             </div>
             <div class="flex flex-wrap items-center gap-2">
               <button type="button" id="change-results-btn" class="gt-btn-secondary text-sm whitespace-nowrap">
@@ -500,17 +554,12 @@
         });
       } else if (champion && viewingLastResults) {
         const standings = GameTracker.Cornhole.topThree(tournament.matches || []);
-        const thirdText = standings.third ? escapeHtml(teamLabel(standings.third)) : "";
         standingsBanner.classList.remove("hidden");
         standingsBanner.innerHTML = `
-          <strong>Top 3</strong>
-          <ol>
-            <li><strong>1st</strong> — ${escapeHtml(teamLabel(standings.first))}</li>
-            <li><strong>2nd</strong> — ${
-              standings.second ? escapeHtml(teamLabel(standings.second)) : ""
-            }</li>
-            <li><strong>3rd</strong> — ${thirdText}</li>
-          </ol>
+          <div class="gt-standings-block">
+            <p class="gt-standings-heading">Top 3</p>
+            ${renderStandingsRows(standings)}
+          </div>
         `;
       } else {
         standingsBanner.classList.add("hidden");

@@ -128,16 +128,16 @@
 
       standingsList.innerHTML = standings
         .map((row, index) => {
-          const isLeader = topScore > 0 && row.score === topScore;
+          const placeRowClass =
+            index < PLACE_MODS.length ? `gt-place-row--${PLACE_MODS[index]}` : "bg-panel-muted";
           const scoreLabel = isPoints
             ? `${row.score} pt${row.score === 1 ? "" : "s"}`
             : `${row.score} win${row.score === 1 ? "" : "s"}`;
+          const rankLabel = index < PLACE_LABELS.length ? PLACE_LABELS[index] : `#${index + 1}`;
           return `
-            <li class="flex items-center justify-between gap-3 rounded-md px-3 py-2 ${
-              isLeader ? "bg-gold-soft ring-1 ring-gold" : "bg-parchment-deep"
-            }">
+            <li class="flex items-center justify-between gap-3 rounded-md px-3 py-2 ${placeRowClass}">
               <div class="flex items-center gap-3">
-                <span class="text-sm font-medium gt-muted">#${index + 1}</span>
+                <span class="text-sm font-medium gt-place-rank gt-muted">${rankLabel}</span>
                 <span class="font-medium text-ink">${escapeHtml(row.label)}</span>
               </div>
               <span class="text-sm font-semibold text-ink">${scoreLabel}</span>

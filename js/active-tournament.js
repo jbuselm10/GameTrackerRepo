@@ -9,7 +9,7 @@
   const activePanel = document.getElementById("active-panel");
   const tournamentName = document.getElementById("tournament-name");
   const tournamentDate = document.getElementById("tournament-date");
-  const tournamentScoring = document.getElementById("tournament-scoring");
+  const tournamentScoringBadge = document.getElementById("tournament-scoring-badge");
   const tournamentPlayers = document.getElementById("tournament-players");
   const playsList = document.getElementById("plays-list");
   const playsTitle = document.getElementById("plays-title");
@@ -309,7 +309,7 @@
 
             return `
           <div class="space-y-2">
-            <span class="text-sm font-bold text-ink">${label} (+${points[place]})${
+            <span class="gt-place-label gt-place-label--${PLACE_MODS[place]} text-sm">${label} (+${points[place]})${
               slotsPerPlace > 1 ? ` — pick up to ${slotsPerPlace}` : ""
             }</span>
             <div class="flex flex-wrap items-center gap-2">
@@ -476,7 +476,7 @@
 
     if (scoringMode === "points") {
       playsList.innerHTML = `
-      <ul class="divide-y divide-wood/20">
+      <ul class="gt-plays-list">
         ${sortedPlays
           .map((play) => {
             const groups = getPlayPlacementGroups(play);
@@ -490,15 +490,15 @@
                           `<span class="font-bold text-ink">${escapeHtml(competitorLabel(id))}</span>`
                       )
                       .join(", ");
-                    return `${PLACE_LABELS[index]}: ${names}`;
+                    return `<span class="gt-place-label gt-place-label--${PLACE_MODS[index]}">${PLACE_LABELS[index]}</span>: ${names}`;
                   })
                   .filter(Boolean)
                   .join("; ")
               : "None yet";
             return `
-          <li class="space-y-2 py-2">
-            <div class="flex flex-wrap items-center justify-between gap-2">
-              <span class="text-lg font-bold text-ink">${escapeHtml(gameLabel(play.gameId))}</span>
+          <li class="gt-play-card">
+            <div class="gt-play-card__header">
+              <h4 class="gt-play-card__title">${escapeHtml(gameLabel(play.gameId))}</h4>
               <div class="flex gap-2">
                 <button type="button" data-action="delete-play" data-play-id="${escapeHtml(play.id)}"
                   class="gt-btn-danger text-sm">
@@ -519,7 +519,7 @@
     }
 
     playsList.innerHTML = `
-      <ul class="divide-y divide-wood/20">
+      <ul class="gt-plays-list">
         ${sortedPlays
           .map(
             (play) => {
@@ -599,9 +599,9 @@
               }
 
               return `
-          <li class="space-y-2 py-2">
-            <div class="flex flex-wrap items-center justify-between gap-2">
-              <span class="text-lg font-bold text-ink">${escapeHtml(gameLabel(play.gameId))}</span>
+          <li class="gt-play-card">
+            <div class="gt-play-card__header">
+              <h4 class="gt-play-card__title">${escapeHtml(gameLabel(play.gameId))}</h4>
               <div class="flex gap-2">
                 <button type="button" data-action="delete-play" data-play-id="${escapeHtml(play.id)}"
                   class="gt-btn-danger text-sm">
@@ -640,10 +640,11 @@
             ? `${item.name} (${item.nickname})`
             : item.name;
         return `
-          <label class="flex items-center gap-2 text-sm text-ink">
+          <label class="gt-pick">
             <input type="checkbox" name="player" value="${escapeHtml(item.id)}" ${checked}
-              class="rounded border-wood/40 text-felt focus:ring-felt/30" />
-            ${escapeHtml(label)}
+              class="gt-pick-input" />
+            <span class="gt-pick-mark" aria-hidden="true"></span>
+            <span class="gt-pick-text">${escapeHtml(label)}</span>
           </label>`;
       })
       .join("");
@@ -698,15 +699,13 @@
   function renderActive() {
     refreshCompetitorLabeler();
     const rosterIds = rosterIdsFromTournament(tournament);
-    const scoringMode = getScoringMode(tournament);
     const nounCap = competitorNounCap(true);
 
-    tournamentName.innerHTML = `${escapeHtml(tournament.name || "Tournament")} <span class="gt-badge-active">Active</span>`;
+    tournamentName.textContent = tournament.name || "Tournament";
     tournamentDate.textContent = formatDate(tournament.date);
-    tournamentScoring.textContent =
-      scoringMode === "points"
-        ? "Scoring: Points (5-3-1)"
-        : "Scoring: Game wins";
+    if (tournamentScoringBadge) {
+      tournamentScoringBadge.textContent = scoringModeBadgeLabel(tournament);
+    }
     tournamentPlayers.textContent = rosterIds.length
       ? `${nounCap}: ${GameTracker.sortByName(rosterIds, (id) => competitorLabel(id))
           .map((id) => competitorLabel(id))

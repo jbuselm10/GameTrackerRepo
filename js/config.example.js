@@ -1,7 +1,7 @@
 /**
 
  * Copy this file to js/config.js and paste your Sentry browser DSN.
- * Create a project at https://sentry.io (JavaScript → Browser).
+ * Create a project at https://sentry.io (JavaScript -> Browser).
  *
  * Leave sentryDsn as "" to disable Sentry in the browser.
  *

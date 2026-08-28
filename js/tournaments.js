@@ -80,17 +80,8 @@
   }
 
   function syncRadioPendingStyles() {
-    const scoringChanged =
-      !!currentScoringMode() && currentScoringMode() !== savedScoringMode;
-    scoringInputs.forEach((input) => {
-      input.classList.toggle("gt-pending", input.checked && scoringChanged);
-    });
-
-    const competitorTypeChanged =
-      !!currentCompetitorType() && currentCompetitorType() !== savedCompetitorType;
-    competitorTypeInputs.forEach((input) => {
-      input.classList.toggle("gt-pending", input.checked && competitorTypeChanged);
-    });
+    GameTracker.syncChoicePending(scoringInputs, savedScoringMode);
+    GameTracker.syncChoicePending(competitorTypeInputs, savedCompetitorType);
   }
 
   function competitorNoun(type, plural = false) {
@@ -113,7 +104,8 @@
 
     const plural = competitorNoun(type, true);
     const singularCap = type === "team" ? "Team" : "Player";
-    competitorsLabel.innerHTML = `${singularCap}s <span class="text-red-600">*</span>`;
+    const labelText = type === "player" ? "Select Players" : `${singularCap}s`;
+    competitorsLabel.innerHTML = `${labelText} <span class="text-red-600">*</span>`;
     playersEmpty.textContent = `No ${plural} available. Add ${plural} first.`;
     playersError.textContent = `Select at least one ${competitorNoun(type)}.`;
     playersLocked.textContent = `${singularCap}s cannot be changed after a tournament has ended.`;
@@ -214,6 +206,7 @@
         syncRadioPendingStyles();
         syncNamePendingStyle();
         updateAddCompetitorLink();
+        syncSubmitEnabled();
         return true;
       }
     }
@@ -249,6 +242,7 @@
     syncRadioPendingStyles();
     syncNamePendingStyle();
     updateAddCompetitorLink();
+    syncSubmitEnabled();
     formSection.scrollIntoView({ behavior: "smooth", block: "nearest" });
     return true;
   }
@@ -301,6 +295,21 @@
     ).map((input) => input.getAttribute("data-competitor-id"));
   }
 
+  function formIsComplete() {
+    const name = nameInput.value.trim();
+    const scoringMode = currentScoringMode();
+    const competitorType = currentCompetitorType();
+    if (!name || !scoringMode || !competitorType) return false;
+    return getSelectedCompetitorIds().length > 0;
+  }
+
+  function syncSubmitEnabled() {
+    if (!submitBtn) return;
+    const ready = formIsComplete();
+    submitBtn.disabled = !ready;
+    submitBtn.setAttribute("aria-disabled", ready ? "false" : "true");
+  }
+
   function setSelectedCompetitorIds(competitorIds) {
     const selected = new Set(Array.isArray(competitorIds) ? competitorIds.map(String) : []);
     playersContainer.querySelectorAll('input[type="checkbox"][data-competitor-id]').forEach((input) => {
@@ -348,7 +357,7 @@
 
     for (const option of GameTracker.sortByName(options)) {
       const label = document.createElement("label");
-      label.className = "flex items-center gap-2 text-sm text-ink";
+      label.className = "gt-pick";
       let display;
       if (type === "team") {
         const memberNames = GameTracker.sortByName(
@@ -369,19 +378,17 @@
         const nickname = option.nickname ? ` (${escapeHtml(option.nickname)})` : "";
         display = `${escapeHtml(option.name)}${nickname}`;
       }
-      label.innerHTML = `
-        <input
-          type="checkbox"
-          data-competitor-id="${escapeHtml(option.id)}"
-          class="rounded border-wood/40 text-felt focus:ring-felt/30"
-        />
-        <span>${display}</span>
-      `;
+      label.innerHTML = GameTracker.pickRowHtml({
+        idAttr: "data-competitor-id",
+        idValue: escapeHtml(option.id),
+        htmlLabel: display,
+      });
       playersContainer.appendChild(label);
     }
 
     updatePlayersLockState();
     syncCompetitorCheckboxStyles();
+    syncSubmitEnabled();
   }
 
   function resetForm() {
@@ -416,6 +423,7 @@
     syncRadioPendingStyles();
     syncNamePendingStyle();
     updateAddCompetitorLink();
+    syncSubmitEnabled();
   }
 
   function startEdit(tournament) {
@@ -439,7 +447,7 @@
     setSelectedCompetitorIds(roster);
     nameError.classList.add("hidden");
     playersError.classList.add("hidden");
-    formTitle.innerHTML = `Edit tournament — <strong>${escapeHtml(tournament.name)}</strong>`;
+    formTitle.innerHTML = `Edit tournament - <strong>${escapeHtml(tournament.name)}</strong>`;
     submitBtn.textContent = "Save changes";
     cancelEditBtn.classList.remove("hidden");
     formSection.classList.add("gt-edit-highlight");
@@ -448,6 +456,7 @@
     syncRadioPendingStyles();
     syncNamePendingStyle();
     updateAddCompetitorLink();
+    syncSubmitEnabled();
     formSection.scrollIntoView({ behavior: "smooth", block: "nearest" });
     nameInput.focus();
     setFormStatus("");
@@ -474,7 +483,7 @@
     const ids = rosterIdsFromTournament(tournament);
     const heading = type === "team" ? "Teams" : "Players";
     if (!ids.length) {
-      return `<p class="mt-1 text-sm gt-muted">No ${heading.toLowerCase()}</p>`;
+      return `<p class="gt-meta-line">No ${heading.toLowerCase()}</p>`;
     }
     const labeler = buildCompetitorLabeler(tournament, players, teams);
     const names = GameTracker.sortByName(ids, (id) => {
@@ -511,7 +520,7 @@
       })
       .map(escapeHtml)
       .join(", ");
-    return `<p class="mt-1 text-sm font-bold text-ink">${heading}: ${names}</p>`;
+    return `<p class="gt-meta-line"><span class="gt-meta-label">${heading}:</span> ${names}</p>`;
   }
 
   function renderTournaments() {
@@ -529,33 +538,36 @@
 
     for (const tournament of activeTournaments) {
       const li = document.createElement("li");
-      li.className = "space-y-3 py-3";
+      li.className = "gt-tournament-card";
       const typeLabel = getCompetitorType(tournament) === "team" ? "Teams" : "Players";
 
       li.innerHTML = `
-        <div>
-          <p class="text-lg font-bold text-ink">${escapeHtml(tournament.name)}</p>
-          <p class="mt-1 text-sm gt-muted">Type of scoring: ${escapeHtml(scoringLabel(tournament))}</p>
-          <p class="mt-1 text-sm gt-muted">Competitors: ${escapeHtml(typeLabel)}</p>
-          <p class="mt-1 text-sm gt-muted">Date of Tournament - ${formatDate(tournament.date)}</p>
+        <div class="gt-tournament-card__header">
+          <p class="gt-tournament-card__title">${escapeHtml(tournament.name)}</p>
+          <span class="gt-badge-active">Active</span>
+        </div>
+        <div class="gt-tournament-card__meta">
+          <p class="gt-meta-line"><span class="gt-meta-label">Scoring:</span> ${escapeHtml(scoringLabel(tournament))}</p>
+          <p class="gt-meta-line"><span class="gt-meta-label">Competitors:</span> ${escapeHtml(typeLabel)}</p>
+          <p class="gt-meta-line"><span class="gt-meta-label">Date:</span> ${formatDate(tournament.date)}</p>
           ${formatCompetitors(tournament)}
         </div>
-        <div class="flex w-full flex-wrap gap-2">
+        <div class="gt-tournament-card__actions">
           <a
             href="active-tournament.html?id=${encodeURIComponent(tournament.id)}"
             class="gt-btn text-sm"
           >
-            Update Tournament Details
+            Update Details
           </a>
           <a
             href="current-standings.html?id=${encodeURIComponent(tournament.id)}&returnTo=${encodeURIComponent("tournaments.html")}"
             class="gt-btn text-sm"
           >
-            Current Standings
+            Standings
           </a>
           <button type="button" data-action="edit" data-id="${escapeHtml(tournament.id)}"
-            class="gt-btn text-sm">
-            Edit Name and ${typeLabel}
+            class="gt-btn-secondary text-sm">
+            Edit
           </button>
           <button type="button" data-action="delete" data-id="${escapeHtml(tournament.id)}"
             class="gt-btn-danger-solid text-sm">
@@ -578,7 +590,7 @@
   }
 
   async function loadTournaments() {
-    listStatus.textContent = "Loading tournaments…";
+    listStatus.textContent = "Loading tournaments...";
     listStatus.classList.remove("hidden");
     emptyState.classList.add("hidden");
     try {
@@ -598,6 +610,7 @@
     input.addEventListener("change", () => {
       scoringError.classList.add("hidden");
       syncRadioPendingStyles();
+      syncSubmitEnabled();
     });
   });
 
@@ -611,18 +624,21 @@
       updateAddCompetitorLink();
       playersError.classList.add("hidden");
       syncRadioPendingStyles();
+      syncSubmitEnabled();
     });
   });
 
   nameInput.addEventListener("input", () => {
     nameError.classList.add("hidden");
     syncNamePendingStyle();
+    syncSubmitEnabled();
   });
 
   playersContainer.addEventListener("change", (event) => {
     const checkbox = event.target.closest('input[type="checkbox"][data-competitor-id]');
     if (!checkbox) return;
     syncCompetitorCheckboxStyles();
+    syncSubmitEnabled();
   });
 
   function tournamentNameConflict(name, excludeId = null) {
@@ -731,7 +747,7 @@
     } catch (err) {
       setFormStatus(err.message || "Save failed.", true);
     } finally {
-      submitBtn.disabled = false;
+      syncSubmitEnabled();
     }
   });
 

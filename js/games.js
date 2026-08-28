@@ -126,7 +126,7 @@
   }
 
   async function loadGames() {
-    listStatus.textContent = "Loading games…";
+    listStatus.textContent = "Loading games...";
     listStatus.classList.remove("hidden");
     emptyState.classList.add("hidden");
     try {

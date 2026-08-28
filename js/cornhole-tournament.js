@@ -9,13 +9,15 @@
   const setupStep3 = document.getElementById("setup-step-3");
   const setupStep4 = document.getElementById("setup-step-4");
   const setupStepIndicator = document.getElementById("setup-step-indicator");
+  const setupProgress = document.getElementById("setup-progress");
   const playerPickerList = document.getElementById("player-picker-list");
   const playerSelectedList = document.getElementById("player-selected-list");
-  const playerPickerStatus = document.getElementById("player-picker-status");
+  const playerSelectedLabel = document.getElementById("player-selected-label");
   const playerPickerError = document.getElementById("player-picker-error");
   const donePlayersBtn = document.getElementById("done-players-btn");
   const changePlayersBtn = document.getElementById("change-players-btn");
   const setupNextBtn = document.getElementById("setup-next-btn");
+  const setupBackBtn0 = document.getElementById("setup-back-btn-0");
   const setupBackBtn = document.getElementById("setup-back-btn");
   const setupBackBtn2 = document.getElementById("setup-back-btn-2");
   const setupBackBtn3 = document.getElementById("setup-back-btn-3");
@@ -140,12 +142,15 @@
 
   async function startTournament() {
     setStartError("");
+    teamsSection?.classList.add("is-start-attempted");
     const check = canStartTournament();
     if (!check.ok) {
       setStartError(check.message);
+      syncStartEnabled();
       return;
     }
 
+    teamsSection?.classList.remove("is-start-attempted");
     if (!editingId || isDirty()) {
       const saved = await saveTournament({ quiet: true });
       if (!saved) return;
@@ -176,7 +181,7 @@
         onConfirm: async () => {
           if (startBtn) startBtn.disabled = true;
           setStartError("");
-          setSaveStatus("Starting tournament…");
+          setSaveStatus("Starting tournament...");
           try {
             const type =
               currentType() || GameTracker.Cornhole.TOURNAMENT_TYPES.DOUBLE_ELIMINATION;
@@ -428,10 +433,6 @@
     if (teamCountInput) {
       teamCountInput.value = count === null ? "" : String(count);
     }
-    const display = document.getElementById("team-count-display");
-    if (display) {
-      display.textContent = count === null ? "—" : String(count);
-    }
   }
 
   /**
@@ -484,7 +485,7 @@
     if (teams < MIN_TEAMS || teams > MAX_TEAMS) {
       return {
         ok: false,
-        message: `Select ${MIN_PLAYERS}–${MAX_PLAYERS} players (${MIN_TEAMS}–${MAX_TEAMS} teams).`,
+        message: `Select ${MIN_PLAYERS}-${MAX_PLAYERS} players (${MIN_TEAMS}-${MAX_TEAMS} teams).`,
         teamCount: null,
       };
     }
@@ -609,8 +610,8 @@
     typeInputs.forEach((input) => {
       const typeChanged = !!(baseline && snap.type !== baseline.type);
       input.classList.toggle("gt-pending", typeChanged && input.checked);
-      const label = input.closest("label");
-      label?.classList.toggle("gt-pending", typeChanged && input.checked);
+      const card = input.closest(".gt-choice");
+      card?.classList.toggle("gt-pending", typeChanged && input.checked);
     });
 
     if (teamsList) {
@@ -632,20 +633,14 @@
     }
 
     if (dirty) {
-      setSaveStatus(UNSAVED_MESSAGE, true);
+      setSaveStatus(UNSAVED_MESSAGE, false);
+      saveStatus?.classList.add("gt-unsaved-note");
     } else if (saveStatus && saveStatus.textContent === UNSAVED_MESSAGE) {
       setSaveStatus("");
+      saveStatus.classList.remove("gt-unsaved-note");
     }
 
-    if (startBtn && setupPhase === PHASE_TEAMS) {
-      if (dirty) {
-        startBtn.classList.remove("gt-btn-warn");
-        startBtn.classList.add("gt-btn-danger-solid");
-      } else {
-        startBtn.classList.remove("gt-btn-danger-solid");
-        startBtn.classList.add("gt-btn-warn");
-      }
-    }
+    syncStartEnabled();
   }
 
   function saveFormDraft() {
@@ -718,7 +713,7 @@
 
   /**
    * True when the draft was saved mid-wizard (Step 2+) so we should restore it
-   * after returning from Add Player / last results — not a stale Step 1 name.
+   * after returning from Add Player / last results - not a stale Step 1 name.
    * @param {object|null} draft
    * @returns {boolean}
    */
@@ -890,7 +885,7 @@
     select.innerHTML = "";
     const placeholder = document.createElement("option");
     placeholder.value = "";
-    placeholder.textContent = "Select player…";
+    placeholder.textContent = "Choose player";
     placeholder.className = "gt-option-placeholder";
     select.appendChild(placeholder);
 
@@ -923,7 +918,7 @@
       selectedId &&
       [...select.options].some((o) => o.value === selectedId && !o.disabled);
     select.value = validSelection ? selectedId : "";
-    select.classList.toggle("gt-select-empty", !select.value);
+    select.classList.toggle("gt-select-empty-soft", !select.value);
   }
 
   function renderPlayerPicker() {
@@ -943,13 +938,11 @@
       if (!container) return;
       const id = String(player.id);
       const row = document.createElement("label");
-      row.className =
-        "flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-ink hover:bg-parchment/80";
-      if (isSelected) row.classList.add("bg-gold/20");
+      row.className = isSelected ? "gt-pick gt-pick--selected" : "gt-pick gt-pick--available";
 
       const checkbox = document.createElement("input");
       checkbox.type = "checkbox";
-      checkbox.className = "border-wood/40 text-felt focus:ring-felt/30";
+      checkbox.className = "gt-pick-input";
       checkbox.value = id;
       checkbox.checked = isSelected;
       checkbox.disabled = !picking;
@@ -963,9 +956,14 @@
         syncDirtyUI();
       });
 
+      const mark = document.createElement("span");
+      mark.className = "gt-pick-mark";
+      mark.setAttribute("aria-hidden", "true");
+
       const text = document.createElement("span");
+      text.className = "gt-pick-text";
       text.textContent = playerLabel(player);
-      row.append(checkbox, text);
+      row.append(checkbox, mark, text);
       container.appendChild(row);
     }
 
@@ -988,35 +986,28 @@
     }
 
     syncConfirmPlayersButton();
-    updatePlayerPickerStatus();
+    updatePlayerSelectedLabel();
   }
 
-  function updatePlayerPickerStatus() {
-    if (!playerPickerStatus) return;
+  function updatePlayerSelectedLabel() {
+    if (!playerSelectedLabel) return;
     const count = tournamentPlayerIds.size;
-    if (players.length === 0) {
-      playerPickerStatus.textContent = "";
-      playerPickerStatus.classList.remove("text-red-600");
-      playerPickerStatus.classList.add("gt-muted");
-      return;
-    }
-    const teams = count % 2 === 0 ? count / 2 : null;
-    let detail = `${count} selected`;
+    const playerWord = count === 1 ? "Selected Player" : "Selected Players";
+    let label = `${count} ${playerWord}`;
     let isError = false;
-    if (count === 0) {
-      detail =
-        "Select players from the left box; they move to Selected players on the right. Total must be even.";
-    } else if (count % 2 !== 0) {
-      detail = "Must have even number of players.";
-      isError = true;
-    } else if (teams !== null && (teams < MIN_TEAMS || teams > MAX_TEAMS)) {
-      detail = `${count} selected → ${teams} teams (need ${MIN_TEAMS}–${MAX_TEAMS} teams)`;
-    } else if (teams !== null) {
-      detail = `${count} selected → ${teams} team${teams === 1 ? "" : "s"}`;
+
+    if (count > 0) {
+      if (count % 2 !== 0) {
+        isError = true;
+      } else {
+        const teams = count / 2;
+        const teamWord = teams === 1 ? "Team" : "Teams";
+        label += ` = ${teams} ${teamWord}`;
+      }
     }
-    playerPickerStatus.textContent = detail;
-    playerPickerStatus.classList.toggle("text-red-600", isError);
-    playerPickerStatus.classList.toggle("gt-muted", !isError);
+
+    playerSelectedLabel.textContent = label;
+    playerSelectedLabel.classList.toggle("text-red-600", isError);
   }
 
   function syncConfirmPlayersButton() {
@@ -1042,11 +1033,8 @@
     };
     const step = stepNumber[setupPhase] || 1;
     const title = titles[setupPhase] || titles[PHASE_SETUP];
-    const stepsLeft = 4 - step;
-    let leftText = "";
-    if (stepsLeft === 1) leftText = " · 1 step left";
-    else if (stepsLeft > 1) leftText = ` · ${stepsLeft} steps left`;
-    setupStepIndicator.textContent = `Step ${step} of 4 — ${title}${leftText}`;
+    setupStepIndicator.textContent = `Step ${step} of 4 - ${title}`;
+    GameTracker.renderProgress(setupProgress, 4, step);
   }
 
   function syncPhaseUI() {
@@ -1084,8 +1072,13 @@
 
     updateStepIndicator();
     syncConfirmPlayersButton();
-    updatePlayerPickerStatus();
+    updatePlayerSelectedLabel();
     syncKeepExistingPlayersButton();
+    if (!teams) {
+      teamsSection?.classList.remove("is-start-attempted");
+    }
+    syncSetupStatus();
+    syncStartEnabled();
   }
 
   function goToPlayerStep() {
@@ -1108,6 +1101,20 @@
     renderPlayerPicker();
     syncPhaseUI();
     syncDirtyUI();
+  }
+
+  function leaveSetupWizard() {
+    const params = new URLSearchParams(window.location.search);
+    const returnTo = params.get("returnTo");
+    if (returnTo) {
+      window.location.href = returnTo;
+      return;
+    }
+    if (window.history.length > 1) {
+      window.history.back();
+      return;
+    }
+    window.location.href = "tournaments.html";
   }
 
   function goBackToSetup() {
@@ -1326,6 +1333,7 @@
         teamsList.innerHTML = "";
       }
       syncDirtyUI();
+      syncStartEnabled();
       return;
     }
 
@@ -1337,8 +1345,10 @@
 
     for (let i = 0; i < teamCount; i += 1) {
       const assignment = teamAssignments[i];
+      const bothFilled = !!(assignment.player1Id && assignment.player2Id);
       const row = document.createElement("div");
-      row.className = "gt-panel-muted gt-cornhole-team";
+      row.className =
+        "gt-cornhole-team" + (bothFilled ? " gt-cornhole-team--complete" : "");
       row.setAttribute("data-team-index", String(i));
 
       const title = document.createElement("h3");
@@ -1346,33 +1356,38 @@
       title.textContent = `Team ${i + 1}`;
       row.appendChild(title);
 
-      const grid = document.createElement("div");
-      grid.className = "grid gap-2 sm:grid-cols-2";
+      const pair = document.createElement("div");
+      pair.className = "gt-cornhole-pair";
 
       ["player1", "player2"].forEach((slot, slotIndex) => {
+        if (slotIndex === 1) {
+          const amp = document.createElement("span");
+          amp.className = "gt-cornhole-pair-amp";
+          amp.setAttribute("aria-hidden", "true");
+          amp.textContent = "&";
+          pair.appendChild(amp);
+        }
+
         const field = document.createElement("div");
-        const label = document.createElement("label");
-        label.className = "gt-label";
-        label.textContent = `Player ${slotIndex + 1}`;
+        field.className = "gt-cornhole-slot";
 
         const selectedId = slot === "player1" ? assignment.player1Id : assignment.player2Id;
 
         if (teamsLockedFromRandom) {
           const nameEl = document.createElement("p");
-          nameEl.className = "gt-input gt-input-compact flex items-center";
-          nameEl.textContent = playerNameById(selectedId) || "—";
-          field.append(label, nameEl);
-          grid.appendChild(field);
+          nameEl.className = "gt-cornhole-slot-name";
+          nameEl.textContent = playerNameById(selectedId) || "-";
+          field.appendChild(nameEl);
+          pair.appendChild(field);
           return;
         }
-
-        label.htmlFor = `team-${i + 1}-${slot}`;
 
         const select = document.createElement("select");
         select.id = `team-${i + 1}-${slot}`;
         select.name = `gtCornholeTeam${i + 1}${slot}`;
         select.className = "gt-input gt-input-compact";
         select.setAttribute("data-slot", slot);
+        select.setAttribute("aria-label", `Team ${i + 1} player ${slotIndex + 1}`);
 
         fillPlayerSelect(select, selectedId, taken);
 
@@ -1393,17 +1408,19 @@
           renderTeams({ fromMemory: true });
           syncSetupStatus();
           syncDirtyUI();
+          syncStartEnabled();
         });
 
-        field.append(label, select);
-        grid.appendChild(field);
+        field.appendChild(select);
+        pair.appendChild(field);
       });
 
-      row.appendChild(grid);
+      row.appendChild(pair);
       teamsList.appendChild(row);
     }
 
     syncDirtyUI();
+    syncStartEnabled();
   }
 
   function syncSetupStatus() {
@@ -1419,16 +1436,32 @@
     }
     const filled = teamAssignments.filter((t) => t.player1Id && t.player2Id).length;
     if (teamCount !== null && players.length > 0) {
-      parts.push(`${filled}/${teamCount} teams assigned`);
+      parts.push(`${filled} of ${teamCount} ready`);
     }
     if (editingId) parts.push("saved draft");
     if (parts.length > 0) {
-      setupStatus.textContent = `${parts.join(" · ")}.`;
+      setupStatus.textContent = parts.join(" - ");
       setupStatus.classList.remove("hidden");
     } else {
       setupStatus.textContent = "";
       setupStatus.classList.add("hidden");
     }
+    syncStartEnabled();
+  }
+
+  function syncStartEnabled() {
+    if (!startBtn || setupPhase !== PHASE_TEAMS) return;
+    const ready =
+      teamCount !== null &&
+      teamCount >= MIN_TEAMS &&
+      teamAssignments.length >= teamCount &&
+      teamAssignments
+        .slice(0, teamCount)
+        .every((team) => team.player1Id && team.player2Id);
+    startBtn.disabled = !ready;
+    startBtn.classList.remove("gt-btn-danger-solid", "gt-btn-warn");
+    startBtn.classList.add("gt-btn-pop");
+    startBtn.setAttribute("aria-disabled", ready ? "false" : "true");
   }
 
   function syncSetup() {
@@ -1599,7 +1632,7 @@
           ? "Complete name and elimination type, then select players."
           : setupPhase === PHASE_PICKING
             ? "Select players and tap Done first."
-            : "Select an even number of players for 2–20 teams."
+            : "Select an even number of players for 2-20 teams."
       );
       ok = false;
     } else {
@@ -1641,8 +1674,8 @@
     }
 
     if (startBtn) startBtn.disabled = true;
-    if (!quiet) setSaveStatus("Saving tournament…");
-    else setSaveStatus("Saving…");
+    if (!quiet) setSaveStatus("Saving tournament...");
+    else setSaveStatus("Saving...");
 
     try {
       const saved = await GameTracker.Cornhole.saveTournament(payload);
@@ -1768,6 +1801,11 @@
   if (setupNextBtn) {
     setupNextBtn.addEventListener("click", () => {
       goToPlayerStep();
+    });
+  }
+  if (setupBackBtn0) {
+    setupBackBtn0.addEventListener("click", () => {
+      leaveSetupWizard();
     });
   }
   if (setupBackBtn) {

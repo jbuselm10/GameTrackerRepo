@@ -65,27 +65,69 @@ function normalizeCornholeStatus($value): string
     respond(400, ['error' => 'status must be SETUP, ACTIVE, or COMPLETED']);
 }
 
-function normalizeOptionalPlayerId($value, array $playersMap, string $label): string
+function findPlayerIdByStoredName(string $search, array $playersMap): string
 {
-    $id = trim((string) ($value ?? ''));
-    if ($id === '') {
+    $search = trim($search);
+    if ($search === '') {
         return '';
     }
-    if (!isset($playersMap[$id])) {
+
+    foreach ($playersMap as $id => $player) {
+        if (formatPlayerDisplayName($player) === $search) {
+            return $id;
+        }
+    }
+
+    foreach ($playersMap as $id => $player) {
+        $name = trim((string) ($player['name'] ?? ''));
+        if ($name !== '' && strcasecmp($name, $search) === 0) {
+            return $id;
+        }
+    }
+
+    return '';
+}
+
+function normalizeOptionalPlayerId($value, $providedName, array $playersMap, string $label): string
+{
+    $id = trim((string) ($value ?? ''));
+    if ($id !== '' && isset($playersMap[$id])) {
+        return $id;
+    }
+
+    $resolved = findPlayerIdByStoredName((string) ($providedName ?? ''), $playersMap);
+    if ($resolved !== '') {
+        return $resolved;
+    }
+
+    if ($id !== '') {
+        $name = trim((string) ($providedName ?? ''));
+        if ($name !== '') {
+            return '';
+        }
         respond(400, ['error' => 'Unknown player for ' . $label . ': ' . $id]);
     }
-    return $id;
+    return '';
 }
 
 function resolvePlayerName(string $playerId, $providedName, array $playersMap): string
 {
-    if ($playerId === '') {
-        return '';
-    }
-    if (isset($playersMap[$playerId])) {
+    if ($playerId !== '' && isset($playersMap[$playerId])) {
         return formatPlayerDisplayName($playersMap[$playerId]);
     }
     return trim((string) ($providedName ?? ''));
+}
+
+function hydrateCornholeTournament(array $row, string $playersPath): array
+{
+    if (isset($row['teams']) && is_array($row['teams'])) {
+        $row['teams'] = normalizeCornholeTeams($row['teams'], $playersPath);
+    }
+    if (isset($row['playerPoolIds'])) {
+        $playersMap = loadPlayersMap($playersPath);
+        $row['playerPoolIds'] = normalizePlayerPoolIds($row['playerPoolIds'], $playersMap);
+    }
+    return $row;
 }
 
 function normalizeCornholeTeams($value, string $playersPath): array
@@ -116,8 +158,18 @@ function normalizeCornholeTeams($value, string $playersPath): array
             $name = 'Team ' . ($index + 1);
         }
 
-        $player1Id = normalizeOptionalPlayerId($row['player1Id'] ?? '', $playersMap, $name . ' player 1');
-        $player2Id = normalizeOptionalPlayerId($row['player2Id'] ?? '', $playersMap, $name . ' player 2');
+        $player1Id = normalizeOptionalPlayerId(
+            $row['player1Id'] ?? '',
+            $row['player1Name'] ?? '',
+            $playersMap,
+            $name . ' player 1'
+        );
+        $player2Id = normalizeOptionalPlayerId(
+            $row['player2Id'] ?? '',
+            $row['player2Name'] ?? '',
+            $playersMap,
+            $name . ' player 2'
+        );
 
         if ($player1Id !== '' && isset($seenPlayers[$player1Id])) {
             respond(400, ['error' => 'Player assigned more than once: ' . $player1Id]);
@@ -402,11 +454,14 @@ if ($method === 'GET') {
     if ($id !== '') {
         foreach ($rows as $row) {
             if (is_array($row) && (string) ($row['id'] ?? '') === $id) {
-                respond(200, $row);
+                respond(200, hydrateCornholeTournament($row, $playersFile));
             }
         }
         respond(404, ['error' => 'Cornhole tournament not found']);
     }
+    $rows = array_map(static function ($row) use ($playersFile) {
+        return is_array($row) ? hydrateCornholeTournament($row, $playersFile) : $row;
+    }, $rows);
     respond(200, $rows);
 }
 

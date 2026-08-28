@@ -1,6 +1,6 @@
 window.GameTracker = {
   // Without a cap, a stalled mobile connection leaves requests pending forever
-  // and pages sit on "Loading…" with nothing to act on.
+  // and pages sit on "Loading..." with nothing to act on.
   apiTimeoutMs: 15000,
 
   escapeHtml(value) {
@@ -329,6 +329,63 @@ window.GameTracker = {
   },
 
   /**
+   * Build segmented progress bars (Skin Protocol-style).
+   * @param {HTMLElement|null} container
+   * @param {number} totalSteps
+   * @param {number} currentStep 1-based filled through this step
+   */
+  renderProgress(container, totalSteps, currentStep) {
+    if (!container) return;
+    const total = Math.max(1, Number(totalSteps) || 1);
+    const current = Math.min(total, Math.max(0, Number(currentStep) || 0));
+    container.classList.add("gt-progress");
+    container.setAttribute("role", "progressbar");
+    container.setAttribute("aria-valuemin", "1");
+    container.setAttribute("aria-valuemax", String(total));
+    container.setAttribute("aria-valuenow", String(current || 1));
+    container.innerHTML = "";
+    for (let i = 1; i <= total; i += 1) {
+      const seg = document.createElement("div");
+      seg.className = "gt-progress__seg" + (i <= current ? " is-filled" : "");
+      container.appendChild(seg);
+    }
+  },
+
+  /**
+   * Keep choice-card pending styles in sync with radio inputs.
+   * @param {HTMLInputElement[]} inputs
+   * @param {string} savedValue
+   */
+  syncChoicePending(inputs, savedValue) {
+    const list = Array.isArray(inputs) ? inputs : [];
+    const selected = list.find((input) => input.checked)?.value || "";
+    const changed = !!selected && selected !== savedValue;
+    list.forEach((input) => {
+      const card = input.closest(".gt-choice");
+      const pending = changed && input.checked;
+      input.classList.toggle("gt-pending", pending);
+      card?.classList.toggle("gt-pending", pending);
+    });
+  },
+
+  /**
+   * Markup for a selectable pick row (checkbox multi-select).
+   * @param {{ idAttr: string, idValue: string, htmlLabel: string, inputClass?: string }} opts
+   */
+  pickRowHtml({ idAttr, idValue, htmlLabel, inputClass = "" }) {
+    const extra = inputClass ? ` ${inputClass}` : "";
+    return `
+      <input
+        type="checkbox"
+        ${idAttr}="${idValue}"
+        class="gt-pick-input${extra}"
+      />
+      <span class="gt-pick-mark" aria-hidden="true"></span>
+      <span class="gt-pick-text">${htmlLabel}</span>
+    `;
+  },
+
+  /**
    * Display-only alphabetical sort. Does not mutate the input array.
    * @param {Array} items
    * @param {(item: any) => string} [getName]
@@ -347,7 +404,7 @@ document.addEventListener("DOMContentLoaded", () => {
   GameTracker.disableAutofill();
 });
 
-// A script error used to leave pages sitting on their initial "Loading…" text
+// A script error used to leave pages sitting on their initial "Loading..." text
 // with no clue what went wrong, which is impossible to diagnose on a phone.
 function reportFatalError(detail) {
   const statuses = document.querySelectorAll("#list-status, #page-status");

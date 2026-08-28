@@ -1,30 +1,54 @@
 :root {
-  --felt: #1f6b4a;
-  --felt-dark: #154f36;
-  --felt-light: #2d8a60;
-  --wood: #8b6914;
-  --wood-deep: #5c4510;
-  --wood-muted: #a8893a;
-  --parchment: #f3ebd8;
-  --parchment-deep: #e8dcc4;
-  --ink: #1f1a14;
-  --ink-muted: #5c5348;
+  /* Scoreboard Clean */
+  --surface: #f4f6f3;
+  --panel: #ffffff;
+  --panel-muted: #eef1ee;
+  --line: #d8ded8;
+  --ink: #1a221c;
+  --ink-muted: #5e6b62;
+  --accent: #1b7a4e;
+  --accent-soft: #e3f3ea;
+  --accent-dark: #145c3a;
+  --accent-light: #2d9a64;
+  --pop: #c9a227;
+  --pop-soft: #f5e6b8;
   --gold: #c9a227;
   --gold-soft: #f5e6b8;
+  --place-first: #c9a227;
+  --place-first-soft: #f5e6b8;
+  --place-second: #1b7a4e;
+  --place-second-soft: #e3f3ea;
+  --place-second-ink: #145c3a;
+  --place-third: #b87333;
+  --place-third-soft: #f3e4d4;
+  --place-third-ink: #6b4423;
   --danger: #b42318;
+
+  /* Typography */
+  --font-body: "Inter", system-ui, sans-serif;
+  --font-display: "Barlow Condensed", system-ui, sans-serif;
+
+  /* Legacy aliases used by older class names / JS */
+  --felt: var(--accent);
+  --felt-dark: var(--accent-dark);
+  --felt-light: #2d9a64;
+  --wood: #b8a06a;
+  --wood-deep: #5e6b62;
+  --wood-muted: #c5cfc5;
+  --parchment: var(--panel);
+  --parchment-deep: var(--panel-muted);
 }
 
 body.gt-body {
   margin: 0;
   min-height: 100vh;
   color: var(--ink);
-  font-family: "Nunito", system-ui, sans-serif;
-  background-color: #1a4d38;
+  font-family: var(--font-body);
+  background-color: var(--surface);
   background-image:
-    radial-gradient(ellipse 80% 50% at 20% 10%, rgba(45, 138, 96, 0.45), transparent 55%),
-    radial-gradient(ellipse 70% 45% at 85% 20%, rgba(201, 162, 39, 0.12), transparent 50%),
-    radial-gradient(ellipse 90% 60% at 50% 100%, rgba(21, 79, 54, 0.9), transparent 60%),
-    linear-gradient(165deg, #246b4d 0%, #1a4d38 40%, #143d2c 100%);
+    radial-gradient(ellipse 70% 45% at 12% 0%, rgba(27, 122, 78, 0.1), transparent 55%),
+    radial-gradient(ellipse 55% 40% at 92% 8%, rgba(201, 162, 39, 0.08), transparent 50%),
+    linear-gradient(180deg, #f7f9f6 0%, var(--surface) 45%, #eef2ef 100%);
   background-attachment: fixed;
   padding-left: env(safe-area-inset-left, 0);
   padding-right: env(safe-area-inset-right, 0);
@@ -37,60 +61,93 @@ body.gt-body {
   }
 }
 
-.gt-wood-strip {
-  height: 0.55rem;
+.gt-wood-strip,
+.gt-accent-strip {
+  height: 0.35rem;
   background: linear-gradient(
     90deg,
-    var(--wood-deep) 0%,
-    var(--wood) 18%,
-    var(--wood-muted) 35%,
-    var(--wood) 55%,
-    var(--wood-deep) 78%,
-    var(--wood) 100%
+    var(--accent-dark) 0%,
+    var(--accent) 40%,
+    var(--accent-light) 70%,
+    var(--accent) 100%
   );
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.gt-page-chrome {
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+}
+
+.gt-page-chrome > div {
+  padding-top: 1.15rem;
+  padding-bottom: 1.15rem;
+}
+
+.gt-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem clamp(1.5rem, 4vw, 3rem);
 }
 
 .gt-nav a {
-  color: var(--parchment);
+  color: var(--ink);
   text-decoration: none;
-  transition: color 0.15s ease;
+  font-weight: 600;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  padding: 0.15rem 0 0.55rem;
+  border-bottom: 2px solid transparent;
+  transition: border-color 0.2s ease, color 0.2s ease;
 }
 
 .gt-nav a:hover {
-  color: var(--gold);
+  color: var(--ink);
+  border-bottom-color: color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.gt-nav a[aria-current="page"],
+.gt-nav a.is-active {
+  color: var(--ink);
+  border-bottom-color: var(--accent);
 }
 
 .gt-eyebrow {
   font-family: "Nunito", system-ui, sans-serif;
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--gold-soft);
+  color: var(--pop);
 }
 
 .gt-title {
-  font-family: "Fraunces", Georgia, serif;
-  color: var(--parchment);
-  letter-spacing: -0.02em;
+  font-family: var(--font-display);
+  color: var(--ink);
+  letter-spacing: -0.03em;
 }
 
 .gt-subtitle {
-  color: rgba(243, 235, 216, 0.88);
+  color: var(--ink-muted);
+}
+
+.gt-page-header {
+  margin-bottom: 1.25rem;
 }
 
 .gt-panel {
-  background: var(--parchment);
-  border: 1px solid rgba(92, 69, 16, 0.35);
+  background: var(--panel);
+  border: 1px solid var(--line);
   border-radius: 0.75rem;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 4px 16px rgba(26, 34, 28, 0.06);
   color: var(--ink);
 }
 
 .gt-panel-muted {
-  background: var(--parchment-deep);
-  border: 1px solid rgba(92, 69, 16, 0.28);
+  background: var(--panel-muted);
+  border: 1px solid var(--line);
   border-radius: 0.5rem;
 }
 
@@ -99,20 +156,30 @@ body.gt-body {
   align-items: center;
   justify-content: center;
   border-radius: 0.5rem;
-  background: var(--felt);
+  background: var(--accent);
   color: #fff;
   font-family: inherit;
   font-weight: 700;
-  border: 1px solid var(--felt-dark);
+  border: 1px solid var(--accent-dark);
   padding: 0.65rem 1.1rem;
   min-height: 2.75rem;
   text-decoration: none;
   cursor: pointer;
-  transition: background 0.15s ease, transform 0.1s ease;
+  transition: background 0.2s ease, transform 0.1s ease;
 }
 
 .gt-btn:hover {
-  background: var(--felt-dark);
+  background: var(--accent-dark);
+}
+
+.gt-btn:disabled,
+.gt-btn:disabled:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: #b7dcc8;
+  opacity: 1;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .gt-btn-secondary {
@@ -120,20 +187,21 @@ body.gt-body {
   align-items: center;
   justify-content: center;
   border-radius: 0.5rem;
-  background: var(--parchment);
+  background: var(--panel);
   color: var(--ink);
   font-family: inherit;
   font-weight: 600;
-  border: 1px solid rgba(92, 69, 16, 0.4);
+  border: 1px solid var(--line);
   padding: 0.65rem 1.1rem;
   min-height: 2.75rem;
   text-decoration: none;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background 0.2s ease, border-color 0.2s ease;
 }
 
 .gt-btn-secondary:hover {
-  background: var(--parchment-deep);
+  background: var(--panel-muted);
+  border-color: var(--ink-muted);
 }
 
 .gt-btn-outline {
@@ -142,17 +210,17 @@ body.gt-body {
   justify-content: center;
   border-radius: 0.5rem;
   background: transparent;
-  color: var(--felt-dark);
+  color: var(--accent-dark);
   font-weight: 700;
-  border: 2px solid var(--felt-dark);
+  border: 2px solid var(--accent);
   padding: 0.65rem 1.1rem;
   min-height: 2.75rem;
   text-decoration: none;
-  transition: background 0.15s ease;
+  transition: background 0.2s ease;
 }
 
 .gt-btn-outline:hover {
-  background: rgba(31, 107, 74, 0.08);
+  background: var(--accent-soft);
 }
 
 .gt-btn-danger {
@@ -160,14 +228,14 @@ body.gt-body {
   align-items: center;
   justify-content: center;
   border-radius: 0.5rem;
-  background: var(--parchment);
+  background: var(--panel);
   color: var(--danger);
   font-weight: 600;
   border: 1px solid rgba(180, 35, 24, 0.35);
   padding: 0.65rem 1.1rem;
   min-height: 2.75rem;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background 0.2s ease;
 }
 
 .gt-btn-danger:hover {
@@ -188,37 +256,73 @@ body.gt-body {
   min-height: 2.75rem;
   text-decoration: none;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background 0.2s ease;
 }
 
 .gt-btn-danger-solid:hover {
   background: #8f1a12;
 }
 
-.gt-btn-warn {
+.gt-btn-warn,
+.gt-btn-pop {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border-radius: 0.5rem;
-  background: var(--gold-soft);
-  color: var(--wood-deep);
-  font-weight: 600;
-  border: 1px solid var(--gold);
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+  border: 1px solid var(--accent-dark);
   padding: 0.65rem 1.1rem;
   min-height: 2.75rem;
   cursor: pointer;
-  transition: background 0.15s ease;
+  text-decoration: none;
+  transition: background 0.2s ease;
 }
 
-.gt-btn-warn:hover {
-  background: #efe0a8;
+.gt-btn-warn:hover,
+.gt-btn-pop:hover {
+  background: var(--accent-dark);
+}
+
+.gt-btn-pop:disabled,
+.gt-btn-pop:disabled:hover,
+.gt-btn-warn:disabled,
+.gt-btn-warn:disabled:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: #b7dcc8;
+  opacity: 1;
+  cursor: not-allowed;
+}
+
+.gt-btn-back {
+  background: transparent;
+  border: none;
+  color: var(--ink-muted);
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.5rem 0;
+  min-height: auto;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.gt-btn-back:hover:not(:disabled) {
+  color: var(--ink);
+}
+
+.gt-btn-back:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
 }
 
 .gt-badge-active {
   display: inline-block;
   border-radius: 0.375rem;
-  background: rgba(31, 107, 74, 0.15);
-  color: var(--felt-dark);
+  background: var(--accent-soft);
+  color: var(--accent-dark);
   font-size: 0.7rem;
   font-weight: 800;
   letter-spacing: 0.06em;
@@ -229,8 +333,8 @@ body.gt-body {
 .gt-badge-ended {
   display: inline-block;
   border-radius: 0.375rem;
-  background: rgba(92, 69, 16, 0.18);
-  color: var(--wood-deep);
+  background: var(--panel-muted);
+  color: var(--ink-muted);
   font-size: 0.7rem;
   font-weight: 800;
   letter-spacing: 0.06em;
@@ -241,18 +345,19 @@ body.gt-body {
 .gt-input {
   width: 100%;
   border-radius: 0.5rem;
-  border: 1px solid rgba(92, 69, 16, 0.35);
-  background: #fffdf8;
+  border: 1px solid var(--line);
+  background: #fff;
   color: var(--ink);
   padding: 0.65rem 0.75rem;
   font-size: 1rem;
   min-height: 2.75rem;
   outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .gt-input:focus {
-  border-color: var(--felt);
-  box-shadow: 0 0 0 3px rgba(31, 107, 74, 0.2);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(27, 122, 78, 0.18);
 }
 
 .gt-input.gt-pending {
@@ -260,7 +365,6 @@ body.gt-body {
   font-weight: 700;
 }
 
-/* Compact selects for Cornhole team assignment */
 select.gt-input.gt-input-compact {
   padding: 0.35rem 0.5rem;
   font-size: 0.875rem;
@@ -273,39 +377,379 @@ select.gt-input.gt-select-empty {
   font-weight: 700;
 }
 
-select.gt-input.gt-select-empty option:not(.gt-option-placeholder) {
+select.gt-input.gt-select-empty-soft {
+  color: var(--ink-muted);
+  font-weight: 500;
+}
+
+select.gt-input.gt-select-empty option:not(.gt-option-placeholder),
+select.gt-input.gt-select-empty-soft option:not(.gt-option-placeholder) {
   color: var(--ink);
   font-weight: 500;
 }
 
 select.gt-input option.gt-option-placeholder {
+  color: var(--ink-muted);
+  font-weight: 500;
+}
+
+#teams-section.is-start-attempted select.gt-input.gt-select-empty-soft {
+  color: var(--danger);
+  font-weight: 700;
+  border-color: rgba(180, 35, 24, 0.45);
+}
+
+#teams-section.is-start-attempted select.gt-input option.gt-option-placeholder {
   color: var(--danger);
   font-weight: 700;
 }
 
 select.gt-input option:disabled,
 select.gt-input option.gt-option-taken {
-  color: #b0a89a;
-  background-color: #f3efe6;
+  color: #a3ada6;
+  background-color: var(--panel-muted);
   font-style: italic;
 }
 
+.gt-step-status {
+  margin: -0.5rem 0 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--ink-muted);
+  letter-spacing: 0.01em;
+}
+
+.gt-step-status:empty {
+  display: none;
+}
+
+.gt-unsaved-note {
+  color: var(--ink-muted) !important;
+  font-weight: 500;
+}
+
 .gt-cornhole-team {
-  padding: 0.5rem 0.65rem;
+  padding: 0.85rem 1rem;
+  background: var(--panel);
+  border: 1.5px solid var(--line);
+  border-radius: 0.65rem;
+  transition: border-color 0.3s ease, background-color 0.3s ease;
+}
+
+.gt-cornhole-team--complete {
+  border-color: var(--accent);
+  background: var(--accent-soft);
 }
 
 .gt-cornhole-team-title {
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0 0 0.65rem;
+}
+
+.gt-cornhole-pair {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.gt-cornhole-pair-amp {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ink-muted);
+  line-height: 1;
+}
+
+.gt-cornhole-slot {
+  min-width: 0;
+}
+
+.gt-cornhole-slot-name {
+  margin: 0;
+  padding: 0.4rem 0.55rem;
+  min-height: 2.1rem;
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: var(--panel);
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--ink);
-  margin: 0 0 0.35rem;
 }
 
 .gt-cornhole-team .gt-label {
   margin-bottom: 0.15rem;
   font-size: 0.75rem;
 }
+
+/* ——— Choice cards (radio/checkbox replacements) ——— */
+
+.gt-choice-group {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.gt-choice-group.gt-choice-group-2 {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 480px) {
+  .gt-choice-group.gt-choice-group-2 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.gt-choice {
+  position: relative;
+  display: block;
+  width: 100%;
+  margin: 0;
+  cursor: pointer;
+  border: 1.5px solid var(--line);
+  border-radius: 0.65rem;
+  background: var(--panel);
+  padding: 0.85rem 1rem;
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
+  transition: border-color 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
+}
+
+button.gt-choice:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.gt-choice:hover {
+  border-color: var(--accent);
+}
+
+.gt-choice:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.gt-choice:has(input:disabled) {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.gt-choice:has(input.gt-pending:checked),
+.gt-choice.gt-pending:has(input:checked) {
+  border-color: var(--danger);
+  background: #fde8e6;
+  box-shadow: 0 0 0 1px var(--danger);
+}
+
+.gt-choice-input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  pointer-events: none;
+}
+
+.gt-choice-label {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.3;
+  transition: color 0.3s ease;
+}
+
+.gt-choice:has(input:checked) .gt-choice-label {
+  color: var(--accent-dark);
+}
+
+.gt-choice-desc {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--ink-muted);
+  line-height: 1.35;
+}
+
+/* Compact multi-select pick rows */
+
+.gt-pick {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  margin: 0;
+  cursor: pointer;
+  border: 1.5px solid var(--line);
+  border-radius: 0.5rem;
+  background: var(--panel);
+  padding: 0.55rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--ink);
+  transition: border-color 0.3s ease, background-color 0.3s ease;
+}
+
+.gt-pick:hover {
+  border-color: var(--accent);
+}
+
+.gt-pick:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.gt-pick:has(input.gt-pending),
+.gt-pick.gt-pending {
+  border-color: var(--danger);
+  color: var(--danger);
+  font-weight: 700;
+}
+
+.gt-pick:has(input.gt-saved:checked) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.gt-pick-input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  pointer-events: none;
+}
+
+.gt-pick-mark {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  margin-top: 0.1rem;
+  border: 2px solid var(--line);
+  border-radius: 0.3rem;
+  background: #fff;
+  color: transparent;
+  transition: border-color 0.3s ease, background-color 0.3s ease, color 0.3s ease;
+}
+
+.gt-pick-mark::before {
+  content: "";
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.gt-pick:has(input:checked) .gt-pick-mark {
+  border-color: var(--accent);
+  background: var(--accent);
+  box-shadow: none;
+  color: #fff;
+}
+
+.gt-pick:has(input:checked) .gt-pick-mark::before {
+  content: "✓";
+}
+
+.gt-pick:has(input.gt-saved:checked) .gt-pick-mark {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.gt-pick:has(input.gt-pending) .gt-pick-mark {
+  border-color: var(--danger);
+  background: var(--danger);
+  color: #fff;
+}
+
+.gt-pick:has(input.gt-pending:not(:checked)) .gt-pick-mark::before {
+  content: "";
+}
+
+.gt-pick-text {
+  flex: 1;
+  line-height: 1.35;
+  font-weight: 600;
+}
+
+.gt-pick--available .gt-pick-mark,
+.gt-pick--selected .gt-pick-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-top: 0.05rem;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: inherit;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.gt-pick--available:has(input:checked) .gt-pick-mark,
+.gt-pick--selected:has(input:checked) .gt-pick-mark,
+.gt-pick--available:has(input.gt-saved:checked) .gt-pick-mark,
+.gt-pick--selected:has(input.gt-saved:checked) .gt-pick-mark,
+.gt-pick--available:has(input.gt-pending) .gt-pick-mark,
+.gt-pick--selected:has(input.gt-pending) .gt-pick-mark {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  color: inherit;
+}
+
+.gt-pick--available:has(input.gt-pending:not(:checked)) .gt-pick-mark::before {
+  content: "↓";
+  color: var(--accent);
+}
+
+.gt-pick--selected:has(input.gt-pending:not(:checked)) .gt-pick-mark::before {
+  content: "✕";
+  color: var(--danger);
+}
+
+.gt-pick--available .gt-pick-mark::before {
+  content: "↓";
+  color: var(--accent);
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.gt-pick--selected .gt-pick-mark::before {
+  content: "✕";
+  color: var(--danger);
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.gt-pick--selected:has(input:checked) .gt-pick-mark::before,
+.gt-pick--selected:has(input.gt-saved:checked) .gt-pick-mark::before {
+  content: "✕";
+  color: var(--danger);
+}
+
+/* Match Tailwind sm: side-by-side columns → right arrow on available */
+@media (min-width: 640px) {
+  .gt-pick--available .gt-pick-mark::before,
+  .gt-pick--available:has(input.gt-pending:not(:checked)) .gt-pick-mark::before {
+    content: "→";
+  }
+}
+
+/* Legacy checkbox pending (still used on some pages) */
 
 input[type="checkbox"].gt-pending {
   accent-color: var(--danger);
@@ -320,7 +764,6 @@ input[type="radio"].gt-pending {
   accent-color: var(--danger);
 }
 
-/* accent-color only tints the check; show a red filled box when unchecked pending */
 input[type="checkbox"].gt-pending:not(:checked) {
   appearance: none;
   -webkit-appearance: none;
@@ -344,7 +787,7 @@ input[type="checkbox"].gt-pending:not(:checked):focus {
 }
 
 input[type="checkbox"].gt-saved {
-  accent-color: #2563eb;
+  accent-color: var(--accent);
 }
 
 .gt-label {
@@ -359,6 +802,63 @@ input[type="checkbox"].gt-saved {
   color: var(--ink-muted);
 }
 
+/* ——— Segmented progress ——— */
+
+.gt-progress {
+  display: flex;
+  gap: 0.375rem;
+  margin-bottom: 1.5rem;
+}
+
+.gt-progress__seg {
+  height: 0.25rem;
+  flex: 1;
+  border-radius: 999px;
+  background: var(--line);
+  transition: background-color 0.3s ease;
+}
+
+.gt-progress__seg.is-filled {
+  background: var(--accent);
+}
+
+.gt-step-eyebrow {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 0.5rem;
+}
+
+.gt-step-title {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0 0 1.25rem;
+  letter-spacing: -0.02em;
+}
+
+.gt-step-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.gt-step-nav-end {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+/* ——— Home tiles ——— */
+
 .gt-home-btn {
   display: inline-flex;
   flex-shrink: 0;
@@ -366,39 +866,76 @@ input[type="checkbox"].gt-saved {
   justify-content: center;
   min-width: 14rem;
   border-radius: 0.75rem;
-  background: var(--felt);
+  background: var(--accent);
   color: #fff;
   font-size: 1.125rem;
   font-weight: 800;
   padding: 0.75rem 1.5rem;
   text-decoration: none;
-  border: 2px solid var(--felt-dark);
-  box-shadow: 0 4px 0 var(--felt-dark);
-  transition: transform 0.1s ease, background 0.15s ease;
+  border: 1px solid var(--accent-dark);
+  box-shadow: none;
+  transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }
 
 .gt-home-btn:hover {
-  background: var(--felt-light);
-  transform: translateY(-1px);
+  background: var(--accent-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(27, 122, 78, 0.22);
+}
+
+.gt-home-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.25rem 1.35rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 0.85rem;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.gt-home-tile:hover {
+  transform: translateY(-3px);
+  border-color: var(--accent-light);
+  border-left-color: var(--accent-light);
+  background: var(--accent-soft);
+  box-shadow: 0 10px 24px rgba(27, 122, 78, 0.12);
+}
+
+.gt-home-tile-title {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+}
+
+.gt-home-tile-desc {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--ink-muted);
+  line-height: 1.45;
 }
 
 .gt-home-desc {
-  color: rgba(243, 235, 216, 0.92);
+  color: var(--ink-muted);
   font-size: 1.125rem;
 }
 
 .gt-home-desc strong {
-  color: var(--gold-soft);
+  color: var(--accent-dark);
 }
 
 .gt-edit-highlight {
-  border-color: var(--felt) !important;
-  box-shadow: 0 0 0 3px rgba(31, 107, 74, 0.25), 0 8px 24px rgba(0, 0, 0, 0.18) !important;
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px rgba(27, 122, 78, 0.2), 0 4px 16px rgba(26, 34, 28, 0.06) !important;
 }
 
 .gt-btn-highlight {
-  box-shadow: 0 0 0 3px rgba(201, 162, 39, 0.55), 0 0 0 6px rgba(180, 35, 24, 0.2) !important;
-  outline: 2px solid var(--gold);
+  box-shadow: 0 0 0 3px rgba(232, 93, 59, 0.35), 0 0 0 6px rgba(27, 122, 78, 0.12) !important;
+  outline: 2px solid var(--pop);
   outline-offset: 2px;
 }
 
@@ -406,13 +943,13 @@ input[type="checkbox"].gt-saved {
   background: linear-gradient(135deg, var(--gold-soft), #efe6c8);
   border: 1px solid var(--gold);
   border-radius: 0.75rem;
-  color: var(--wood-deep);
+  color: #5c4510;
 }
 
 .gt-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(20, 15, 8, 0.55);
+  background: rgba(26, 34, 28, 0.45);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -441,7 +978,7 @@ input[type="checkbox"].gt-saved {
 }
 
 .gt-status-ok {
-  color: var(--felt-dark);
+  color: var(--accent-dark);
 }
 
 .gt-status-err {
@@ -469,7 +1006,7 @@ input[type="checkbox"].gt-saved {
 }
 
 .gt-bracket-section-note {
-  color: var(--gold-soft);
+  color: var(--ink-muted);
 }
 
 .gt-bracket-round {
@@ -487,15 +1024,15 @@ input[type="checkbox"].gt-saved {
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--gold-soft);
+  color: var(--ink-muted);
 }
 
 .gt-bracket-match {
-  background: var(--parchment);
-  border: 1px solid rgba(92, 69, 16, 0.28);
+  background: var(--panel);
+  border: 1px solid var(--line);
   border-radius: 0.65rem;
   padding: 0.65rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 2px 8px rgba(26, 34, 28, 0.06);
 }
 
 .gt-bracket-match-heading {
@@ -527,8 +1064,8 @@ input[type="checkbox"].gt-saved {
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  background: #fffdf8;
-  border: 1px solid rgba(92, 69, 16, 0.2);
+  background: var(--panel-muted);
+  border: 1px solid var(--line);
   border-radius: 0.45rem;
   padding: 0.4rem 0.5rem;
   margin-bottom: 0.35rem;
@@ -549,8 +1086,8 @@ input[type="checkbox"].gt-saved {
 }
 
 .gt-bracket-team-winner {
-  border-color: var(--felt);
-  background: rgba(31, 107, 74, 0.12);
+  border-color: var(--accent);
+  background: var(--accent-soft);
 }
 
 .gt-bracket-team-out {
@@ -567,7 +1104,7 @@ input[type="checkbox"].gt-saved {
 .gt-bracket-badge {
   font-size: 0.7rem;
   font-weight: 800;
-  color: var(--felt-dark);
+  color: var(--accent-dark);
   text-transform: uppercase;
 }
 
@@ -578,33 +1115,59 @@ input[type="checkbox"].gt-saved {
   text-transform: uppercase;
 }
 
+.gt-bracket-badge-champions {
+  color: var(--place-first);
+}
+
 .gt-champion-banner {
-  background: linear-gradient(135deg, var(--gold-soft), #efe6c8);
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  background:
+    linear-gradient(135deg, rgba(201, 162, 39, 0.18), transparent 55%),
+    linear-gradient(180deg, var(--gold-soft), #efe6c8);
   border: 1px solid var(--gold);
+  border-left: 0.35rem solid var(--gold);
   border-radius: 0.75rem;
-  color: var(--wood-deep);
-  padding: 0.75rem 1rem;
-  font-size: 1rem;
+  color: #5c4510;
+  padding: 1rem 1.15rem;
+}
+
+.gt-champion-banner__label {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.gt-champion-banner__name {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  color: #5c4510;
 }
 
 .gt-champion-callout {
   margin: 0.35rem 0 0;
   padding: 0.5rem 0.75rem;
   max-width: 18rem;
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--font-display);
   font-size: 1.15rem;
   font-weight: 800;
   line-height: 1.25;
-  color: var(--gold-soft);
+  color: var(--pop);
   align-self: center;
 }
 
 .gt-standings-banner {
-  background: linear-gradient(180deg, #f7f1e4, #efe4cf);
-  border: 1px solid var(--wood-muted, #a8893a);
-  border-radius: 0.75rem;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
   color: var(--ink);
-  padding: 0.85rem 1rem;
+  padding: 0;
   font-size: 0.95rem;
 }
 
@@ -613,14 +1176,246 @@ input[type="checkbox"].gt-saved {
   flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 0.75rem 1rem;
+  gap: 0.85rem 1.25rem;
 }
 
-.gt-standings-banner ol {
-  margin: 0.35rem 0 0;
-  padding-left: 1.25rem;
+.gt-standings-heading {
+  margin: 0 0 0.55rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
 }
 
-.gt-standings-banner li {
-  margin: 0.2rem 0;
+.gt-standings-ranks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.4rem;
+  min-width: min(100%, 22rem);
+}
+
+.gt-standings-rank {
+  display: grid;
+  grid-template-columns: 2.75rem minmax(0, 1fr);
+  align-items: baseline;
+  gap: 0.65rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--line);
+  background: var(--panel-muted);
+}
+
+.gt-standings-rank__place {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.gt-standings-rank__team {
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--ink);
+}
+
+.gt-standings-rank--first {
+  border-color: var(--place-first);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--place-first) 16%, transparent), var(--panel-muted));
+}
+
+.gt-standings-rank--first .gt-standings-rank__place {
+  color: var(--place-first);
+}
+
+.gt-standings-rank--second {
+  border-color: color-mix(in srgb, var(--place-second) 35%, var(--line));
+  background: linear-gradient(90deg, var(--place-second-soft), var(--panel-muted));
+}
+
+.gt-standings-rank--second .gt-standings-rank__place {
+  color: var(--place-second-ink);
+}
+
+.gt-standings-rank--third {
+  border-color: color-mix(in srgb, var(--place-third) 35%, var(--line));
+  background: linear-gradient(90deg, var(--place-third-soft), var(--panel-muted));
+}
+
+.gt-standings-rank--third .gt-standings-rank__place {
+  color: var(--place-third);
+}
+
+.gt-place-label {
+  font-size: inherit;
+  font-weight: 700;
+}
+
+.gt-place-label--first {
+  color: var(--place-first);
+}
+
+.gt-place-label--second {
+  color: var(--place-second-ink);
+}
+
+.gt-place-label--third {
+  color: var(--place-third);
+}
+
+.gt-place-row--first {
+  border: 1px solid var(--place-first);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--place-first) 16%, transparent), var(--panel-muted));
+}
+
+.gt-place-row--first .gt-place-rank {
+  color: var(--place-first);
+  font-weight: 800;
+}
+
+.gt-place-row--second {
+  border: 1px solid color-mix(in srgb, var(--place-second) 35%, var(--line));
+  background: linear-gradient(90deg, var(--place-second-soft), var(--panel-muted));
+}
+
+.gt-place-row--second .gt-place-rank {
+  color: var(--place-second-ink);
+  font-weight: 800;
+}
+
+.gt-place-row--third {
+  border: 1px solid color-mix(in srgb, var(--place-third) 35%, var(--line));
+  background: linear-gradient(90deg, var(--place-third-soft), var(--panel-muted));
+}
+
+.gt-place-row--third .gt-place-rank {
+  color: var(--place-third);
+  font-weight: 800;
+}
+
+.gt-results-note {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--ink-muted);
+  opacity: 0.85;
+}
+
+.gt-list-row {
+  border-color: var(--line);
+}
+
+.gt-tournament-card {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1.1rem 0.15rem;
+}
+
+.gt-tournament-card:first-child {
+  padding-top: 0.35rem;
+}
+
+.gt-tournament-card:last-child {
+  padding-bottom: 0.35rem;
+}
+
+.gt-tournament-card__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.65rem;
+}
+
+.gt-tournament-card__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  line-height: 1.3;
+}
+
+.gt-tournament-card__meta {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.gt-meta-line {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--ink-muted);
+}
+
+.gt-meta-label {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.gt-tournament-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--line);
+}
+
+.gt-tournament-card__actions > .gt-btn,
+.gt-tournament-card__actions > .gt-btn-secondary,
+.gt-tournament-card__actions > .gt-btn-danger,
+.gt-tournament-card__actions > .gt-btn-danger-solid {
+  flex: 1 1 auto;
+  min-width: min(100%, 8.5rem);
+  text-align: center;
+  justify-content: center;
+}
+
+.gt-plays-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1rem;
+}
+
+.gt-play-card {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.65rem;
+  background: var(--panel-muted);
+}
+
+.gt-play-card__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 0.75rem;
+}
+
+.gt-play-card__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  line-height: 1.25;
+}
+
+.gt-picker-box {
+  max-height: 12rem;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: var(--panel-muted);
+  padding: 0.5rem;
+  display: grid;
+  gap: 0.4rem;
 }

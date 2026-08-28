@@ -69,7 +69,7 @@
   function renderEditor(game) {
     currentGame = game;
     savedRules = String(game.rules || "");
-    pageTitle.textContent = `Edit Rules — ${game.name || "Game"}`;
+    pageTitle.textContent = `Edit Rules - ${game.name || "Game"}`;
     rulesText.value = savedRules;
     syncSaveHighlight();
     pageStatus.classList.add("hidden");
@@ -107,7 +107,7 @@
       return;
     }
 
-    pageStatus.textContent = "Loading rules…";
+    pageStatus.textContent = "Loading rules...";
     pageStatus.classList.remove("hidden");
     editPanel.classList.add("hidden");
 

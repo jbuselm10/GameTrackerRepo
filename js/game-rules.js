@@ -15,7 +15,7 @@
   }
 
   function renderRules(game) {
-    pageTitle.textContent = `${game.name || "Game"} — Rules`;
+    pageTitle.textContent = `${game.name || "Game"} - Rules`;
     const rules = String(game.rules || "").trim();
 
     if (!rules) {
@@ -39,7 +39,7 @@
       return;
     }
 
-    pageStatus.textContent = "Loading rules…";
+    pageStatus.textContent = "Loading rules...";
     pageStatus.classList.remove("hidden");
     rulesPanel.classList.add("hidden");
 

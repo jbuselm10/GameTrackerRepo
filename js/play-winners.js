@@ -5,6 +5,7 @@ const MAX_PLAYERS_PER_PLACE = 4;
 const MAX_PLACEMENTS_PER_PLAY = MAX_PLACES_PER_PLAY;
 const POINTS_BY_PLACE = [5, 3, 1];
 const PLACE_LABELS = ["1st", "2nd", "3rd"];
+const PLACE_MODS = ["first", "second", "third"];
 
 function getCompetitorType(tournament) {
   const type = String(tournament?.competitorType || "player").trim().toLowerCase();
@@ -48,6 +49,10 @@ function getPlayWinnerIds(play) {
 function getScoringMode(tournament) {
   const mode = String(tournament?.scoringMode || "gameWins").trim();
   return mode === "points" ? "points" : "gameWins";
+}
+
+function scoringModeBadgeLabel(tournament) {
+  return getScoringMode(tournament) === "points" ? "Top 3 Places" : "Game Wins";
 }
 
 /**

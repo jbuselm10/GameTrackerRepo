@@ -3,49 +3,58 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GameTracker — Tournaments</title>
+  <title>GameTracker - Tournaments</title>
   <link rel="icon" href="favicon.png" type="image/png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Nunito:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       theme: {
         extend: {
           colors: {
-            felt: { DEFAULT: "#1f6b4a", dark: "#154f36", light: "#2d8a60" },
-            wood: { DEFAULT: "#8b6914", deep: "#5c4510", muted: "#a8893a" },
-            parchment: { DEFAULT: "#f3ebd8", deep: "#e8dcc4" },
-            ink: { DEFAULT: "#1f1a14", muted: "#5c5348" },
+            surface: "#F4F6F3",
+            panel: { DEFAULT: "#FFFFFF", muted: "#EEF1EE" },
+            line: "#D8DED8",
+            accent: { DEFAULT: "#1B7A4E", soft: "#E3F3EA", dark: "#145C3A" },
+            pop: { DEFAULT: "#C9A227", soft: "#F5E6B8" },
+            felt: { DEFAULT: "#1B7A4E", dark: "#145C3A", light: "#2d9a64" },
+            wood: { DEFAULT: "#D8DED8", deep: "#5E6B62", muted: "#C5CFC5" },
+            parchment: { DEFAULT: "#FFFFFF", deep: "#EEF1EE" },
+            ink: { DEFAULT: "#1A221C", muted: "#5E6B62" },
             gold: { DEFAULT: "#c9a227", soft: "#f5e6b8" },
           },
           fontFamily: {
-            display: ['"Fraunces"', "Georgia", "serif"],
-            body: ['"Nunito"', "system-ui", "sans-serif"],
+            display: ['"Barlow Condensed"', "system-ui", "sans-serif"],
+            body: ['"Inter"', "system-ui", "sans-serif"],
           },
         },
       },
     };
   </script>
-  <link rel="stylesheet" href="css/theme.css?v=20260811c" />
-  <script src="js/config.js?v=20260811c"></script>
+  <link rel="stylesheet" href="css/theme.css?v=20260827m" />
+  <script src="js/config.js?v=20260827a"></script>
   <script src="https://browser.sentry-cdn.com/8.55.0/bundle.replay.min.js" crossorigin="anonymous"></script>
-  <script src="js/sentry-init.js?v=20260811c"></script>
+  <script src="js/sentry-init.js?v=20260827a"></script>
 </head>
 <body class="gt-body font-body">
-  <div class="gt-wood-strip"></div>
+  <div class="gt-accent-strip"></div>
+  <div class="gt-page-chrome">
+    <div class="mx-auto max-w-5xl px-4 py-3">
+      <nav class="gt-nav">
+        <a href="index.html">Home</a>
+        <a href="tournaments.html" aria-current="page">Tournaments</a>
+        <a href="cornhole-tournament.html">Cornhole</a>
+        <a href="games.html">Games</a>
+        <a href="players.html">Players</a>
+        <a href="teams.html">Teams</a>
+        <a href="history.html">History</a>
+      </nav>
+    </div>
+  </div>
   <div class="mx-auto max-w-5xl px-4 py-10">
-    <nav class="gt-nav mb-6 flex flex-wrap gap-x-4 gap-y-2 text-lg font-bold">
-      <a href="index.html">Home</a>
-      <a href="tournaments.html">Tournaments</a>
-      <a href="games.html">Games</a>
-      <a href="players.html">Players</a>
-      <a href="teams.html">Teams</a>
-      <a href="history.html">History</a>
-      <a href="cornhole-tournament.html">Cornhole</a>
-    </nav>
-    <header class="mb-8">
+    <header class="gt-page-header">
       <p class="gt-eyebrow">Game Tracker</p>
       <h1 class="gt-title mt-1 text-3xl font-semibold tracking-tight">Tournaments</h1>
       <p class="gt-subtitle mt-2">Add, edit, or remove tournaments. Open an active tournament to record games and winners.</p>
@@ -55,13 +64,13 @@
       <div>
         <h2 class="gt-title mb-4 text-2xl font-semibold tracking-tight">List of Active Tournaments</h2>
         <section class="gt-panel p-5">
-          <p id="list-status" class="mb-3 text-sm gt-muted">Loading tournaments…</p>
-          <ul id="tournament-list" class="divide-y divide-wood/20"></ul>
+          <p id="list-status" class="mb-3 text-sm gt-muted">Loading tournaments...</p>
+          <ul id="tournament-list" class="divide-y divide-line"></ul>
           <p id="empty-state" class="hidden text-sm gt-muted">No active tournaments.</p>
         </section>
       </div>
 
-      <section id="form-section" class="gt-panel border-2 border-wood/40 p-5">
+      <section id="form-section" class="gt-panel border-2 border-line p-5">
         <div class="mb-4">
           <h2 id="form-title" class="font-display text-lg font-semibold text-ink">Add a new active Tournament</h2>
         </div>
@@ -87,17 +96,17 @@
             <p id="name-error" class="mt-1 hidden text-sm text-red-600">Name is required.</p>
           </div>
           <fieldset>
-            <legend class="gt-label">Select type of Scoring (Wins or Points) <span class="text-red-600">*</span></legend>
-            <div class="gt-panel-muted mt-2 space-y-2 p-3">
-              <label class="flex items-center gap-2 text-sm text-ink">
-                <input type="radio" name="gtScoringMode" value="gameWins" required
-                  class="border-wood/40 text-felt focus:ring-felt/30" />
-                <span>Game wins (count each game won)</span>
+            <legend class="gt-label">Scoring <span class="text-red-600">*</span></legend>
+            <div class="gt-choice-group gt-choice-group-2 mt-2" role="radiogroup" aria-label="Scoring type">
+              <label class="gt-choice">
+                <input type="radio" name="gtScoringMode" value="gameWins" required class="gt-choice-input" />
+                <span class="gt-choice-label">Game wins</span>
+                <span class="gt-choice-desc">Count each game won</span>
               </label>
-              <label class="flex items-center gap-2 text-sm text-ink">
-                <input type="radio" name="gtScoringMode" value="points"
-                  class="border-wood/40 text-felt focus:ring-felt/30" />
-                <span>Track Top 3 Places with 5/3/1 points</span>
+              <label class="gt-choice">
+                <input type="radio" name="gtScoringMode" value="points" class="gt-choice-input" />
+                <span class="gt-choice-label">Top 3 places</span>
+                <span class="gt-choice-desc">5 / 3 / 1 points</span>
               </label>
             </div>
             <p id="scoring-error" class="mt-1 hidden text-sm text-red-600">
@@ -108,17 +117,17 @@
             </p>
           </fieldset>
           <fieldset>
-            <legend class="gt-label">Tournament Type <span class="text-red-600">*</span></legend>
-            <div class="gt-panel-muted mt-2 space-y-2 p-3">
-              <label class="flex items-center gap-2 text-sm text-ink">
-                <input type="radio" name="gtCompetitorType" value="player" required
-                  class="border-wood/40 text-felt focus:ring-felt/30" />
-                <span>Players</span>
+            <legend class="gt-label">Tournament type <span class="text-red-600">*</span></legend>
+            <div class="gt-choice-group gt-choice-group-2 mt-2" role="radiogroup" aria-label="Tournament type">
+              <label class="gt-choice">
+                <input type="radio" name="gtCompetitorType" value="player" required class="gt-choice-input" />
+                <span class="gt-choice-label">Players</span>
+                <span class="gt-choice-desc">Individuals compete</span>
               </label>
-              <label class="flex items-center gap-2 text-sm text-ink">
-                <input type="radio" name="gtCompetitorType" value="team"
-                  class="border-wood/40 text-felt focus:ring-felt/30" />
-                <span>Teams</span>
+              <label class="gt-choice">
+                <input type="radio" name="gtCompetitorType" value="team" class="gt-choice-input" />
+                <span class="gt-choice-label">Teams</span>
+                <span class="gt-choice-desc">Teams compete</span>
               </label>
             </div>
             <p id="competitor-type-error" class="mt-1 hidden text-sm text-red-600">
@@ -129,14 +138,14 @@
             </p>
           </fieldset>
           <div id="competitor-options-section" class="hidden">
-            <p id="competitors-label" class="gt-label mb-2">Players <span class="text-red-600">*</span></p>
-            <div id="tournament-players" class="gt-panel-muted space-y-2 p-3"></div>
+            <p id="competitors-label" class="gt-label mb-2">Select Players <span class="text-red-600">*</span></p>
+            <div id="tournament-players" class="space-y-2"></div>
             <p id="players-empty" class="mt-2 hidden text-sm font-bold text-ink">No players available. Add players first.</p>
             <p id="players-error" class="mt-1 hidden text-sm text-red-600">Select at least one player.</p>
             <p id="players-locked" class="mt-1 hidden text-sm gt-muted">Players cannot be changed after a tournament has ended.</p>
           </div>
           <div class="flex flex-wrap items-center gap-2">
-            <button type="submit" id="submit-btn" class="gt-btn text-sm">Add tournament</button>
+            <button type="submit" id="submit-btn" class="gt-btn text-sm" disabled>Add tournament</button>
             <a id="add-player-link" href="players.html" class="gt-btn hidden text-sm">Add Player</a>
             <button type="button" id="cancel-edit-btn" class="gt-btn-secondary hidden text-sm">Cancel</button>
           </div>
@@ -146,8 +155,8 @@
     </div>
   </div>
 
-  <script src="js/common.js?v=20260811c" defer></script>
-  <script src="js/play-winners.js?v=20260811c" defer></script>
-  <script src="js/tournaments.js?v=20260811c" defer></script>
+  <script src="js/common.js?v=20260827a" defer></script>
+  <script src="js/play-winners.js?v=20260827a" defer></script>
+  <script src="js/tournaments.js?v=20260827c" defer></script>
 </body>
 </html>

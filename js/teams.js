@@ -174,15 +174,12 @@
 
     for (const player of GameTracker.sortByName(players)) {
       const label = document.createElement("label");
-      label.className = "flex items-center gap-2 text-sm text-ink";
-      label.innerHTML = `
-        <input
-          type="checkbox"
-          data-player-id="${escapeHtml(player.id)}"
-          class="rounded border-wood/40 text-felt focus:ring-felt/30"
-        />
-        <span>${escapeHtml(playerLabel(player))}</span>
-      `;
+      label.className = "gt-pick";
+      label.innerHTML = GameTracker.pickRowHtml({
+        idAttr: "data-player-id",
+        idValue: escapeHtml(player.id),
+        htmlLabel: escapeHtml(playerLabel(player)),
+      });
       playersContainer.appendChild(label);
     }
 
@@ -282,7 +279,7 @@
   }
 
   async function loadTeams() {
-    listStatus.textContent = "Loading teams…";
+    listStatus.textContent = "Loading teams...";
     listStatus.classList.remove("hidden");
     emptyState.classList.add("hidden");
     try {

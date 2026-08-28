@@ -52,7 +52,7 @@
     const names = GameTracker.sortByName(ids, (id) => labeler(id))
       .map((id) => escapeHtml(labeler(id)))
       .join(", ");
-    return `<p class="mt-1 text-sm gt-muted">${heading}: ${names}</p>`;
+    return `<p class="mt-1 text-sm gt-muted"><span class="font-bold">${heading}:</span> ${names}</p>`;
   }
 
   function formatWinners(tournament) {
@@ -93,7 +93,7 @@
           const tieLabel = group.entries.length > 1 ? " (tie)" : "";
           const pointLabel = `${group.score} point${group.score === 1 ? "" : "s"}`;
           const eachLabel = group.entries.length > 1 ? " each" : "";
-          return `<p class="mt-1 text-sm font-bold text-felt-dark">${placeLabels[index]}${tieLabel}: ${names.join(", ")} — ${pointLabel}${eachLabel}</p>`;
+          return `<p class="mt-1 text-sm"><span class="gt-place-label gt-place-label--${PLACE_MODS[index]}">${placeLabels[index]}</span>${tieLabel}: ${names.join(", ")} - ${pointLabel}${eachLabel}</p>`;
         })
         .join("");
 
@@ -188,7 +188,7 @@
     for (const year of years) {
       const isCurrentYear = year === currentYear;
       const section = document.createElement("div");
-      section.className = "rounded-md border border-wood/25 bg-parchment-deep/40 p-3";
+      section.className = "rounded-md border border-line bg-panel-muted p-3";
       section.setAttribute("data-year-section", year);
 
       const yearLabel =
@@ -206,7 +206,7 @@
         >
           ${escapeHtml(yearLabel)}
         </a>
-        <ul class="mt-2 divide-y divide-wood/20${isCurrentYear ? "" : " hidden"}" data-year-list="${escapeHtml(year)}">
+        <ul class="mt-2 divide-y divide-line${isCurrentYear ? "" : " hidden"}" data-year-list="${escapeHtml(year)}">
           ${byYear[year].map(tournamentItemHtml).join("")}
         </ul>
       `;

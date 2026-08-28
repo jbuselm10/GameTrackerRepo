@@ -1,5 +1,5 @@
 /**
- * Cornhole bracket engine — pure functions, no DOM.
+ * Cornhole bracket engine - pure functions, no DOM.
  */
 window.GameTracker = window.GameTracker || {};
 window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
@@ -226,7 +226,7 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
 
   /**
    * Entry-order winners bracket.
-   * Odd number of entrants → a randomly chosen entrant gets a one-team bye
+   * Odd number of entrants -> a randomly chosen entrant gets a one-team bye
    * match and plays in the next round only. When a round would still send an
    * odd number of entrants forward, one of its real two-team matches is
    * randomly marked to skip the following round so the next round always has
@@ -730,7 +730,7 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
         afterLosersSlotFilled(reserved, byId);
         return;
       }
-      // Both slots filled — fall through for any other WR loser.
+      // Both slots filled - fall through for any other WR loser.
     }
 
     const lbMatches = matches
@@ -928,7 +928,7 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
         }
       }
       if (placed) return;
-      // No open spots in this round — try the following round.
+      // No open spots in this round - try the following round.
     }
 
     const gf = matches.find((m) => m.bracket === SIDES.GRAND_FINAL);
@@ -1132,7 +1132,7 @@ window.GameTracker.Cornhole = window.GameTracker.Cornhole || {};
         if (reset && reset.active && reset.status === STATUSES.COMPLETED) {
           return { first: reset.winnerId, second: reset.loserId };
         }
-        // LB must win Game 2 as well — no champion yet.
+        // LB must win Game 2 as well - no champion yet.
         return { first: null, second: null };
       }
 

@@ -7,74 +7,84 @@
   <link rel="icon" href="favicon.png" type="image/png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Nunito:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       theme: {
         extend: {
           colors: {
-            felt: { DEFAULT: "#1f6b4a", dark: "#154f36", light: "#2d8a60" },
-            wood: { DEFAULT: "#8b6914", deep: "#5c4510", muted: "#a8893a" },
-            parchment: { DEFAULT: "#f3ebd8", deep: "#e8dcc4" },
-            ink: { DEFAULT: "#1f1a14", muted: "#5c5348" },
+            surface: "#F4F6F3",
+            panel: { DEFAULT: "#FFFFFF", muted: "#EEF1EE" },
+            line: "#D8DED8",
+            accent: { DEFAULT: "#1B7A4E", soft: "#E3F3EA", dark: "#145C3A" },
+            pop: { DEFAULT: "#C9A227", soft: "#F5E6B8" },
+            felt: { DEFAULT: "#1B7A4E", dark: "#145C3A", light: "#2d9a64" },
+            wood: { DEFAULT: "#D8DED8", deep: "#5E6B62", muted: "#C5CFC5" },
+            parchment: { DEFAULT: "#FFFFFF", deep: "#EEF1EE" },
+            ink: { DEFAULT: "#1A221C", muted: "#5E6B62" },
             gold: { DEFAULT: "#c9a227", soft: "#f5e6b8" },
           },
           fontFamily: {
-            display: ['"Fraunces"', "Georgia", "serif"],
-            body: ['"Nunito"', "system-ui", "sans-serif"],
+            display: ['"Barlow Condensed"', "system-ui", "sans-serif"],
+            body: ['"Inter"', "system-ui", "sans-serif"],
           },
         },
       },
     };
   </script>
-  <link rel="stylesheet" href="css/theme.css?v=20260812g" />
-  <script src="js/config.js?v=20260812g"></script>
+  <link rel="stylesheet" href="css/theme.css?v=20260827m" />
+  <script src="js/config.js?v=20260827a"></script>
   <script src="https://browser.sentry-cdn.com/8.55.0/bundle.replay.min.js" crossorigin="anonymous"></script>
-  <script src="js/sentry-init.js?v=20260812g"></script>
+  <script src="js/sentry-init.js?v=20260827a"></script>
 </head>
 <body class="gt-body font-body">
-  <div class="gt-wood-strip"></div>
-  <div class="mx-auto max-w-5xl px-6 py-14">
-    <nav class="gt-nav mb-8 flex flex-wrap gap-x-6 gap-y-2 text-xl font-bold">
-      <a href="index.html">Home</a>
-      <a href="tournaments.html">Tournaments</a>
-      <a href="games.html">Games</a>
-      <a href="players.html">Players</a>
-      <a href="teams.html">Teams</a>
-      <a href="history.html">History</a>
-      <a href="cornhole-tournament.html">Cornhole</a>
-    </nav>
-    <header class="mb-12">
-      <h1 class="gt-title text-5xl font-bold tracking-tight">Friends and Family Game Tracker</h1>
-      <p class="gt-subtitle mt-4 text-xl">Keep score through a night of games and crown the day’s champion.</p>
+  <div class="gt-accent-strip"></div>
+  <div class="gt-page-chrome">
+    <div class="mx-auto max-w-5xl px-6 py-4">
+      <nav class="gt-nav">
+        <a href="index.html" aria-current="page">Home</a>
+        <a href="tournaments.html">Tournaments</a>
+        <a href="cornhole-tournament.html">Cornhole</a>
+        <a href="games.html">Games</a>
+        <a href="players.html">Players</a>
+        <a href="teams.html">Teams</a>
+        <a href="history.html">History</a>
+      </nav>
+    </div>
+  </div>
+  <div class="mx-auto max-w-5xl px-6 py-12">
+    <header class="gt-page-header max-w-2xl">
+      <p class="gt-eyebrow">Game night</p>
+      <h1 class="gt-title mt-2 text-5xl font-bold tracking-tight">Friends and Family Game Tracker</h1>
+      <p class="gt-subtitle mt-4 text-xl">Keep score through a night of games and crown the day's champion.</p>
     </header>
 
-    <nav class="space-y-6">
-      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
-        <a href="tournaments.html" class="gt-home-btn">Tournaments</a>
-        <p class="gt-home-desc">Start a night or weekend of games and track every win as you go. <strong>Click Tournaments to begin a new tournament.</strong></p>
-      </div>
-      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
-        <a href="games.html" class="gt-home-btn">Games</a>
-        <p class="gt-home-desc">Your shelf of titles ready for tournament play. <strong>Click Games to browse the list or add a new game.</strong></p>
-      </div>
-      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
-        <a href="players.html" class="gt-home-btn">Players</a>
-        <p class="gt-home-desc">The family and friends who make up your roster. <strong>Click Players to view, add, or update player names.</strong></p>
-      </div>
-      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
-        <a href="teams.html" class="gt-home-btn">Teams</a>
-        <p class="gt-home-desc">Group players into teams for team tournaments. <strong>Click Teams to create teams and assign members.</strong></p>
-      </div>
-      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
-        <a href="history.html" class="gt-home-btn">History</a>
-        <p class="gt-home-desc">Look back at finished nights — winners, standings, and final summaries after the games are done. <strong>Click History to view history.</strong></p>
-      </div>
-      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
-        <a href="cornhole-tournament.html" class="gt-home-btn">Cornhole Tournament</a>
-        <p class="gt-home-desc">Cornhole is a separate tournament from the main tournament, and only one Cornhole tournament can be run at a time. If Cornhole is part of a larger tournament, the results must be entered into that tournament. <strong>Click Cornhole Tournament to open Cornhole.</strong></p>
-      </div>
+    <nav class="grid gap-4 sm:grid-cols-2" aria-label="Main destinations">
+      <a href="tournaments.html" class="gt-home-tile">
+        <h2 class="gt-home-tile-title">Tournaments</h2>
+        <p class="gt-home-tile-desc">Start a night of games and track every win as you go.</p>
+      </a>
+      <a href="cornhole-tournament.html" class="gt-home-tile">
+        <h2 class="gt-home-tile-title">Cornhole</h2>
+        <p class="gt-home-tile-desc">Run a single- or double-elimination Cornhole bracket.</p>
+      </a>
+      <a href="games.html" class="gt-home-tile">
+        <h2 class="gt-home-tile-title">Games</h2>
+        <p class="gt-home-tile-desc">Your shelf of titles ready for tournament play.</p>
+      </a>
+      <a href="players.html" class="gt-home-tile">
+        <h2 class="gt-home-tile-title">Players</h2>
+        <p class="gt-home-tile-desc">The family and friends who make up your roster.</p>
+      </a>
+      <a href="teams.html" class="gt-home-tile">
+        <h2 class="gt-home-tile-title">Teams</h2>
+        <p class="gt-home-tile-desc">Group players into teams for team tournaments.</p>
+      </a>
+      <a href="history.html" class="gt-home-tile">
+        <h2 class="gt-home-tile-title">History</h2>
+        <p class="gt-home-tile-desc">Winners, standings, and summaries from finished nights.</p>
+      </a>
     </nav>
   </div>
 </body>

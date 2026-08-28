@@ -88,7 +88,7 @@
     for (const player of GameTracker.sortByName(players)) {
       const li = document.createElement("li");
       li.className =
-        "flex flex-wrap items-center justify-between gap-2 rounded-lg border border-wood/20 bg-parchment-deep/40 px-3 py-2";
+        "flex flex-col gap-2 rounded-lg border border-line bg-panel-muted px-3 py-2";
 
       const nickname = player.nickname
         ? `<span class="gt-muted"> (${escapeHtml(player.nickname)})</span>`
@@ -114,7 +114,7 @@
   }
 
   async function loadPlayers() {
-    listStatus.textContent = "Loading players…";
+    listStatus.textContent = "Loading players...";
     listStatus.classList.remove("hidden");
     emptyState.classList.add("hidden");
     try {
@@ -221,7 +221,7 @@
       const label = player.nickname
         ? `${player.name} (${player.nickname})`
         : player.name;
-      if (!window.confirm(`Delete ${label}?`)) {
+      if (!window.confirm(`Delete ${label}? Players in an active tournament cannot be removed.`)) {
         return;
       }
       try {
