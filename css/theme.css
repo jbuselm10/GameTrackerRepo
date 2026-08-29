@@ -145,17 +145,6 @@ body.gt-body {
   color: var(--ink);
 }
 
-.gt-panel-hover {
-  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-}
-
-.gt-panel-hover:hover {
-  transform: translateY(-3px);
-  border-color: var(--accent-light);
-  background: var(--accent-soft);
-  box-shadow: 0 10px 24px rgba(27, 122, 78, 0.12);
-}
-
 .gt-panel-muted {
   background: var(--panel-muted);
   border: 1px solid var(--line);
@@ -532,12 +521,17 @@ select.gt-input option.gt-option-taken {
 }
 
 button.gt-choice:hover {
-  border-color: var(--accent);
-  transform: translateY(-1px);
+  border-color: var(--accent-light);
+  background: var(--accent-soft);
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgba(27, 122, 78, 0.12);
 }
 
 .gt-choice:hover {
-  border-color: var(--accent);
+  border-color: var(--accent-light);
+  background: var(--accent-soft);
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgba(27, 122, 78, 0.12);
 }
 
 .gt-choice:has(input:checked) {
@@ -549,6 +543,19 @@ button.gt-choice:hover {
 .gt-choice:has(input:disabled) {
   opacity: 0.55;
   cursor: not-allowed;
+}
+
+.gt-choice:has(input:disabled):hover {
+  transform: none;
+  border-color: var(--line);
+  background: var(--panel);
+  box-shadow: none;
+}
+
+.gt-choice:has(input:disabled:checked):hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 1px var(--accent);
 }
 
 .gt-choice:has(input.gt-pending:checked),
