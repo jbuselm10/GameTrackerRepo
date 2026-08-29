@@ -125,8 +125,28 @@ function playerDisplayLabel(player, fallbackId) {
 }
 
 /**
+ * Team display name with members: "Team Name (Player1, Player2)".
+ */
+function teamDisplayLabel(team, players, fallbackId) {
+  if (!team) return fallbackId || "";
+  const playerList = Array.isArray(players) ? players : [];
+  const memberIds = Array.isArray(team.playerIds) ? team.playerIds : [];
+  const memberNames = GameTracker.sortByName(memberIds, (playerId) => {
+    const player = playerList.find((item) => item.id === playerId);
+    return playerDisplayLabel(player, playerId);
+  }).map((playerId) => {
+    const player = playerList.find((item) => item.id === playerId);
+    return playerDisplayLabel(player, playerId);
+  });
+  return memberNames.length
+    ? `${team.name} (${memberNames.join(", ")})`
+    : team.name;
+}
+
+/**
  * Returns a function (id) => display label for competitors in a tournament.
- * For player tournaments, labels come from players; for team tournaments, from teams.
+ * For player tournaments, labels come from players; for team tournaments, from teams
+ * with member names in parentheses.
  */
 function buildCompetitorLabeler(tournament, players, teams) {
   const type = getCompetitorType(tournament);
@@ -137,7 +157,7 @@ function buildCompetitorLabeler(tournament, players, teams) {
     const key = String(id || "");
     if (type === "team") {
       const team = teamList.find((t) => t.id === key);
-      return team ? team.name : key;
+      return teamDisplayLabel(team, playerList, key);
     }
     const player = playerList.find((p) => p.id === key);
     return playerDisplayLabel(player, key);

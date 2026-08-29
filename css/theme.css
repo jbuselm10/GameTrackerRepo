@@ -145,6 +145,17 @@ body.gt-body {
   color: var(--ink);
 }
 
+.gt-panel-hover {
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.gt-panel-hover:hover {
+  transform: translateY(-3px);
+  border-color: var(--accent-light);
+  background: var(--accent-soft);
+  box-shadow: 0 10px 24px rgba(27, 122, 78, 0.12);
+}
+
 .gt-panel-muted {
   background: var(--panel-muted);
   border: 1px solid var(--line);

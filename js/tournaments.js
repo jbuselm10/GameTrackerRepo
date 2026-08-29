@@ -375,8 +375,7 @@
           : "";
         display = `<strong>${escapeHtml(option.name)}</strong>${members}`;
       } else {
-        const nickname = option.nickname ? ` (${escapeHtml(option.nickname)})` : "";
-        display = `${escapeHtml(option.name)}${nickname}`;
+        display = escapeHtml(playerDisplayLabel(option, option.id));
       }
       label.innerHTML = GameTracker.pickRowHtml({
         idAttr: "data-competitor-id",
@@ -486,39 +485,8 @@
       return `<p class="gt-meta-line">No ${heading.toLowerCase()}</p>`;
     }
     const labeler = buildCompetitorLabeler(tournament, players, teams);
-    const names = GameTracker.sortByName(ids, (id) => {
-      if (type !== "team") {
-        return labeler(id);
-      }
-
-      const team = teams.find((item) => item.id === id);
-      return team?.name || labeler(id);
-    })
-      .map((id) => {
-        if (type !== "team") {
-          return labeler(id);
-        }
-
-        const team = teams.find((item) => item.id === id);
-        if (!team) {
-          return labeler(id);
-        }
-
-        const memberNames = GameTracker.sortByName(
-          Array.isArray(team.playerIds) ? team.playerIds : [],
-          (playerId) => {
-            const player = players.find((item) => item.id === playerId);
-            return playerDisplayLabel(player, playerId);
-          }
-        ).map((playerId) => {
-          const player = players.find((item) => item.id === playerId);
-          return playerDisplayLabel(player, playerId);
-        });
-        return memberNames.length
-          ? `${team.name} (${memberNames.join(", ")})`
-          : team.name;
-      })
-      .map(escapeHtml)
+    const names = GameTracker.sortByName(ids, (id) => labeler(id))
+      .map((id) => escapeHtml(labeler(id)))
       .join(", ");
     return `<p class="gt-meta-line"><span class="gt-meta-label">${heading}:</span> ${names}</p>`;
   }
@@ -566,7 +534,7 @@
             Standings
           </a>
           <button type="button" data-action="edit" data-id="${escapeHtml(tournament.id)}"
-            class="gt-btn-secondary text-sm">
+            class="gt-btn text-sm">
             Edit
           </button>
           <button type="button" data-action="delete" data-id="${escapeHtml(tournament.id)}"

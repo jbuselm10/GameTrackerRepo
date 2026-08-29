@@ -631,14 +631,14 @@
       syncSavePlayersBtnHighlight();
       return;
     }
-    addPlayersList.innerHTML = GameTracker.sortByName(options)
+    addPlayersList.innerHTML = GameTracker.sortByName(options, (item) =>
+      isTeamTournament() ? teamDisplayLabel(item, players, item.id) : playerDisplayLabel(item, item.id)
+    )
       .map((item) => {
         const checked = rosterIds.includes(item.id) ? "checked" : "";
         const label = isTeamTournament()
-          ? item.name
-          : item.nickname
-            ? `${item.name} (${item.nickname})`
-            : item.name;
+          ? teamDisplayLabel(item, players, item.id)
+          : playerDisplayLabel(item, item.id);
         return `
           <label class="gt-pick">
             <input type="checkbox" name="player" value="${escapeHtml(item.id)}" ${checked}
